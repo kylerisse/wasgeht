@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 // Server represents the ping server
 type Server struct {
-	hosts map[string]host.Host
+	hosts map[string]*host.Host
 	done  chan struct{}
 	wg    sync.WaitGroup
 }
@@ -36,6 +37,8 @@ func NewServer(hostFile string) (*Server, error) {
 func (s *Server) Start() {
 	log.Println("Starting workers for each host...")
 
+	s.startAPI()
+
 	for name, host := range s.hosts {
 		s.wg.Add(1)
 		go s.worker(name, host)
@@ -50,7 +53,7 @@ func (s *Server) Stop() {
 }
 
 // worker periodically pings the assigned host
-func (s *Server) worker(name string, h host.Host) {
+func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
 	// Add a random delay of 1-59 seconds before starting
@@ -62,8 +65,11 @@ func (s *Server) worker(name string, h host.Host) {
 		latency, err := h.Ping(name, 3*time.Second)
 		if err != nil {
 			log.Printf("Worker for host %s: Initial ping failed (%v)\n", name, err)
+			h.Alive = false
 		} else {
 			log.Printf("Worker for host %s: Initial ping successful, Latency=%v\n", name, latency)
+			h.Alive = true
+			h.Latency = latency
 		}
 	case <-s.done:
 		log.Printf("Worker for host %s received shutdown signal before starting\n", name)
@@ -80,8 +86,11 @@ func (s *Server) worker(name string, h host.Host) {
 			latency, err := h.Ping(name, 3*time.Second)
 			if err != nil {
 				log.Printf("Worker for host %s: Ping failed (%v)\n", name, err)
+				h.Alive = false
 			} else {
 				log.Printf("Worker for host %s: Latency=%v (Ping successful)\n", name, latency)
+				h.Alive = true
+				h.Latency = latency
 			}
 		case <-s.done:
 			log.Printf("Worker for host %s received shutdown signal.\n", name)
@@ -91,7 +100,7 @@ func (s *Server) worker(name string, h host.Host) {
 }
 
 // loadHosts reads the JSON file and populates a map of host configurations
-func loadHosts(filePath string) (map[string]host.Host, error) {
+func loadHosts(filePath string) (map[string]*host.Host, error) {
 	file, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file %s: %w", filePath, err)
@@ -102,5 +111,37 @@ func loadHosts(filePath string) (map[string]host.Host, error) {
 		return nil, fmt.Errorf("could not parse JSON: %w", err)
 	}
 
-	return hosts, nil
+	// Convert to a map of pointers
+	hostPointers := make(map[string]*host.Host)
+	for name, h := range hosts {
+		h := h // Create a new instance for the pointer
+		hostPointers[name] = &h
+	}
+
+	return hostPointers, nil
+}
+
+func (s *Server) startAPI() {
+	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
+		s.handleAPI(w, r)
+	})
+
+	go func() {
+		log.Println("Starting API server on port 1982...")
+		if err := http.ListenAndServe(":1982", nil); err != nil {
+			log.Fatalf("Failed to start API server: %v\n", err)
+		}
+	}()
+}
+
+func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
+	hosts := make(map[string]host.Host)
+	for name, h := range s.hosts {
+		hosts[name] = *h
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(hosts); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
