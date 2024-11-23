@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Status Dashboard</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            cursor: pointer;
+        }
+        tr.up {
+            background-color: #c8e6c9; /* Light green */
+        }
+        tr.down {
+            background-color: #ffcccb; /* Light red */
+        }
+    </style>
+</head>
+<body>
+    <h1>Host Status Dashboard</h1>
+    <table id="hostTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">Host</th>
+                <th onclick="sortTable(1)">Ping</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        let sortOrder = [true, true]; // Keeps track of sorting order for each column (true = ascending, false = descending)
+
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("/api")
+                .then(response => response.json())
+                .then(data => {
+                    updateTable(data);
+                })
+                .catch(error => console.error('Error fetching host data:', error));
+        });
+
+        function updateTable(data) {
+            const tbody = document.getElementById("hostTable").getElementsByTagName("tbody")[0];
+            tbody.innerHTML = ''; // Clear existing rows
+
+            for (const [host, info] of Object.entries(data)) {
+                const row = tbody.insertRow();
+                row.className = info.alive ? "up" : "down";
+
+                const cellHost = row.insertCell(0);
+                cellHost.textContent = host;
+
+                const cellStatus = row.insertCell(1);
+                cellStatus.textContent = info.alive ? "UP" : "DOWN";
+            }
+        }
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById("hostTable");
+            const rows = Array.from(table.rows).slice(1); // Skip header row
+            const isAscending = sortOrder[columnIndex];
+
+            rows.sort((a, b) => {
+                const aText = a.cells[columnIndex].textContent;
+                const bText = b.cells[columnIndex].textContent;
+
+                if (columnIndex === 1) { // Sort by status: UP before DOWN
+                    if (aText === bText) return 0;
+                    return (aText === "UP" ? -1 : 1) * (isAscending ? 1 : -1);
+                } else { // Sort by host name
+                    return aText.localeCompare(bText) * (isAscending ? 1 : -1);
+                }
+            });
+
+            // Rebuild table body
+            const tbody = table.getElementsByTagName("tbody")[0];
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+
+            // Toggle sort order for next click
+            sortOrder[columnIndex] = !sortOrder[columnIndex];
+        }
+    </script>
+</body>
+</html>

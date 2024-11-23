@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -122,6 +123,11 @@ func loadHosts(filePath string) (map[string]*host.Host, error) {
 }
 
 func (s *Server) startAPI() {
+	// Serve index.html for "/"
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join("html", "index.html"))
+	})
+
 	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		s.handleAPI(w, r)
 	})
