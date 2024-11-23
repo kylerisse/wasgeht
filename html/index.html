@@ -43,8 +43,8 @@
     <table id="hostTable">
         <thead>
             <tr>
-                <th onclick="sortTable(0)">Host</th>
-                <th onclick="sortTable(1)">Ping</th>
+                <th onclick="handleSort(0)">Host</th>
+                <th onclick="handleSort(1)">Ping</th>
             </tr>
         </thead>
         <tbody>
@@ -107,6 +107,15 @@
             }
         }
 
+        function handleSort(columnIndex) {
+            // Toggle the sort order for the column
+            sortOrder[columnIndex] = !sortOrder[columnIndex];
+            // Set the sorted column index
+            sortedColumn = columnIndex;
+            // Sort the table
+            sortTable(columnIndex);
+        }
+
         function sortTable(columnIndex, toggleSortOrder = true) {
             const table = document.getElementById("hostTable");
             const rows = Array.from(table.rows).slice(1); // Skip header row
@@ -129,13 +138,20 @@
             tbody.innerHTML = '';
             sortedRows.forEach(row => tbody.appendChild(row));
 
-            // Toggle sort order for next click if needed
-            if (toggleSortOrder) {
-                sortOrder[columnIndex] = !sortOrder[columnIndex];
-            }
-
             // Track the sorted column index
             sortedColumn = columnIndex;
+
+            // Update headers to reflect sorting direction
+            updateHeaders();
+        }
+
+        function updateHeaders() {
+            const headers = document.querySelectorAll("#hostTable th");
+
+            headers.forEach((header) => {
+                // Simply clear any arrows that might exist
+                header.textContent = header.textContent.replace(/[\u25B2\u25BC]/g, '');
+            });
         }
     </script>
 </body>
