@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Host Status Dashboard</title>
     <style>
+        body {
+            position: relative;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -23,9 +26,19 @@
         tr.down {
             background-color: #ffcccb; /* Light red */
         }
+        #countdown {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+    <div id="countdown">Next refresh in: 5s</div>
     <h1>Host Status Dashboard</h1>
     <table id="hostTable">
         <thead>
@@ -40,15 +53,34 @@
 
     <script>
         let sortOrder = [true, true]; // Keeps track of sorting order for each column (true = ascending, false = descending)
+        let sortedColumn = -1; // Keeps track of which column is currently sorted (-1 means no column is sorted)
+        let countdown = 5; // Refresh countdown in seconds
 
         document.addEventListener("DOMContentLoaded", function () {
+            // Initial load of the table data
+            loadTableData();
+
+            // Set interval to refresh table data every 5 seconds
+            setInterval(loadTableData, 5000);
+
+            // Set interval to update countdown every second
+            setInterval(updateCountdown, 1000);
+        });
+
+        function loadTableData() {
             fetch("/api")
                 .then(response => response.json())
                 .then(data => {
                     updateTable(data);
+                    countdown = 5; // Reset countdown after loading new data
+
+                    // Apply sorting again if a column is already sorted
+                    if (sortedColumn !== -1) {
+                        sortTable(sortedColumn, false);
+                    }
                 })
                 .catch(error => console.error('Error fetching host data:', error));
-        });
+        }
 
         function updateTable(data) {
             const tbody = document.getElementById("hostTable").getElementsByTagName("tbody")[0];
@@ -66,12 +98,21 @@
             }
         }
 
-        function sortTable(columnIndex) {
+        function updateCountdown() {
+            countdown -= 1;
+            document.getElementById("countdown").textContent = `Next refresh in: ${countdown}s`;
+
+            if (countdown <= 0) {
+                countdown = 5;
+            }
+        }
+
+        function sortTable(columnIndex, toggleSortOrder = true) {
             const table = document.getElementById("hostTable");
             const rows = Array.from(table.rows).slice(1); // Skip header row
             const isAscending = sortOrder[columnIndex];
 
-            rows.sort((a, b) => {
+            const sortedRows = rows.sort((a, b) => {
                 const aText = a.cells[columnIndex].textContent;
                 const bText = b.cells[columnIndex].textContent;
 
@@ -86,10 +127,15 @@
             // Rebuild table body
             const tbody = table.getElementsByTagName("tbody")[0];
             tbody.innerHTML = '';
-            rows.forEach(row => tbody.appendChild(row));
+            sortedRows.forEach(row => tbody.appendChild(row));
 
-            // Toggle sort order for next click
-            sortOrder[columnIndex] = !sortOrder[columnIndex];
+            // Toggle sort order for next click if needed
+            if (toggleSortOrder) {
+                sortOrder[columnIndex] = !sortOrder[columnIndex];
+            }
+
+            // Track the sorted column index
+            sortedColumn = columnIndex;
         }
     </script>
 </body>
