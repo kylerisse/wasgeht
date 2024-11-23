@@ -1,7 +1,7 @@
 # wasgeht
 
 build:
-	go build -o wasgeht cmd/wasgeht/main.go
+	go build -o wasgehtd cmd/wasgehtd/main.go
 
 deps:
 	go mod verify

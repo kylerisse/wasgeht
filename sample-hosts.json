@@ -19,5 +19,12 @@
   "zugzug": {},
   "google": {
     "address": "8.8.8.8"
+  },
+  "fake1": {},
+  "fake2": {},
+  "fake3": {},
+  "fake4": {},
+  "onedotone": {
+    "address": "1.1.1.1"
   }
 }
