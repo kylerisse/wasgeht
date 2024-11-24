@@ -64,6 +64,7 @@ func (s *Server) worker(name string, h *host.Host) {
 	case <-time.After(startDelay):
 		// After the random delay, perform the first ping
 		latency, err := h.Ping(name, 3*time.Second)
+		h.LastUpdate = time.Now().Unix()
 		if err != nil {
 			log.Printf("Worker for host %s: Initial ping failed (%v)\n", name, err)
 			h.Alive = false
