@@ -86,6 +86,7 @@ func (s *Server) worker(name string, h *host.Host) {
 		select {
 		case <-ticker.C:
 			latency, err := h.Ping(name, 3*time.Second)
+			h.LastUpdate = time.Now().Unix()
 			if err != nil {
 				log.Printf("Worker for host %s: Ping failed (%v)\n", name, err)
 				h.Alive = false
