@@ -13,10 +13,10 @@ import (
 // RRD represents an RRD file, including metadata and synchronization tools.
 // It contains the file pointer, a mutex for thread safety, a list of data sources, and archive definitions.
 type RRD struct {
-	file           *os.File      // Pointer to the actual RRD file
-	mutex          *sync.RWMutex // Wrap file access
-	dataSourceName []string      // Ordered list of data sources in the rrd - ex: latency, wifi2ghz, wifi4ghz, etc
-	archiveDefs    []string      // List of archive defs - ex: hourly, daily, monthly, etc
+	host   string
+	file   *os.File      // Pointer to the actual RRD file
+	mutex  *sync.RWMutex // Wrap file access
+	graphs []*graph
 }
 
 // NewRRD creates and initializes a new RRD struct for the specified host.
@@ -42,6 +42,7 @@ func NewRRD(host string, rrdDir string) (*RRD, error) {
 			"--step", "60",
 			"DS:latency:GAUGE:120:0:U",
 			"RRA:MAX:0.5:1:60",         // 1-minute max for 1 hour (60 data points)
+			"RRA:MAX:0.5:1:240",        // 1-minute max for 4 hour (60 data points)
 			"RRA:MAX:0.5:1:480",        // 1-minute max for 8 hours (480 data points)
 			"RRA:AVERAGE:0.5:1:1440",   // 1-minute average for 1 day (1440 data points)
 			"RRA:AVERAGE:0.5:1:5760",   // 1-minute average for 4 days (5760 data points)
@@ -63,11 +64,13 @@ func NewRRD(host string, rrdDir string) (*RRD, error) {
 
 	// Initialize the RRD struct
 	rrd := &RRD{
-		file:           file,
-		mutex:          &sync.RWMutex{},
-		dataSourceName: []string{"latency"},
-		archiveDefs:    []string{"hourly", "8hours", "daily", "4days", "weekly", "monthly", "yearly"},
+		host:   host,
+		file:   file,
+		mutex:  &sync.RWMutex{},
+		graphs: []*graph{},
 	}
+
+	rrd.initGraphs()
 
 	return rrd, nil
 }
@@ -76,8 +79,8 @@ func NewRRD(host string, rrdDir string) (*RRD, error) {
 // It returns the Unix timestamp of the most recent entry.
 func (r *RRD) getLastUpdate() (int64, error) {
 	// Acquire a read lock for accessing the file.
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
 
 	// Execute the "rrdtool lastupdate" command to get the latest data point info.
 	cmd := exec.Command("rrdtool", "lastupdate", r.file.Name())
@@ -142,5 +145,40 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 		return fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
 	}
 
+	for _, graph := range r.graphs {
+		err := graph.draw()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
 	return nil
+}
+
+// initGraphs initializes a list of graphs for different time lengths and consolidation functions.
+// This method adds multiple graphs (e.g., hourly, daily, weekly, etc.) to the RRD.
+func (r *RRD) initGraphs() {
+	// Define the list of time lengths and consolidation functions for each graph.
+	timeLengthsMax := []string{"1h", "4h", "8h"}                 // Only use "MAX" for these time lengths.
+	timeLengthsAverage := []string{"1d", "4d", "1w", "1m", "1y"} // Only use "AVERAGE" for these time lengths.
+
+	// Loop over each time length to create graphs with MAX consolidation function.
+	for _, timeLength := range timeLengthsMax {
+		graph, err := newGraph(r.host, r.file.Name(), timeLength, "MAX")
+		if err != nil {
+			fmt.Printf("Failed to create MAX graph for host %s with time length %s: %v\n", r.host, timeLength, err)
+			continue
+		}
+		r.graphs = append(r.graphs, graph)
+	}
+
+	// Loop over each time length to create graphs with AVERAGE consolidation function.
+	for _, timeLength := range timeLengthsAverage {
+		graph, err := newGraph(r.host, r.file.Name(), timeLength, "AVERAGE")
+		if err != nil {
+			fmt.Printf("Failed to create AVERAGE graph for host %s with time length %s: %v\n", r.host, timeLength, err)
+			continue
+		}
+		r.graphs = append(r.graphs, graph)
+	}
 }
