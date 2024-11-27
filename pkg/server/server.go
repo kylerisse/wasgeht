@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/host"
+	"github.com/kylerisse/wasgeht/pkg/rrd"
 )
 
 // Server represents the ping server
@@ -57,6 +56,13 @@ func (s *Server) Stop() {
 func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
+	// Initialize RRD file for the host
+	rrdFile, err := rrd.NewRRD(name, "./rrds")
+	if err != nil {
+		log.Printf("Worker for host %s: Failed to initialize RRD (%v)\n", name, err)
+		return
+	}
+
 	// Add a random delay of 1-59 seconds before starting
 	startDelay := time.Duration(rand.Intn(59)+1) * time.Second
 	log.Printf("Worker for host %s will start in %v\n", name, startDelay)
@@ -64,7 +70,6 @@ func (s *Server) worker(name string, h *host.Host) {
 	case <-time.After(startDelay):
 		// After the random delay, perform the first ping
 		latency, err := h.Ping(name, 3*time.Second)
-		h.LastUpdate = time.Now().Unix()
 		if err != nil {
 			log.Printf("Worker for host %s: Initial ping failed (%v)\n", name, err)
 			h.Alive = false
@@ -72,6 +77,11 @@ func (s *Server) worker(name string, h *host.Host) {
 			log.Printf("Worker for host %s: Initial ping successful, Latency=%v\n", name, latency)
 			h.Alive = true
 			h.Latency = latency
+			// Update the RRD file with the fetched latency and timestamp
+			err = rrdFile.SafeUpdate(time.Now(), []float64{float64(latency.Microseconds())})
+			if err != nil {
+				log.Printf("Worker for host %s: Failed to update RRD (%v)\n", name, err)
+			}
 		}
 	case <-s.done:
 		log.Printf("Worker for host %s received shutdown signal before starting\n", name)
@@ -86,7 +96,6 @@ func (s *Server) worker(name string, h *host.Host) {
 		select {
 		case <-ticker.C:
 			latency, err := h.Ping(name, 3*time.Second)
-			h.LastUpdate = time.Now().Unix()
 			if err != nil {
 				log.Printf("Worker for host %s: Ping failed (%v)\n", name, err)
 				h.Alive = false
@@ -94,6 +103,11 @@ func (s *Server) worker(name string, h *host.Host) {
 				log.Printf("Worker for host %s: Latency=%v (Ping successful)\n", name, latency)
 				h.Alive = true
 				h.Latency = latency
+				// Update the RRD file with the fetched latency and timestamp
+				err = rrdFile.SafeUpdate(time.Now(), []float64{float64(latency.Microseconds())})
+				if err != nil {
+					log.Printf("Worker for host %s: Failed to update RRD (%v)\n", name, err)
+				}
 			}
 		case <-s.done:
 			log.Printf("Worker for host %s received shutdown signal.\n", name)
@@ -122,34 +136,4 @@ func loadHosts(filePath string) (map[string]*host.Host, error) {
 	}
 
 	return hostPointers, nil
-}
-
-func (s *Server) startAPI() {
-	// Serve index.html for "/"
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join("html", "index.html"))
-	})
-
-	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		s.handleAPI(w, r)
-	})
-
-	go func() {
-		log.Println("Starting API server on port 1982...")
-		if err := http.ListenAndServe(":1982", nil); err != nil {
-			log.Fatalf("Failed to start API server: %v\n", err)
-		}
-	}()
-}
-
-func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
-	hosts := make(map[string]host.Host)
-	for name, h := range s.hosts {
-		hosts[name] = *h
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(hosts); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
 }

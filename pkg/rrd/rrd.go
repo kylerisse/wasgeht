@@ -70,14 +70,14 @@ func NewRRD(host string, rrdDir string) (*RRD, error) {
 		graphs: []*graph{},
 	}
 
-	rrd.initGraphs()
+	//rrd.initGraphs()
 
 	return rrd, nil
 }
 
 // getLastUpdate retrieves the timestamp of the last update from the RRD file.
 // It returns the Unix timestamp of the most recent entry.
-func (r *RRD) getLastUpdate() (int64, error) {
+func (r *RRD) GetLastUpdate() (int64, error) {
 	// Acquire a read lock for accessing the file.
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -109,6 +109,18 @@ func (r *RRD) getLastUpdate() (int64, error) {
 		return 0, fmt.Errorf("failed to parse last update timestamp: %w", err)
 	}
 
+	// Check if the value in the second column is a valid number.
+	valueStr := strings.TrimSpace(parts[1])
+	if valueStr == "" || valueStr == "NaN" || valueStr == "U" {
+		// Value is not a valid number, return 0 and nil
+		return 0, nil
+	}
+
+	if _, err := strconv.ParseFloat(valueStr, 64); err != nil {
+		// Value is not a valid number, return 0 and nil
+		return 0, nil
+	}
+
 	return lastUpdate, nil
 }
 
@@ -118,7 +130,7 @@ func (r *RRD) getLastUpdate() (int64, error) {
 // It checks if the given timestamp is newer than the latest existing update.
 func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 	// Get the last update timestamp.
-	lastUpdate, err := r.getLastUpdate()
+	lastUpdate, err := r.GetLastUpdate()
 	if err != nil {
 		return fmt.Errorf("failed to get last update: %w", err)
 	}
@@ -145,12 +157,14 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 		return fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
 	}
 
-	for _, graph := range r.graphs {
-		err := graph.draw()
-		if err != nil {
-			fmt.Println(err)
+	/*
+		for _, graph := range r.graphs {
+			err := graph.draw()
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
-	}
+	*/
 
 	return nil
 }
