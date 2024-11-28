@@ -14,7 +14,7 @@ func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
 	// Initialize RRD file for the host
-	rrdFile, err := rrd.NewRRD(name, "./rrds")
+	rrdFile, err := rrd.NewRRD(name, "./rrds", "latency")
 	if err != nil {
 		log.Printf("Worker for host %s: Failed to initialize RRD (%v)\n", name, err)
 		return

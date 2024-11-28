@@ -40,7 +40,7 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	hosts := make(map[string]HostAPIResponse)
 	for name, h := range s.hosts {
 		// Fetch last update time from RRD
-		rrdFile, err := rrd.NewRRD(name, "./rrds")
+		rrdFile, err := rrd.NewRRD(name, "./rrds", "latency")
 		if err != nil {
 			log.Printf("API Handler: Failed to initialize RRD for host %s (%v)\n", name, err)
 			continue

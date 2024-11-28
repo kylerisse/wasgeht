@@ -14,6 +14,7 @@ import (
 // It contains the file pointer, a mutex for thread safety, a list of data sources, and archive definitions.
 type RRD struct {
 	host   string
+	metric string
 	file   *os.File      // Pointer to the actual RRD file
 	mutex  *sync.RWMutex // Wrap file access
 	graphs []*graph
@@ -29,18 +30,18 @@ type RRD struct {
 // Returns:
 //   - *RRD: A pointer to the newly created RRD struct.
 //   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(host string, rrdDir string) (*RRD, error) {
+func NewRRD(host string, rrdDir string, metric string) (*RRD, error) {
 	// verify root Dir exists
 	if _, err := os.Stat(rrdDir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("root directory %s does not exist", rrdDir)
 	}
 
-	// Open the RRD file, create it if it doesn't exist
-	rrdPath := fmt.Sprintf("%s/%s.rrd", rrdDir, host)
+	// Construct the RRD file path including the metric name
+	rrdPath := fmt.Sprintf("%s/%s_%s.rrd", rrdDir, host, metric)
 	if _, err := os.Stat(rrdPath); os.IsNotExist(err) {
 		cmd := exec.Command("rrdtool", "create", rrdPath,
 			"--step", "60",
-			"DS:latency:GAUGE:120:0:U",
+			fmt.Sprintf("DS:%s:GAUGE:120:0:U", metric),
 			"RRA:MAX:0.5:1:60",         // 1-minute max for 1 hour (60 data points)
 			"RRA:MAX:0.5:1:240",        // 1-minute max for 4 hour (60 data points)
 			"RRA:MAX:0.5:1:480",        // 1-minute max for 8 hours (480 data points)
@@ -65,6 +66,7 @@ func NewRRD(host string, rrdDir string) (*RRD, error) {
 	// Initialize the RRD struct
 	rrd := &RRD{
 		host:   host,
+		metric: metric,
 		file:   file,
 		mutex:  &sync.RWMutex{},
 		graphs: []*graph{},
@@ -178,7 +180,7 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with MAX consolidation function.
 	for _, timeLength := range timeLengthsMax {
-		graph, err := newGraph(r.host, r.file.Name(), timeLength, "MAX")
+		graph, err := newGraph(r.host, r.file.Name(), timeLength, "MAX", r.metric)
 		if err != nil {
 			fmt.Printf("Failed to create MAX graph for host %s with time length %s: %v\n", r.host, timeLength, err)
 			continue
@@ -188,7 +190,7 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with AVERAGE consolidation function.
 	for _, timeLength := range timeLengthsAverage {
-		graph, err := newGraph(r.host, r.file.Name(), timeLength, "AVERAGE")
+		graph, err := newGraph(r.host, r.file.Name(), timeLength, "AVERAGE", r.metric)
 		if err != nil {
 			fmt.Printf("Failed to create AVERAGE graph for host %s with time length %s: %v\n", r.host, timeLength, err)
 			continue
