@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -29,9 +28,9 @@ func (s *Server) startAPI() {
 	})
 
 	go func() {
-		log.Println("Starting API server on port 1982...")
+		s.logger.Info("Starting API server on port 1982...")
 		if err := http.ListenAndServe(":1982", nil); err != nil {
-			log.Fatalf("Failed to start API server: %v\n", err)
+			s.logger.Fatalf("Failed to start API server: %v", err)
 		}
 	}()
 }
@@ -40,14 +39,14 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	hosts := make(map[string]HostAPIResponse)
 	for name, h := range s.hosts {
 		// Fetch last update time from RRD
-		rrdFile, err := rrd.NewRRD(name, "./rrds", "latency")
+		rrdFile, err := rrd.NewRRD(name, "./rrds", "latency", s.logger)
 		if err != nil {
-			log.Printf("API Handler: Failed to initialize RRD for host %s (%v)\n", name, err)
+			s.logger.Errorf("API Handler: Failed to initialize RRD for host %s (%v)", name, err)
 			continue
 		}
 		lastUpdate, err := rrdFile.GetLastUpdate()
 		if err != nil {
-			log.Printf("API Handler: Failed to get last update for host %s (%v)\n", name, err)
+			s.logger.Errorf("API Handler: Failed to get last update for host %s (%v)", name, err)
 			continue
 		}
 
