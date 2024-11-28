@@ -33,7 +33,7 @@ type graph struct {
 // Returns:
 //   - *Graph: A pointer to the newly created Graph struct.
 //   - error: An error if something went wrong during the initialization.
-func newGraph(host string, rrdPath string, timeLength string, consolidationFunction string) (*graph, error) {
+func newGraph(host string, rrdPath string, timeLength string, consolidationFunction string, metric string) (*graph, error) {
 
 	filePath := fmt.Sprintf("html/imgs/%s/%s_%s_%s.png", host, host, "latency", timeLength)
 	label := fmt.Sprintf("%s (%s)", "latency", "ms")
@@ -46,7 +46,7 @@ func newGraph(host string, rrdPath string, timeLength string, consolidationFunct
 		label:                 label,
 		title:                 title,
 		timeLength:            timeLength,
-		metric:                "latency",
+		metric:                metric,
 		unit:                  "ms",
 		consolidationFunction: consolidationFunction,
 		color:                 RED,
