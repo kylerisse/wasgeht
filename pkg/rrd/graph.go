@@ -3,7 +3,8 @@ package rrd
 import (
 	"fmt"
 	"os/exec"
-	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // graph represents an RRD graph, including metadata and synchronization tools.
@@ -19,6 +20,7 @@ type graph struct {
 	consolidationFunction string // Consolidation function (e.g., "AVERAGE" "MAX")
 	color                 string // Metric color (e.g., "#FF0001" (red))
 	comment               string // Comment at bottom of graph
+	logger                *logrus.Logger
 }
 
 // newGraph creates and initializes a new Graph struct.
@@ -33,7 +35,7 @@ type graph struct {
 // Returns:
 //   - *Graph: A pointer to the newly created Graph struct.
 //   - error: An error if something went wrong during the initialization.
-func newGraph(host string, rrdPath string, timeLength string, consolidationFunction string, metric string) (*graph, error) {
+func newGraph(host string, rrdPath string, timeLength string, consolidationFunction string, metric string, logger *logrus.Logger) (*graph, error) {
 
 	filePath := fmt.Sprintf("html/imgs/%s/%s_%s_%s.png", host, host, "latency", timeLength)
 	label := fmt.Sprintf("%s (%s)", "latency", "ms")
@@ -53,10 +55,12 @@ func newGraph(host string, rrdPath string, timeLength string, consolidationFunct
 		comment:               comment,
 	}
 
+	logger.Debugf("Initializing graph for host %s, metric %s, time length %s.", host, metric, timeLength)
 	err := graph.draw()
 	if err != nil {
 		return graph, err
 	}
+	logger.Debugf("Graph initialized and drawn for host %s, metric %s, time length %s.", host, metric, timeLength)
 	return graph, nil
 }
 
@@ -129,11 +133,15 @@ func (g *graph) draw() error {
 	args = append(args, gprints...)
 	args = append(args, commentStrings...)
 
+	g.logger.Debugf("Generating graph with command arguments: %v", args)
+
 	// Execute the "rrdtool graph" command to generate the graph.
 	cmd := exec.Command("rrdtool", append([]string{"graph"}, args...)...)
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to update graph %s with %s, %w", g.filePath, strings.Join(cmd.Args, ", "), err)
+		g.logger.Errorf("Failed to update graph %s: %v", g.filePath, err)
+		return fmt.Errorf("failed to update graph %s: %w", g.filePath, err)
 	}
 
+	g.logger.Debugf("Graph %s generated successfully.", g.filePath)
 	return nil
 }

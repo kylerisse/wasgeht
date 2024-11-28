@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"math/rand"
 	"time"
 
@@ -14,9 +13,9 @@ func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
 	// Initialize RRD file for the host
-	rrdFile, err := rrd.NewRRD(name, "./rrds", "latency")
+	rrdFile, err := rrd.NewRRD(name, "./rrds", "latency", s.logger)
 	if err != nil {
-		log.Printf("Worker for host %s: Failed to initialize RRD (%v)\n", name, err)
+		s.logger.Errorf("Worker for host %s: Failed to initialize RRD (%v)", name, err)
 		return
 	}
 
@@ -24,29 +23,32 @@ func (s *Server) worker(name string, h *host.Host) {
 	performPing := func() {
 		latency, err := h.Ping(name, 3*time.Second)
 		if err != nil {
-			log.Printf("Worker for host %s: Ping failed (%v)\n", name, err)
+			s.logger.Warningf("Worker for host %s: Ping failed (%v)", name, err)
 			h.Alive = false
 		} else {
-			log.Printf("Worker for host %s: Latency=%v (Ping successful)\n", name, latency)
+			s.logger.Infof("Worker for host %s: Latency=%v (Ping successful)", name, latency)
 			h.Alive = true
 			h.Latency = latency
 			// Update the RRD file with the fetched latency and timestamp
+			s.logger.Debugf("Worker for host %s: Updating RRD with latency %f microseconds.", name, float64(latency.Microseconds()))
 			err = rrdFile.SafeUpdate(time.Now(), []float64{float64(latency.Microseconds())})
 			if err != nil {
-				log.Printf("Worker for host %s: Failed to update RRD (%v)\n", name, err)
+				s.logger.Errorf("Worker for host %s: Failed to update RRD (%v)", name, err)
+			} else {
+				s.logger.Debugf("Worker for host %s: RRD update successful.", name)
 			}
 		}
 	}
 
 	// Add a random delay of 1-59 seconds before starting
 	startDelay := time.Duration(rand.Intn(59)+1) * time.Second
-	log.Printf("Worker for host %s will start in %v\n", name, startDelay)
+	s.logger.Debugf("Worker for host %s will start in %v", name, startDelay)
 	select {
 	case <-time.After(startDelay):
 		// Perform the initial ping
 		performPing()
 	case <-s.done:
-		log.Printf("Worker for host %s received shutdown signal before starting\n", name)
+		s.logger.Infof("Worker for host %s received shutdown signal before starting", name)
 		return
 	}
 
@@ -60,7 +62,7 @@ func (s *Server) worker(name string, h *host.Host) {
 			// Perform the periodic ping
 			performPing()
 		case <-s.done:
-			log.Printf("Worker for host %s received shutdown signal.\n", name)
+			s.logger.Infof("Worker for host %s received shutdown signal.", name)
 			return
 		}
 	}

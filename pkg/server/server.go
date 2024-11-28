@@ -3,36 +3,38 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 
 	"github.com/kylerisse/wasgeht/pkg/host"
+	"github.com/sirupsen/logrus"
 )
 
 // Server represents the ping server
 type Server struct {
-	hosts map[string]*host.Host
-	done  chan struct{}
-	wg    sync.WaitGroup
+	hosts  map[string]*host.Host
+	done   chan struct{}
+	wg     sync.WaitGroup
+	logger *logrus.Logger
 }
 
 // NewServer initializes a new server with the given host file
-func NewServer(hostFile string) (*Server, error) {
+func NewServer(hostFile string, logger *logrus.Logger) (*Server, error) {
 	hosts, err := loadHosts(hostFile)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Server{
-		hosts: hosts,
-		done:  make(chan struct{}),
+		hosts:  hosts,
+		done:   make(chan struct{}),
+		logger: logger,
 	}, nil
 }
 
 // Start begins a worker for each host
 func (s *Server) Start() {
-	log.Println("Starting workers for each host...")
+	s.logger.Info("Starting workers for each host...")
 
 	s.startAPI()
 
@@ -46,7 +48,7 @@ func (s *Server) Start() {
 func (s *Server) Stop() {
 	close(s.done)
 	s.wg.Wait()
-	log.Println("All workers stopped.")
+	s.logger.Info("All workers stopped.")
 }
 
 // loadHosts reads the JSON file and populates a map of host configurations
