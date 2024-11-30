@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Host Status Dashboard</title>
+    <title>Was Geht: Host Status</title>
     <style>
         body {
             position: relative;
@@ -16,6 +15,7 @@
             border: 1px solid black;
             padding: 8px;
             text-align: left;
+            /* Remove position: relative; from th, td */
         }
         th {
             cursor: pointer;
@@ -35,11 +35,24 @@
             border-radius: 5px;
             font-weight: bold;
         }
+
+        /* New styles for the graph popup */
+        .graph-popup {
+            display: none;
+            position: absolute;
+            z-index: 10;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            padding: 5px;
+            pointer-events: none; /* Allow mouse events to pass through */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
+            border-radius: 4px; /* Optional: Rounded corners */
+        }
     </style>
 </head>
 <body>
     <div id="countdown">Next refresh in: 5s</div>
-    <h1>Host Status Dashboard</h1>
+    <h1>Was Geht: Host Status</h1>
     <table id="hostTable">
         <thead>
             <tr>
@@ -55,6 +68,20 @@
         let sortOrder = [true, true]; // Keeps track of sorting order for each column (true = ascending, false = descending)
         let sortedColumn = -1; // Keeps track of which column is currently sorted (-1 means no column is sorted)
         let countdown = 5; // Refresh countdown in seconds
+
+        // Throttle function to limit the rate at which a function can fire.
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
 
         document.addEventListener("DOMContentLoaded", function () {
             // Initial load of the table data
@@ -83,6 +110,9 @@
         }
 
         function updateTable(data) {
+            // Remove all existing graph popups to prevent lingering images
+            document.querySelectorAll('.graph-popup').forEach(el => el.remove());
+
             const tbody = document.getElementById("hostTable").getElementsByTagName("tbody")[0];
             tbody.innerHTML = ''; // Clear existing rows
 
@@ -95,6 +125,67 @@
 
                 const cellStatus = row.insertCell(1);
                 cellStatus.textContent = info.alive ? "UP" : "DOWN";
+
+                // Create the graph popup but don't append it to the cell
+                const graphContainer = document.createElement("div");
+                graphContainer.className = "graph-popup";
+
+                const img = document.createElement("img");
+                img.src = `/imgs/${host}/${host}_latency_1h.png`;
+                img.alt = `Latency graph for ${host}`;
+                img.width = 600; // Adjust dimensions as needed
+                img.height = 200;
+
+                graphContainer.appendChild(img);
+                document.body.appendChild(graphContainer); // Append to body
+
+                // Add event listeners to cellStatus
+                cellStatus.addEventListener('mouseenter', function (e) {
+                    graphContainer.style.display = 'block';
+                });
+
+                cellStatus.addEventListener('mousemove', throttle(function (e) {
+                    // Get mouse position
+                    let mouseX = e.clientX;
+                    let mouseY = e.clientY;
+
+                    // Adjust position to place the graph to the right of the mouse pointer
+                    let graphWidth = img.width;
+                    let graphHeight = img.height;
+
+                    // Calculate position, adjust to keep within viewport
+                    let xOffset = 20; // Offset to the right of the mouse pointer
+                    let yOffset = -20; // Offset above the mouse pointer
+
+                    let left = mouseX + xOffset;
+                    let top = mouseY + yOffset;
+
+                    // Get viewport dimensions
+                    let viewportWidth = window.innerWidth;
+                    let viewportHeight = window.innerHeight;
+
+                    // Adjust left position if the graph goes off the right edge
+                    if ((left + graphWidth) > viewportWidth) {
+                        left = mouseX - graphWidth - xOffset;
+                    }
+
+                    // Adjust top position if the graph goes off the bottom edge
+                    if ((top + graphHeight) > viewportHeight) {
+                        top = viewportHeight - graphHeight - 10; // 10px padding from bottom
+                    }
+
+                    // Adjust top position if the graph goes off the top edge
+                    if (top < 0) {
+                        top = 10; // 10px padding from top
+                    }
+
+                    graphContainer.style.left = `${left + window.pageXOffset}px`;
+                    graphContainer.style.top = `${top + window.pageYOffset}px`;
+                }, 100)); // Throttle to execute at most once every 100ms
+
+                cellStatus.addEventListener('mouseleave', function () {
+                    graphContainer.style.display = 'none';
+                });
             }
         }
 

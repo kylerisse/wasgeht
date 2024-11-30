@@ -2,6 +2,7 @@ package rrd
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/sirupsen/logrus"
@@ -26,18 +27,28 @@ type graph struct {
 // newGraph creates and initializes a new Graph struct.
 //
 // Parameters:
-//   - filename: The name of the file for the graph output.
-//   - title: The title of the graph.
-//   - time: The time range for the graph (e.g., "4h").
-//   - metrics: A slice of metric names to include in the graph.
-//   - unit: The unit of measurement (e.g., "ms").
+//   - host: The name of the host.
+//   - htmlDir: The path to the HTML directory.
+//   - rrdPath: The path to the RRD file.
+//   - timeLength: The time range for the graph (e.g., "4h").
+//   - consolidationFunction: The RRD consolidation function ("AVERAGE", "MAX", etc.).
+//   - metric: The metric name.
+//   - logger: The logger instance.
 //
 // Returns:
 //   - *Graph: A pointer to the newly created Graph struct.
 //   - error: An error if something went wrong during the initialization.
-func newGraph(host string, rrdPath string, timeLength string, consolidationFunction string, metric string, logger *logrus.Logger) (*graph, error) {
+func newGraph(host string, htmlDir string, rrdPath string, timeLength string, consolidationFunction string, metric string, logger *logrus.Logger) (*graph, error) {
 
-	filePath := fmt.Sprintf("html/imgs/%s/%s_%s_%s.png", host, host, "latency", timeLength)
+	// Define directory and file paths
+	dirPath := fmt.Sprintf("%s/imgs/%s", htmlDir, host)
+	filePath := fmt.Sprintf("%s/%s_%s_%s.png", dirPath, host, metric, timeLength)
+
+	// Ensure the directory exists
+	if err := os.MkdirAll(dirPath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create directory %s: %w", dirPath, err)
+	}
+
 	label := fmt.Sprintf("%s (%s)", "latency", "ms")
 	title := fmt.Sprintf("%s %s over the last %s", host, "latency", expandTimeLength(timeLength))
 	comment := fmt.Sprintf("%s %s over last %s", consolidationFunction, "latency", timeLength)
@@ -53,6 +64,7 @@ func newGraph(host string, rrdPath string, timeLength string, consolidationFunct
 		consolidationFunction: consolidationFunction,
 		color:                 RED,
 		comment:               comment,
+		logger:                logger,
 	}
 
 	logger.Debugf("Initializing graph for host %s, metric %s, time length %s.", host, metric, timeLength)

@@ -14,6 +14,8 @@ import (
 func main() {
 	logLevel := flag.String("log-level", "info", "Set the logging level (debug, info, warn, error, fatal, panic)")
 	hostFile := flag.String("host-file", "sample-hosts.json", "Path to the host configuration file")
+	rrdDir := flag.String("rrd-dir", "./rrds", "Path to the RRD files directory")
+	htmlDir := flag.String("html-dir", "./html", "Path to the HTML files directory")
 
 	flag.Parse()
 
@@ -33,7 +35,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Load the server with hosts and configuration
-	srv, err := server.NewServer(*hostFile, logger)
+	srv, err := server.NewServer(*hostFile, *rrdDir, *htmlDir, logger)
 	if err != nil {
 		logger.Fatalf("Failed to start server: %v", err)
 	}

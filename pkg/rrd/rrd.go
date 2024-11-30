@@ -15,12 +15,13 @@ import (
 // RRD represents an RRD file, including metadata and synchronization tools.
 // It contains the file pointer, a mutex for thread safety, a list of data sources, and archive definitions.
 type RRD struct {
-	host   string
-	metric string
-	file   *os.File      // Pointer to the actual RRD file
-	mutex  *sync.RWMutex // Wrap file access
-	graphs []*graph
-	logger *logrus.Logger
+	host    string
+	metric  string
+	file    *os.File      // Pointer to the actual RRD file
+	mutex   *sync.RWMutex // Wrap file access
+	graphs  []*graph
+	logger  *logrus.Logger
+	htmlDir string
 }
 
 // NewRRD creates and initializes a new RRD struct for the specified host.
@@ -29,11 +30,14 @@ type RRD struct {
 // Parameters:
 //   - host: The name of the host for which the RRD file will be created.
 //   - rrdDir: The directory where the RRD file should be stored.
+//   - htmlDir: The directory where the HTML files (graphs) should be stored.
+//   - metric: The metric name.
+//   - logger: The logger instance.
 //
 // Returns:
 //   - *RRD: A pointer to the newly created RRD struct.
 //   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(host string, rrdDir string, metric string, logger *logrus.Logger) (*RRD, error) {
+func NewRRD(host string, rrdDir string, htmlDir string, metric string, logger *logrus.Logger) (*RRD, error) {
 	// verify root Dir exists
 	if _, err := os.Stat(rrdDir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("root directory %s does not exist", rrdDir)
@@ -74,15 +78,16 @@ func NewRRD(host string, rrdDir string, metric string, logger *logrus.Logger) (*
 
 	// Initialize the RRD struct
 	rrd := &RRD{
-		host:   host,
-		metric: metric,
-		file:   file,
-		mutex:  &sync.RWMutex{},
-		graphs: []*graph{},
-		logger: logger,
+		host:    host,
+		metric:  metric,
+		file:    file,
+		mutex:   &sync.RWMutex{},
+		graphs:  []*graph{},
+		logger:  logger,
+		htmlDir: htmlDir,
 	}
 
-	//rrd.initGraphs()
+	rrd.initGraphs()
 
 	logger.Debugf("RRD struct initialized for host %s and metric %s.", host, metric)
 	return rrd, nil
@@ -181,14 +186,12 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 
 	r.logger.Debugf("RRD file %s updated successfully.", r.file.Name())
 
-	/*
-		for _, graph := range r.graphs {
-			err := graph.draw()
-			if err != nil {
-				r.logger.Errorf("Failed to draw graph for RRD file %s: %v", r.file.Name(), err)
-			}
+	for _, graph := range r.graphs {
+		err := graph.draw()
+		if err != nil {
+			r.logger.Errorf("Failed to draw graph for RRD file %s: %v", r.file.Name(), err)
 		}
-	*/
+	}
 
 	return nil
 }
@@ -202,7 +205,7 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with MAX consolidation function.
 	for _, timeLength := range timeLengthsMax {
-		graph, err := newGraph(r.host, r.file.Name(), timeLength, "MAX", r.metric, r.logger)
+		graph, err := newGraph(r.host, r.htmlDir, r.file.Name(), timeLength, "MAX", r.metric, r.logger)
 		if err != nil {
 			r.logger.Errorf("Failed to create MAX graph for host %s with time length %s: %v", r.host, timeLength, err)
 			continue
@@ -213,7 +216,7 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with AVERAGE consolidation function.
 	for _, timeLength := range timeLengthsAverage {
-		graph, err := newGraph(r.host, r.file.Name(), timeLength, "AVERAGE", r.metric, r.logger)
+		graph, err := newGraph(r.host, r.htmlDir, r.file.Name(), timeLength, "AVERAGE", r.metric, r.logger)
 		if err != nil {
 			r.logger.Errorf("Failed to create AVERAGE graph for host %s with time length %s: %v", r.host, timeLength, err)
 			continue
