@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/rrd"
@@ -18,14 +17,14 @@ type HostAPIResponse struct {
 }
 
 func (s *Server) startAPI() {
-	// Serve index.html for "/"
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join("html", "index.html"))
-	})
-
+	// Serve api
 	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		s.handleAPI(w, r)
 	})
+
+	// Serve static content
+	fs := http.FileServer(http.Dir(s.htmlDir))
+	http.Handle("/", fs)
 
 	go func() {
 		s.logger.Info("Starting API server on port 1982...")
@@ -39,7 +38,7 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	hosts := make(map[string]HostAPIResponse)
 	for name, h := range s.hosts {
 		// Fetch last update time from RRD
-		rrdFile, err := rrd.NewRRD(name, "./rrds", "latency", s.logger)
+		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.htmlDir, "latency", s.logger)
 		if err != nil {
 			s.logger.Errorf("API Handler: Failed to initialize RRD for host %s (%v)", name, err)
 			continue
