@@ -70,8 +70,9 @@ func loadHosts(filePath string) (map[string]*host.Host, error) {
 	// Convert to a map of pointers
 	hostPointers := make(map[string]*host.Host)
 	for name, h := range hosts {
-		h := h // Create a new instance for the pointer
-		hostPointers[name] = &h
+		newHost := h // Create a new instance for the pointer
+		newHost.Name = name
+		hostPointers[name] = &newHost
 	}
 
 	return hostPointers, nil

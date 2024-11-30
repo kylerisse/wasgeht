@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
-
-	"github.com/kylerisse/wasgeht/pkg/rrd"
 )
 
 type HostAPIResponse struct {
@@ -37,25 +35,13 @@ func (s *Server) startAPI() {
 func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	hosts := make(map[string]HostAPIResponse)
 	for name, h := range s.hosts {
-		// Fetch last update time from RRD
-		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.htmlDir, "latency", s.logger)
-		if err != nil {
-			s.logger.Errorf("API Handler: Failed to initialize RRD for host %s (%v)", name, err)
-			continue
-		}
-		lastUpdate, err := rrdFile.GetLastUpdate()
-		if err != nil {
-			s.logger.Errorf("API Handler: Failed to get last update for host %s (%v)", name, err)
-			continue
-		}
-
 		// Create a response struct with the last update time
 		hostResponse := HostAPIResponse{
 			Address:    h.Address,
 			Radios:     h.Radios,
 			Alive:      h.Alive,
 			Latency:    h.Latency,
-			LastUpdate: lastUpdate,
+			LastUpdate: h.LastUpdate,
 		}
 		hosts[name] = hostResponse
 	}

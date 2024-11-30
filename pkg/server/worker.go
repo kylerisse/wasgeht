@@ -13,7 +13,7 @@ func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
 	// Initialize RRD file for the host
-	rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.htmlDir, "latency", s.logger)
+	rrdFile, err := rrd.NewRRD(h, s.rrdDir, s.htmlDir, "latency", s.logger)
 	if err != nil {
 		s.logger.Errorf("Worker for host %s: Failed to initialize RRD (%v)", name, err)
 		return
