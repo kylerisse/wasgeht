@@ -9,13 +9,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kylerisse/wasgeht/pkg/host"
 	"github.com/sirupsen/logrus"
 )
 
 // RRD represents an RRD file, including metadata and synchronization tools.
 // It contains the file pointer, a mutex for thread safety, a list of data sources, and archive definitions.
 type RRD struct {
-	host    string
+	host    *host.Host
 	metric  string
 	file    *os.File      // Pointer to the actual RRD file
 	mutex   *sync.RWMutex // Wrap file access
@@ -37,15 +38,15 @@ type RRD struct {
 // Returns:
 //   - *RRD: A pointer to the newly created RRD struct.
 //   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(host string, rrdDir string, htmlDir string, metric string, logger *logrus.Logger) (*RRD, error) {
+func NewRRD(host *host.Host, rrdDir string, htmlDir string, metric string, logger *logrus.Logger) (*RRD, error) {
 	// verify root Dir exists
 	if _, err := os.Stat(rrdDir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("root directory %s does not exist", rrdDir)
 	}
 
 	// Construct the RRD file path including the metric name
-	rrdPath := fmt.Sprintf("%s/%s_%s.rrd", rrdDir, host, metric)
-	logger.Debugf("RRD path for host %s and metric %s: %s", host, metric, rrdPath)
+	rrdPath := fmt.Sprintf("%s/%s_%s.rrd", rrdDir, host.Name, metric)
+	logger.Debugf("RRD path for host %s and metric %s: %s", host.Name, metric, rrdPath)
 
 	if _, err := os.Stat(rrdPath); os.IsNotExist(err) {
 		logger.Debugf("RRD file %s does not exist. Creating new RRD file.", rrdPath)
@@ -89,7 +90,7 @@ func NewRRD(host string, rrdDir string, htmlDir string, metric string, logger *l
 
 	rrd.initGraphs()
 
-	logger.Debugf("RRD struct initialized for host %s and metric %s.", host, metric)
+	logger.Debugf("RRD struct initialized for host %s and metric %s.", host.Name, metric)
 	return rrd, nil
 }
 
@@ -160,7 +161,8 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 	}
 
 	// If the given timestamp is not newer, skip the update.
-	if timestamp.Unix() <= lastUpdate {
+	timestampUnix := timestamp.Unix()
+	if timestampUnix <= lastUpdate {
 		r.logger.Debugf("Skipping update for RRD file %s: provided timestamp %d is not newer than last update %d.", r.file.Name(), timestamp.Unix(), lastUpdate)
 		return fmt.Errorf("skipping update as timestamp %d is not newer than last update %d", timestamp.Unix(), lastUpdate)
 	}
@@ -179,6 +181,7 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 
 	// Execute the "rrdtool update" command to add the new data point.
 	cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)
+	r.host.LastUpdate = timestampUnix
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
@@ -205,25 +208,25 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with MAX consolidation function.
 	for _, timeLength := range timeLengthsMax {
-		graph, err := newGraph(r.host, r.htmlDir, r.file.Name(), timeLength, "MAX", r.metric, r.logger)
+		graph, err := newGraph(r.host.Name, r.htmlDir, r.file.Name(), timeLength, "MAX", r.metric, r.logger)
 		if err != nil {
-			r.logger.Errorf("Failed to create MAX graph for host %s with time length %s: %v", r.host, timeLength, err)
+			r.logger.Errorf("Failed to create MAX graph for host %s with time length %s: %v", r.host.Name, timeLength, err)
 			continue
 		}
 		r.graphs = append(r.graphs, graph)
-		r.logger.Debugf("Added MAX graph for host %s with time length %s.", r.host, timeLength)
+		r.logger.Debugf("Added MAX graph for host %s with time length %s.", r.host.Name, timeLength)
 	}
 
 	// Loop over each time length to create graphs with AVERAGE consolidation function.
 	for _, timeLength := range timeLengthsAverage {
-		graph, err := newGraph(r.host, r.htmlDir, r.file.Name(), timeLength, "AVERAGE", r.metric, r.logger)
+		graph, err := newGraph(r.host.Name, r.htmlDir, r.file.Name(), timeLength, "AVERAGE", r.metric, r.logger)
 		if err != nil {
-			r.logger.Errorf("Failed to create AVERAGE graph for host %s with time length %s: %v", r.host, timeLength, err)
+			r.logger.Errorf("Failed to create AVERAGE graph for host %s with time length %s: %v", r.host.Name, timeLength, err)
 			continue
 		}
 		r.graphs = append(r.graphs, graph)
-		r.logger.Debugf("Added AVERAGE graph for host %s with time length %s.", r.host, timeLength)
+		r.logger.Debugf("Added AVERAGE graph for host %s with time length %s.", r.host.Name, timeLength)
 	}
 
-	r.logger.Debugf("Total graphs initialized for host %s: %d", r.host, len(r.graphs))
+	r.logger.Debugf("Total graphs initialized for host %s: %d", r.host.Name, len(r.graphs))
 }
