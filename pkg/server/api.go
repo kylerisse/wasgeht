@@ -22,7 +22,7 @@ func (s *Server) startAPI() {
 
 	// Serve static content
 	fs := http.FileServer(http.Dir(s.htmlDir))
-	http.Handle("/", fs)
+	http.Handle("/", noCacheMiddleware(http.StripPrefix("/", fs)))
 
 	go func() {
 		s.logger.Info("Starting API server on port 1982...")
@@ -50,4 +50,15 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(hosts); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+// noCacheMiddleware sets headers to prevent caching
+func noCacheMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		w.Header().Set("Surrogate-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
 }
