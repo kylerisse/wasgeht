@@ -1,0 +1,44 @@
+body {
+    position: relative;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+    /* Remove position: relative; from th, td */
+}
+th {
+    cursor: pointer;
+}
+tr.up {
+    background-color: #c8e6c9; /* Light green */
+}
+tr.down {
+    background-color: #ffcccb; /* Light red */
+}
+#countdown {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+/* New styles for the graph popup */
+.graph-popup {
+    display: none;
+    position: absolute;
+    z-index: 10;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    padding: 5px;
+    pointer-events: none; /* Allow mouse events to pass through */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
+    border-radius: 4px; /* Optional: Rounded corners */
+}
