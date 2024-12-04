@@ -64,7 +64,8 @@ function updateTable(data) {
         graphContainer.className = "graph-popup";
 
         const img = document.createElement("img");
-        img.src = `/imgs/${host}/${host}_latency_1h.png`;
+        // Append a timestamp to prevent caching
+        img.src = `/imgs/${host}/${host}_latency_1h.png?${new Date().getTime()}`;
         img.alt = `Latency graph for ${host}`;
         img.width = 600; // Adjust dimensions as needed
         img.height = 200;
@@ -74,10 +75,26 @@ function updateTable(data) {
 
         // Add event listeners to cellStatus
         cellStatus.addEventListener('mouseenter', function (e) {
+            // Update the image when the mouse enters
+            updateImage();
             graphContainer.style.display = 'block';
         });
 
+        // Preload image when updating
+        function updateImage() {
+            const timestamp = new Date().getTime();
+            const newSrc = `/imgs/${host}/${host}_latency_1h.png?${timestamp}`;
+            const preloadImg = new Image();
+            preloadImg.src = newSrc;
+            preloadImg.onload = () => {
+                img.src = newSrc;
+            };
+        }
+
         cellStatus.addEventListener('mousemove', throttle(function (e) {
+            // Update the image to fetch the latest graph
+            updateImage();
+
             // Get mouse position
             let mouseX = e.clientX;
             let mouseY = e.clientY;
@@ -114,7 +131,7 @@ function updateTable(data) {
 
             graphContainer.style.left = `${left + window.scrollX}px`;
             graphContainer.style.top = `${top + window.scrollY}px`;
-        }, 100)); // Throttle to execute at most once every 100ms
+        }, 2000)); // Throttle to execute at most once every 2 seconds
 
         cellStatus.addEventListener('mouseleave', function () {
             graphContainer.style.display = 'none';
