@@ -1,6 +1,6 @@
 let sortOrder = [true, true]; // Keeps track of sorting order for each column (true = ascending, false = descending)
 let sortedColumn = -1; // Keeps track of which column is currently sorted (-1 means no column is sorted)
-let countdown = 5; // Refresh countdown in seconds
+let countdown = 15; // Refresh countdown in seconds
 
 // Throttle function to limit the rate at which a function can fire.
 function throttle(func, limit) {
@@ -20,8 +20,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Initial load of the table data
     loadTableData();
 
-    // Set interval to refresh table data every 5 seconds
-    setInterval(loadTableData, 5000);
+    // Set interval to refresh table data every 15 seconds
+    setInterval(loadTableData, 15000);
 
     // Set interval to update countdown every second
     setInterval(updateCountdown, 1000);
@@ -32,7 +32,7 @@ function loadTableData() {
         .then(response => response.json())
         .then(data => {
             updateTable(data);
-            countdown = 5; // Reset countdown after loading new data
+            countdown = 15; // Reset countdown after loading new data
 
             // Apply sorting again if a column is already sorted
             if (sortedColumn !== -1) {
@@ -144,7 +144,7 @@ function updateCountdown() {
     document.getElementById("countdown").textContent = `Next refresh in: ${countdown}s`;
 
     if (countdown <= 0) {
-        countdown = 5;
+        countdown = 15;
     }
 }
 
