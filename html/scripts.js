@@ -112,8 +112,8 @@ function updateTable(data) {
                 top = 10; // 10px padding from top
             }
 
-            graphContainer.style.left = `${left + window.pageXOffset}px`;
-            graphContainer.style.top = `${top + window.pageYOffset}px`;
+            graphContainer.style.left = `${left + window.scrollX}px`;
+            graphContainer.style.top = `${top + window.scrollY}px`;
         }, 100)); // Throttle to execute at most once every 100ms
 
         cellStatus.addEventListener('mouseleave', function () {
