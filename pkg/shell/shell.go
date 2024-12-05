@@ -54,7 +54,7 @@ func RunCommand(command []string, timeout time.Duration) ([]byte, error) {
 	}
 
 	if err != nil {
-		return output, fmt.Errorf("failed to execute command '%s %s': %w\nOutput: %s", command, joinCmd(command), err, string(output))
+		return output, fmt.Errorf("failed to execute command '%s': %w\nOutput: %s", joinCmd(command), err, string(output))
 	}
 
 	return output, nil
