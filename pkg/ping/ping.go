@@ -8,23 +8,27 @@ import (
 	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
+	"github.com/kylerisse/wasgeht/pkg/graph"
+	"github.com/kylerisse/wasgeht/pkg/rrd"
 	"github.com/kylerisse/wasgeht/pkg/shell"
 )
 
 // PingCheck performs a ping to a target host and records the latency.
 type PingCheck struct {
 	target string
-	result check.CheckResult
+	result check.Result
 	mutex  sync.RWMutex
+	rrd    *rrd.RRD
+	graphs []*graph.Graph
 }
 
 // NewPingCheck initializes a new PingCheck for the specified target host.
 //
 // It returns a pointer to a PingCheck with an initial unknown status and zero latency.
 func NewPingCheck(target string) *PingCheck {
-	result := check.CheckResult{
+	result := check.Result{
 		Status: check.Unknown,
-		Metrics: check.CheckMetrics{
+		Metrics: check.Metrics{
 			"latency": 0,
 		},
 		LastUpdated: time.Unix(0, 0),
@@ -41,19 +45,28 @@ func (p *PingCheck) Name() string {
 	return "ping"
 }
 
-// Result returns the latest CheckResult for the ping operation.
+// Result returns the latest Result for the ping operation.
 //
 // It acquires a read lock to ensure thread-safe access to the result.
-func (p *PingCheck) Result() check.CheckResult {
+func (p *PingCheck) Result() check.Result {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	return p.result
 }
 
-// Run executes the ping command to the target host and updates the CheckResult.
+// GraphPaths returns a list of all the graph paths.
+func (p *PingCheck) GraphPaths() []string {
+	var paths []string
+	for _, graph := range p.graphs {
+		paths = append(paths, graph.UrlPath)
+	}
+	return paths
+}
+
+// Run executes the ping command to the target host and updates the Result.
 //
-// It returns the updated CheckResult and an error if the ping fails.
-func (p *PingCheck) Run() (check.CheckResult, error) {
+// It returns the updated Result and an error if the ping fails.
+func (p *PingCheck) Run() (check.Result, error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -61,17 +74,17 @@ func (p *PingCheck) Run() (check.CheckResult, error) {
 	pingCmd := fmt.Sprintf("ping -c 1 -W %.0f %s", timeout.Seconds(), p.target)
 	output, err := shell.RunCommand(strings.Split(" ", pingCmd), timeout)
 	if err != nil {
-		p.result = failedCheckResult(p.result)
+		p.result = failedResult(p.result)
 		return p.result, err
 	}
 	latency, err := parsePingOutput(string(output))
 	if err != nil {
-		p.result = failedCheckResult(p.result)
+		p.result = failedResult(p.result)
 		return p.result, err
 	}
-	p.result = check.CheckResult{
+	p.result = check.Result{
 		Status: check.Healthy,
-		Metrics: check.CheckMetrics{
+		Metrics: check.Metrics{
 			"latency": int64(latency),
 		},
 		LastUpdated: time.Now(),
@@ -79,14 +92,14 @@ func (p *PingCheck) Run() (check.CheckResult, error) {
 	return p.result, nil
 }
 
-// failedCheckResult updates the CheckResult to an error status if it's currently unknown.
+// failedResult updates the Result to an error status if it's currently unknown.
 //
 // It preserves the existing metrics and last updated time.
-func failedCheckResult(current check.CheckResult) check.CheckResult {
+func failedResult(current check.Result) check.Result {
 	if current.Status != check.Unknown {
 		return current
 	}
-	return check.CheckResult{
+	return check.Result{
 		Status:      check.Error,
 		Metrics:     current.Metrics,
 		LastUpdated: current.LastUpdated,

@@ -5,12 +5,12 @@ import (
 )
 
 // CheckResult holds the result of a check execution.
-type CheckResult struct {
+type Result struct {
 	// Status represents the outcome of the check.
-	Status CheckStatus `json:"status"`
+	Status Status `json:"status"`
 
 	// Metrics contains various metrics collected by the check.
-	Metrics CheckMetrics `json:"metrics"`
+	Metrics Metrics `json:"metrics"`
 
 	// LastUpdated indicates when the check was last executed.
 	LastUpdated time.Time `json:"last_updated"`
