@@ -1,8 +1,11 @@
 package server
 
 import (
+	"embed"
 	"encoding/json"
+	"io/fs"
 	"net/http"
+	"path/filepath"
 	"time"
 )
 
@@ -14,15 +17,27 @@ type HostAPIResponse struct {
 	LastUpdate int64         `json:"lastupdate"`
 }
 
+//go:embed static/*
+var staticFlies embed.FS
+
 func (s *Server) startAPI() {
 	// Serve api
 	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		s.handleAPI(w, r)
 	})
 
+	content, err := fs.Sub(staticFlies, "static")
+	if err != nil {
+		s.logger.Fatalf("Failed to create sub filesystem: %v", err)
+	}
+
+	// Serve generated images
+	imgFS := http.FileServer(http.Dir(filepath.Join(s.htmlDir, "imgs")))
+	http.Handle("/imgs/", noCacheMiddleware(http.StripPrefix("/imgs", imgFS)))
+
 	// Serve static content
-	fs := http.FileServer(http.Dir(s.htmlDir))
-	http.Handle("/", noCacheMiddleware(http.StripPrefix("/", fs)))
+	htmlFS := http.FileServer(http.FS(content))
+	http.Handle("/", (http.StripPrefix("/", htmlFS)))
 
 	go func() {
 		s.logger.Info("Starting API server on port 1982...")
