@@ -53,14 +53,7 @@ func NewRRD(host *host.Host, rrdDir string, htmlDir string, metric string, logge
 		cmd := exec.Command("rrdtool", "create", rrdPath,
 			"--step", "60",
 			fmt.Sprintf("DS:%s:GAUGE:120:0:U", metric),
-			"RRA:MAX:0.5:1:60",         // 1-minute max for 1 hour (60 data points)
-			"RRA:MAX:0.5:1:240",        // 1-minute max for 4 hour (60 data points)
-			"RRA:MAX:0.5:1:480",        // 1-minute max for 8 hours (480 data points)
-			"RRA:AVERAGE:0.5:1:1440",   // 1-minute average for 1 day (1440 data points)
-			"RRA:AVERAGE:0.5:1:5760",   // 1-minute average for 4 days (5760 data points)
-			"RRA:AVERAGE:0.5:1:10080",  // 1-minute average for 1 week (10080 data points)
-			"RRA:AVERAGE:0.5:60:720",   // 1-hour average for 1 month (720 data points, 30 days)
-			"RRA:AVERAGE:0.5:1440:365", // 1-day average for 1 year (365 data points)
+			"RRA:MAX:0.5:1:10080", // 1-minute max for 1 week (10080 data points)
 		)
 
 		// Run the command
