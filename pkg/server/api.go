@@ -37,7 +37,7 @@ func (s *Server) startAPI() {
 
 	// Serve static content
 	htmlFS := http.FileServer(http.FS(content))
-	http.Handle("/", (http.StripPrefix("/", htmlFS)))
+	http.Handle("/", noCacheMiddleware((http.StripPrefix("/", htmlFS))))
 
 	go func() {
 		s.logger.Info("Starting API server on port 1982...")
