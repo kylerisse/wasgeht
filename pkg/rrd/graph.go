@@ -62,7 +62,7 @@ func newGraph(host string, htmlDir string, rrdPath string, timeLength string, co
 		metric:                metric,
 		unit:                  "ms",
 		consolidationFunction: consolidationFunction,
-		color:                 RED,
+		color:                 GREEN,
 		comment:               comment,
 		logger:                logger,
 	}
@@ -110,7 +110,7 @@ func (g *graph) draw() error {
 	cdefs = append(cdefs, cdef)
 
 	lines := []string{
-		fmt.Sprintf("LINE1:%s_%s#%s:%s", g.metric, g.unit, g.color, g.label),
+		fmt.Sprintf("AREA:%s_%s#%s:%s", g.metric, g.unit, g.color, g.label),
 	}
 
 	gprints := []string{}

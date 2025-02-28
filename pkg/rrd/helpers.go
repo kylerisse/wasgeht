@@ -1,6 +1,7 @@
 package rrd
 
 const RED = "FF0000"
+const GREEN = "00FF00"
 
 func expandTimeLength(timeLength string) string {
 	switch timeLength {
