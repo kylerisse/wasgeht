@@ -198,8 +198,7 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 // This method adds multiple graphs (e.g., hourly, daily, weekly, etc.) to the RRD.
 func (r *RRD) initGraphs() {
 	// Define the list of time lengths and consolidation functions for each graph.
-	timeLengthsMax := []string{"1h", "4h", "8h"}                 // Only use "MAX" for these time lengths.
-	timeLengthsAverage := []string{"1d", "4d", "1w", "1m", "1y"} // Only use "AVERAGE" for these time lengths.
+	timeLengthsMax := []string{"15m", "4h", "8h", "1d", "4d", "1w"} // Only use "MAX" for these time lengths.
 
 	// Loop over each time length to create graphs with MAX consolidation function.
 	for _, timeLength := range timeLengthsMax {
@@ -210,17 +209,6 @@ func (r *RRD) initGraphs() {
 		}
 		r.graphs = append(r.graphs, graph)
 		r.logger.Debugf("Added MAX graph for host %s with time length %s.", r.host.Name, timeLength)
-	}
-
-	// Loop over each time length to create graphs with AVERAGE consolidation function.
-	for _, timeLength := range timeLengthsAverage {
-		graph, err := newGraph(r.host.Name, r.htmlDir, r.file.Name(), timeLength, "AVERAGE", r.metric, r.logger)
-		if err != nil {
-			r.logger.Errorf("Failed to create AVERAGE graph for host %s with time length %s: %v", r.host.Name, timeLength, err)
-			continue
-		}
-		r.graphs = append(r.graphs, graph)
-		r.logger.Debugf("Added AVERAGE graph for host %s with time length %s.", r.host.Name, timeLength)
 	}
 
 	r.logger.Debugf("Total graphs initialized for host %s: %d", r.host.Name, len(r.graphs))

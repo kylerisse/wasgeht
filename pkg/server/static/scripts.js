@@ -65,7 +65,7 @@ function updateTable(data) {
 
         const img = document.createElement("img");
         // Append a timestamp to prevent caching
-        img.src = `/imgs/${host}/${host}_latency_1h.png?${new Date().getTime()}`;
+        img.src = `/imgs/${host}/${host}_latency_15m.png?${new Date().getTime()}`;
         img.alt = `Latency graph for ${host}`;
         img.width = 600; // Adjust dimensions as needed
         img.height = 200;
@@ -83,7 +83,7 @@ function updateTable(data) {
         // Preload image when updating
         function updateImage() {
             const timestamp = new Date().getTime();
-            const newSrc = `/imgs/${host}/${host}_latency_1h.png?${timestamp}`;
+            const newSrc = `/imgs/${host}/${host}_latency_15m.png?${timestamp}`;
             const preloadImg = new Image();
             preloadImg.src = newSrc;
             preloadImg.onload = () => {
