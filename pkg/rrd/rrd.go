@@ -89,10 +89,7 @@ func NewRRD(host *host.Host, rrdDir string, graphDir string, metric string, logg
 
 // getLastUpdate retrieves the timestamp of the last update from the RRD file.
 // It returns the Unix timestamp of the most recent entry.
-func (r *RRD) GetLastUpdate() (int64, error) {
-	// Acquire a read lock for accessing the file.
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+func (r *RRD) getLastUpdate() (int64, error) {
 
 	r.logger.Debugf("Getting last update time for RRD file %s.", r.file.Name())
 
@@ -147,8 +144,12 @@ func (r *RRD) GetLastUpdate() (int64, error) {
 func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 	r.logger.Debugf("Attempting to update RRD file %s at timestamp %d with values %v.", r.file.Name(), timestamp.Unix(), values)
 
+	// Acquire write lock for updating.
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	// Get the last update timestamp.
-	lastUpdate, err := r.GetLastUpdate()
+	lastUpdate, err := r.getLastUpdate()
 	if err != nil {
 		return fmt.Errorf("failed to get last update: %w", err)
 	}
@@ -159,10 +160,6 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 		r.logger.Debugf("Skipping update for RRD file %s: provided timestamp %d is not newer than last update %d.", r.file.Name(), timestamp.Unix(), lastUpdate)
 		return fmt.Errorf("skipping update as timestamp %d is not newer than last update %d", timestamp.Unix(), lastUpdate)
 	}
-
-	// Acquire write lock for updating.
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
 
 	if len(values) > 0 {
 		// Prepare the update string: "<timestamp>:<value1>:<value2>:..."
