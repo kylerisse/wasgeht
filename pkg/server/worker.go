@@ -12,6 +12,17 @@ import (
 func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
+	// Add a random delay of 1-59 seconds before starting to reduce initial filesystem activity
+	startDelay := time.Duration(rand.Intn(59)+1) * time.Second
+	s.logger.Infof("Worker for host %s will start in %v", name, startDelay)
+	select {
+	case <-time.After(startDelay):
+		s.logger.Debugf("Worker for host %s starting", name)
+	case <-s.done:
+		s.logger.Infof("Worker for host %s received shutdown signal before starting", name)
+		return
+	}
+
 	// Initialize RRD file for the host
 	rrdFile, err := rrd.NewRRD(h, s.rrdDir, s.graphDir, "latency", s.logger)
 	if err != nil {
@@ -43,17 +54,8 @@ func (s *Server) worker(name string, h *host.Host) {
 		}
 	}
 
-	// Add a random delay of 1-59 seconds before starting
-	startDelay := time.Duration(rand.Intn(59)+1) * time.Second
-	s.logger.Debugf("Worker for host %s will start in %v", name, startDelay)
-	select {
-	case <-time.After(startDelay):
-		// Perform the initial ping
-		performPing()
-	case <-s.done:
-		s.logger.Infof("Worker for host %s received shutdown signal before starting", name)
-		return
-	}
+	// Perform the initial ping before the ticket starts
+	performPing()
 
 	// Run periodic pings every minute
 	ticker := time.NewTicker(1 * time.Minute)
