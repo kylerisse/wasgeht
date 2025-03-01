@@ -164,23 +164,25 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	// Prepare the update string: "<timestamp>:<value1>:<value2>:..."
-	updateStr := fmt.Sprintf("%d", timestamp.Unix())
-	for _, value := range values {
-		updateStr += fmt.Sprintf(":%f", value)
+	if len(values) > 0 {
+		// Prepare the update string: "<timestamp>:<value1>:<value2>:..."
+		updateStr := fmt.Sprintf("%d", timestamp.Unix())
+		for _, value := range values {
+			updateStr += fmt.Sprintf(":%f", value)
+		}
+
+		r.logger.Debugf("Updating RRD file %s with update string: %s", r.file.Name(), updateStr)
+
+		// Execute the "rrdtool update" command to add the new data point.
+		cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)
+		r.host.LastUpdate = timestampUnix
+
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
+		}
+
+		r.logger.Debugf("RRD file %s updated successfully.", r.file.Name())
 	}
-
-	r.logger.Debugf("Updating RRD file %s with update string: %s", r.file.Name(), updateStr)
-
-	// Execute the "rrdtool update" command to add the new data point.
-	cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)
-	r.host.LastUpdate = timestampUnix
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
-	}
-
-	r.logger.Debugf("RRD file %s updated successfully.", r.file.Name())
 
 	for _, graph := range r.graphs {
 		err := graph.draw()
