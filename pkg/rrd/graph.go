@@ -28,7 +28,7 @@ type graph struct {
 //
 // Parameters:
 //   - host: The name of the host.
-//   - htmlDir: The path to the HTML directory.
+//   - graphDir: The path to the graphs directory.
 //   - rrdPath: The path to the RRD file.
 //   - timeLength: The time range for the graph (e.g., "4h").
 //   - consolidationFunction: The RRD consolidation function ("AVERAGE", "MAX", etc.).
@@ -38,10 +38,10 @@ type graph struct {
 // Returns:
 //   - *Graph: A pointer to the newly created Graph struct.
 //   - error: An error if something went wrong during the initialization.
-func newGraph(host string, htmlDir string, rrdPath string, timeLength string, consolidationFunction string, metric string, logger *logrus.Logger) (*graph, error) {
+func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, metric string, logger *logrus.Logger) (*graph, error) {
 
 	// Define directory and file paths
-	dirPath := fmt.Sprintf("%s/imgs/%s", htmlDir, host)
+	dirPath := fmt.Sprintf("%s/imgs/%s", graphDir, host)
 	filePath := fmt.Sprintf("%s/%s_%s_%s.png", dirPath, host, metric, timeLength)
 
 	// Ensure the directory exists

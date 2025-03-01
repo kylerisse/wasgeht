@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
-	"path/filepath"
 	"time"
 )
 
@@ -31,9 +30,9 @@ func (s *Server) startAPI() {
 		s.logger.Fatalf("Failed to create sub filesystem: %v", err)
 	}
 
-	// Serve generated images
-	imgFS := http.FileServer(http.Dir(filepath.Join(s.htmlDir, "imgs")))
-	http.Handle("/imgs/", noCacheMiddleware(http.StripPrefix("/imgs", imgFS)))
+	// Serve generated graphs from the graphDir
+	imgFS := http.FileServer(http.Dir(s.graphDir))
+	http.Handle("/imgs/", noCacheMiddleware(imgFS))
 
 	// Serve static content
 	htmlFS := http.FileServer(http.FS(content))

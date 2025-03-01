@@ -9,7 +9,7 @@ deps:
 
 clean:
 	rm wasgehtd
-	rm -rf html/imgs
+	rm -rf data/graphs/*
 
 mrproper: clean
-	rm -rfi rrds/*
+	rm -rfi data/*

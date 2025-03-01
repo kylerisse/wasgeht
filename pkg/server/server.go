@@ -12,27 +12,27 @@ import (
 
 // Server represents the ping server
 type Server struct {
-	hosts   map[string]*host.Host
-	done    chan struct{}
-	wg      sync.WaitGroup
-	logger  *logrus.Logger
-	rrdDir  string
-	htmlDir string
+	hosts    map[string]*host.Host
+	done     chan struct{}
+	wg       sync.WaitGroup
+	logger   *logrus.Logger
+	rrdDir   string
+	graphDir string
 }
 
 // NewServer initializes a new server with the given host file
-func NewServer(hostFile string, rrdDir string, htmlDir string, logger *logrus.Logger) (*Server, error) {
+func NewServer(hostFile string, rrdDir string, graphDir string, logger *logrus.Logger) (*Server, error) {
 	hosts, err := loadHosts(hostFile)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Server{
-		hosts:   hosts,
-		done:    make(chan struct{}),
-		logger:  logger,
-		rrdDir:  rrdDir,
-		htmlDir: htmlDir,
+		hosts:    hosts,
+		done:     make(chan struct{}),
+		logger:   logger,
+		rrdDir:   rrdDir,
+		graphDir: graphDir,
 	}, nil
 }
 
