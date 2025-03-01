@@ -16,7 +16,7 @@ func main() {
 	logLevel := flag.String("log-level", "info", "Set the logging level (debug, info, warn, error, fatal, panic)")
 	hostFile := flag.String("host-file", "sample-hosts.json", "Path to the host configuration file")
 	dataDir := flag.String("data-dir", "./data", "Path to the data directory containing 'rrds' and 'graphs' folders")
-
+	listenPort := flag.String("port", "1982", "Port to listen on")
 	flag.Parse()
 
 	// Configure logrus to log to stdout with appropriate log level
@@ -51,7 +51,7 @@ func main() {
 	}
 
 	// Load the server with hosts and configuration
-	srv, err := server.NewServer(*hostFile, rrdDir, graphDir, logger)
+	srv, err := server.NewServer(*hostFile, rrdDir, graphDir, *listenPort, logger)
 	if err != nil {
 		logger.Fatalf("Failed to start server: %v", err)
 	}

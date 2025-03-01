@@ -39,8 +39,8 @@ func (s *Server) startAPI() {
 	http.Handle("/", noCacheMiddleware((http.StripPrefix("/", htmlFS))))
 
 	go func() {
-		s.logger.Info("Starting API server on port 1982...")
-		if err := http.ListenAndServe(":1982", nil); err != nil {
+		s.logger.Infof("Starting API server on port %v...", s.listenPort)
+		if err := http.ListenAndServe(":"+s.listenPort, nil); err != nil {
 			s.logger.Fatalf("Failed to start API server: %v", err)
 		}
 	}()
