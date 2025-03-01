@@ -58,17 +58,24 @@ func (s *Server) worker(name string, h *host.Host) {
 	performPing()
 
 	// Run periodic pings every minute
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-
 	for {
 		select {
-		case <-ticker.C:
-			// Perform the periodic ping
-			performPing()
 		case <-s.done:
 			s.logger.Infof("Worker for host %s received shutdown signal.", name)
 			return
+		default:
+			// Perform the work synchronously
+			performPing()
+
+			// Once the work is done, wait for the interval.
+			// If a shutdown signal arrives during this wait, we exit early.
+			select {
+			case <-time.After(time.Minute):
+				// continue with the next iteration
+			case <-s.done:
+				s.logger.Infof("Worker for host %s received shutdown signal.", name)
+				return
+			}
 		}
 	}
 }
