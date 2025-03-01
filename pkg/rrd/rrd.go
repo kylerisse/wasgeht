@@ -16,13 +16,13 @@ import (
 // RRD represents an RRD file, including metadata and synchronization tools.
 // It contains the file pointer, a mutex for thread safety, a list of data sources, and archive definitions.
 type RRD struct {
-	host    *host.Host
-	metric  string
-	file    *os.File      // Pointer to the actual RRD file
-	mutex   *sync.RWMutex // Wrap file access
-	graphs  []*graph
-	logger  *logrus.Logger
-	htmlDir string
+	host     *host.Host
+	metric   string
+	file     *os.File      // Pointer to the actual RRD file
+	mutex    *sync.RWMutex // Wrap file access
+	graphs   []*graph
+	logger   *logrus.Logger
+	graphDir string
 }
 
 // NewRRD creates and initializes a new RRD struct for the specified host.
@@ -31,17 +31,17 @@ type RRD struct {
 // Parameters:
 //   - host: The name of the host for which the RRD file will be created.
 //   - rrdDir: The directory where the RRD file should be stored.
-//   - htmlDir: The directory where the HTML files (graphs) should be stored.
+//   - graphDir: The directory where the graphs should be stored.
 //   - metric: The metric name.
 //   - logger: The logger instance.
 //
 // Returns:
 //   - *RRD: A pointer to the newly created RRD struct.
 //   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(host *host.Host, rrdDir string, htmlDir string, metric string, logger *logrus.Logger) (*RRD, error) {
-	// verify root Dir exists
+func NewRRD(host *host.Host, rrdDir string, graphDir string, metric string, logger *logrus.Logger) (*RRD, error) {
+	// verify rrdDir exists
 	if _, err := os.Stat(rrdDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("root directory %s does not exist", rrdDir)
+		return nil, fmt.Errorf("directory %s does not exist", rrdDir)
 	}
 
 	// Construct the RRD file path including the metric name
@@ -53,14 +53,7 @@ func NewRRD(host *host.Host, rrdDir string, htmlDir string, metric string, logge
 		cmd := exec.Command("rrdtool", "create", rrdPath,
 			"--step", "60",
 			fmt.Sprintf("DS:%s:GAUGE:120:0:U", metric),
-			"RRA:MAX:0.5:1:60",         // 1-minute max for 1 hour (60 data points)
-			"RRA:MAX:0.5:1:240",        // 1-minute max for 4 hour (60 data points)
-			"RRA:MAX:0.5:1:480",        // 1-minute max for 8 hours (480 data points)
-			"RRA:AVERAGE:0.5:1:1440",   // 1-minute average for 1 day (1440 data points)
-			"RRA:AVERAGE:0.5:1:5760",   // 1-minute average for 4 days (5760 data points)
-			"RRA:AVERAGE:0.5:1:10080",  // 1-minute average for 1 week (10080 data points)
-			"RRA:AVERAGE:0.5:60:720",   // 1-hour average for 1 month (720 data points, 30 days)
-			"RRA:AVERAGE:0.5:1440:365", // 1-day average for 1 year (365 data points)
+			"RRA:MAX:0.5:1:10080", // 1-minute max for 1 week (10080 data points)
 		)
 
 		// Run the command
@@ -79,13 +72,13 @@ func NewRRD(host *host.Host, rrdDir string, htmlDir string, metric string, logge
 
 	// Initialize the RRD struct
 	rrd := &RRD{
-		host:    host,
-		metric:  metric,
-		file:    file,
-		mutex:   &sync.RWMutex{},
-		graphs:  []*graph{},
-		logger:  logger,
-		htmlDir: htmlDir,
+		host:     host,
+		metric:   metric,
+		file:     file,
+		mutex:    &sync.RWMutex{},
+		graphs:   []*graph{},
+		logger:   logger,
+		graphDir: graphDir,
 	}
 
 	rrd.initGraphs()
@@ -96,10 +89,7 @@ func NewRRD(host *host.Host, rrdDir string, htmlDir string, metric string, logge
 
 // getLastUpdate retrieves the timestamp of the last update from the RRD file.
 // It returns the Unix timestamp of the most recent entry.
-func (r *RRD) GetLastUpdate() (int64, error) {
-	// Acquire a read lock for accessing the file.
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+func (r *RRD) getLastUpdate() (int64, error) {
 
 	r.logger.Debugf("Getting last update time for RRD file %s.", r.file.Name())
 
@@ -154,8 +144,12 @@ func (r *RRD) GetLastUpdate() (int64, error) {
 func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 	r.logger.Debugf("Attempting to update RRD file %s at timestamp %d with values %v.", r.file.Name(), timestamp.Unix(), values)
 
+	// Acquire write lock for updating.
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	// Get the last update timestamp.
-	lastUpdate, err := r.GetLastUpdate()
+	lastUpdate, err := r.getLastUpdate()
 	if err != nil {
 		return fmt.Errorf("failed to get last update: %w", err)
 	}
@@ -167,27 +161,25 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 		return fmt.Errorf("skipping update as timestamp %d is not newer than last update %d", timestamp.Unix(), lastUpdate)
 	}
 
-	// Acquire write lock for updating.
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	if len(values) > 0 {
+		// Prepare the update string: "<timestamp>:<value1>:<value2>:..."
+		updateStr := fmt.Sprintf("%d", timestamp.Unix())
+		for _, value := range values {
+			updateStr += fmt.Sprintf(":%f", value)
+		}
 
-	// Prepare the update string: "<timestamp>:<value1>:<value2>:..."
-	updateStr := fmt.Sprintf("%d", timestamp.Unix())
-	for _, value := range values {
-		updateStr += fmt.Sprintf(":%f", value)
+		r.logger.Debugf("Updating RRD file %s with update string: %s", r.file.Name(), updateStr)
+
+		// Execute the "rrdtool update" command to add the new data point.
+		cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)
+		r.host.LastUpdate = timestampUnix
+
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
+		}
+
+		r.logger.Debugf("RRD file %s updated successfully.", r.file.Name())
 	}
-
-	r.logger.Debugf("Updating RRD file %s with update string: %s", r.file.Name(), updateStr)
-
-	// Execute the "rrdtool update" command to add the new data point.
-	cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)
-	r.host.LastUpdate = timestampUnix
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
-	}
-
-	r.logger.Debugf("RRD file %s updated successfully.", r.file.Name())
 
 	for _, graph := range r.graphs {
 		err := graph.draw()
@@ -203,29 +195,17 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 // This method adds multiple graphs (e.g., hourly, daily, weekly, etc.) to the RRD.
 func (r *RRD) initGraphs() {
 	// Define the list of time lengths and consolidation functions for each graph.
-	timeLengthsMax := []string{"1h", "4h", "8h"}                 // Only use "MAX" for these time lengths.
-	timeLengthsAverage := []string{"1d", "4d", "1w", "1m", "1y"} // Only use "AVERAGE" for these time lengths.
+	timeLengthsMax := []string{"15m", "4h", "8h", "1d", "4d", "1w"} // Only use "MAX" for these time lengths.
 
 	// Loop over each time length to create graphs with MAX consolidation function.
 	for _, timeLength := range timeLengthsMax {
-		graph, err := newGraph(r.host.Name, r.htmlDir, r.file.Name(), timeLength, "MAX", r.metric, r.logger)
+		graph, err := newGraph(r.host.Name, r.graphDir, r.file.Name(), timeLength, "MAX", r.metric, r.logger)
 		if err != nil {
 			r.logger.Errorf("Failed to create MAX graph for host %s with time length %s: %v", r.host.Name, timeLength, err)
 			continue
 		}
 		r.graphs = append(r.graphs, graph)
 		r.logger.Debugf("Added MAX graph for host %s with time length %s.", r.host.Name, timeLength)
-	}
-
-	// Loop over each time length to create graphs with AVERAGE consolidation function.
-	for _, timeLength := range timeLengthsAverage {
-		graph, err := newGraph(r.host.Name, r.htmlDir, r.file.Name(), timeLength, "AVERAGE", r.metric, r.logger)
-		if err != nil {
-			r.logger.Errorf("Failed to create AVERAGE graph for host %s with time length %s: %v", r.host.Name, timeLength, err)
-			continue
-		}
-		r.graphs = append(r.graphs, graph)
-		r.logger.Debugf("Added AVERAGE graph for host %s with time length %s.", r.host.Name, timeLength)
 	}
 
 	r.logger.Debugf("Total graphs initialized for host %s: %d", r.host.Name, len(r.graphs))

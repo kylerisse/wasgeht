@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,9 +15,8 @@ import (
 func main() {
 	logLevel := flag.String("log-level", "info", "Set the logging level (debug, info, warn, error, fatal, panic)")
 	hostFile := flag.String("host-file", "sample-hosts.json", "Path to the host configuration file")
-	rrdDir := flag.String("rrd-dir", "./rrds", "Path to the RRD files directory")
-	htmlDir := flag.String("html-dir", "./html", "Path to the HTML files directory")
-
+	dataDir := flag.String("data-dir", "./data", "Path to the data directory containing 'rrds' and 'graphs' folders")
+	listenPort := flag.String("port", "1982", "Port to listen on")
 	flag.Parse()
 
 	// Configure logrus to log to stdout with appropriate log level
@@ -34,8 +34,24 @@ func main() {
 
 	var wg sync.WaitGroup
 
+	rrdDir := fmt.Sprintf("%s/rrds", *dataDir)
+	graphDir := fmt.Sprintf("%s/graphs", *dataDir)
+
+	// ensure the root data directory exists
+	if _, err := os.Stat(*dataDir); os.IsNotExist(err) {
+		logger.Fatalf("data directory %v does not exist, %v", dataDir, err)
+	}
+
+	// Create the rrds and graphs directories if they don't exist
+	if err := os.MkdirAll(rrdDir, 0755); err != nil {
+		logger.Fatalf("Failed to create rrds directory: %v", err)
+	}
+	if err := os.MkdirAll(graphDir, 0755); err != nil {
+		logger.Fatalf("Failed to create graphs directory: %v", err)
+	}
+
 	// Load the server with hosts and configuration
-	srv, err := server.NewServer(*hostFile, *rrdDir, *htmlDir, logger)
+	srv, err := server.NewServer(*hostFile, rrdDir, graphDir, *listenPort, logger)
 	if err != nil {
 		logger.Fatalf("Failed to start server: %v", err)
 	}
