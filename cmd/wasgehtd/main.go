@@ -43,11 +43,15 @@ func main() {
 	}
 
 	// Create the rrds and graphs directories if they don't exist
-	if err := os.MkdirAll(rrdDir, 0755); err != nil {
-		logger.Fatalf("Failed to create rrds directory: %v", err)
+	if _, err := os.Stat(rrdDir); os.IsNotExist(err) {
+		if err := os.Mkdir(rrdDir, 0755); err != nil {
+			logger.Fatalf("Failed to create rrds directory: %v", err)
+		}
 	}
-	if err := os.MkdirAll(graphDir, 0755); err != nil {
-		logger.Fatalf("Failed to create graphs directory: %v", err)
+	if _, err := os.Stat(graphDir); os.IsNotExist(err) {
+		if err := os.Mkdir(graphDir, 0755); err != nil {
+			logger.Fatalf("Failed to create graphs directory: %v", err)
+		}
 	}
 
 	// Load the server with hosts and configuration
