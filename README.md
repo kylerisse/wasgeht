@@ -9,8 +9,9 @@
 - **Ping Monitoring**: Sends ICMP Echo Requests to check host availability.
 - **Latency Logging**: Uses RRD to store latency data over time.
 - **Graphs Generation**: Generates historical latency graphs (15 minutes, 4 hours, 8 hours, etc.) for each host.
-- **Simple Web Interface**: Serves an HTML/JS front-end to display host status and dynamically loaded graphs.
+- **Simple Web Interface**: Serves an HTML/JS front-end to display host status and dynamically loaded graphs. Available in table and flame graph formats.
 - **REST API**: Exposes JSON data of all hosts and their status at `GET /api`.
+- **Prometheus Support**: Exposes metrics in prometheus format at `GET /stats`.
 
 ## Requirements
 
@@ -20,8 +21,10 @@
 If you have **Nix** installed, you can simply enter a development shell with all required dependencies using:
 
 ```bash
-nix-shell
+nix develop
 ```
+
+You will need experimental features `flakes` and `nix-command`.
 
 This loads the environment specified in `shell.nix`:
 
@@ -37,7 +40,7 @@ Once inside the shell, you can run the usual make commands
 Ensure the following are installed:
 
 - **Go** (1.23+ recommended)
-- **rrdtool** and **iputils ping** must be installed and available on the system path.
+- **rrdtool** and **unixtools ping** must be installed and available on the system path.
 - Basic Unix tools for building and running (`make`, etc.).
 
 ## Quick Start
