@@ -2,7 +2,9 @@
 <html>
 <head>
     <title>Latency Graphs for {{ .Hostname }}</title>
+    <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" type="text/css" href="host-detail.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 <body>
     <nav>
@@ -12,18 +14,42 @@
 
     <div class="container">
         <h1>{{ .Hostname }}</h1>
-        <h2>Latency 15m</h2>
-        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_15m.png"/>
-        <h2>Latency 4h</h2>
-        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4h.png"/>
-        <h2>Latency 8h</h2>
-        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_8h.png"/>
-        <h2>Latency 4d</h2>
-        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4d.png"/>
-        <h2>Latency 1d</h2>
-        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1d.png"/>
-        <h2>Latency 1w</h2>
-        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1w.png"/>
+        <nav id="latency-graph-tabs">
+            <button class="latency-graph-tab-button active" data-target="all">Show all</button>
+            <button class="latency-graph-tab-button" data-target="15m">15m</button>
+            <button class="latency-graph-tab-button" data-target="4h">4h</button>
+            <button class="latency-graph-tab-button" data-target="8h">8h</button>
+            <button class="latency-graph-tab-button" data-target="1d">1d</button>
+            <button class="latency-graph-tab-button" data-target="4d">4d</button>
+            <button class="latency-graph-tab-button" data-target="1w">1w</button>
+        </nav>
+        <div id="latency-graph-panels">
+            <div class="data-panel" id="panel-15m">
+                <h2>Latency 15m</h2>
+                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_15m.png"/>
+            </div>
+            <div class="data-panel" id="panel-4h">
+                <h2>Latency 4h</h2>
+                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4h.png"/>
+            </div>
+            <div class="data-panel" id="panel-8h">
+                <h2>Latency 8h</h2>
+                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_8h.png"/>
+            </div>
+            <div class="data-panel" id="panel-1d">
+                <h2>Latency 1d</h2>
+                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1d.png"/>
+            </div>
+            <div class="data-panel" id="panel-4d">
+                <h2>Latency 4d</h2>
+                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4d.png"/>
+            </div>
+            <div class="data-panel" id="panel-1w">
+                <h2>Latency 1w</h2>
+                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1w.png"/>
+            </div>
+        </div>
     </div>
+    <script src="host-detail.js"></script>
 </body>
 </html>
