@@ -54,7 +54,10 @@ function updateTable(data) {
         row.className = info.alive ? "up" : "down";
 
         const cellHost = row.insertCell(0);
-        cellHost.textContent = host;
+        const hostDetailLink = document.createElement('a');
+        hostDetailLink.href = `/host-detail?hostname=${host}`;
+        hostDetailLink.textContent = host;
+        cellHost.appendChild(hostDetailLink);
 
         const cellStatus = row.insertCell(1);
         cellStatus.textContent = info.alive ? "UP" : "DOWN";
