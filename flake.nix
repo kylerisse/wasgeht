@@ -13,9 +13,10 @@
     {
       devShells."x86_64-linux".default = pkgs.mkShell {
         buildInputs = with pkgs; [
+          gnumake
           go
           gopls
-          gnumake
+          prometheus
           rrdtool
           unixtools.ping
         ];
