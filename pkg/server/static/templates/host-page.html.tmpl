@@ -1,21 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Host Page</title>
+    <title>Latency Graphs for {{ .Hostname }}</title>
     <link rel="stylesheet" type="text/css" href="host-detail.css">
 </head>
 <body>
     <nav>
         <a href="/">Home</a>
-        <a href="/hosts">Hosts</a>
+        <a href="/flamegraph.html">Hosts</a>
     </nav>
 
-    <h1>Host Page</h1>
-    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_15m.png"/>
-    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1d.png"/>
-    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1w.png"/>
-    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4d.png"/>
-    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4h.png"/>
-    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_8h.png"/>
+    <div class="container">
+        <h1>{{ .Hostname }}</h1>
+        <h2>Latency 15m</h2>
+        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_15m.png"/>
+        <h2>Latency 4h</h2>
+        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4h.png"/>
+        <h2>Latency 8h</h2>
+        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_8h.png"/>
+        <h2>Latency 4d</h2>
+        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4d.png"/>
+        <h2>Latency 1d</h2>
+        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1d.png"/>
+        <h2>Latency 1w</h2>
+        <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1w.png"/>
+    </div>
 </body>
 </html>
