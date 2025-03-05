@@ -11,7 +11,7 @@
 - **Graphs Generation**: Generates historical latency graphs (15 minutes, 4 hours, 8 hours, etc.) for each host.
 - **Simple Web Interface**: Serves an HTML/JS front-end to display host status and dynamically loaded graphs. Available in table and flame graph formats.
 - **REST API**: Exposes JSON data of all hosts and their status at `GET /api`.
-- **Prometheus Support**: Exposes metrics in prometheus format at `GET /stats`.
+- **Prometheus Support**: Exposes metrics in prometheus format at `GET /metrics`.
 
 ## Requirements
 
