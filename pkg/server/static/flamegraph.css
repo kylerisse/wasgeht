@@ -1,0 +1,38 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+.dashboard-body {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.dashboard-item {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    padding: 10px;
+    flex-basis: 10%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    .name, .address {
+        font-weight: bold;
+    }
+    text-align: center;
+}
+
+.dashboard-item.alive {
+    background: rgb(104, 191, 104);   
+    border-color: rgb(73, 142, 73);
+}
+
+.dashboard-item.dead {
+    background: pink;
+    border-color: rgb(215, 152, 152);
+}

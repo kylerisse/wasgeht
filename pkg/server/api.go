@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/fs"
 	"net/http"
 	"time"
@@ -38,6 +39,8 @@ func (s *Server) startAPI() {
 	// Serve generated graphs from the graphDir
 	imgFS := http.FileServer(http.Dir(s.graphDir))
 	http.Handle("/imgs/", noCacheMiddleware(imgFS))
+
+	http.Handle("/host-detail", hostDetailHandler(staticFlies))
 
 	// Serve static content
 	htmlFS := http.FileServer(http.FS(content))
@@ -94,5 +97,18 @@ func noCacheMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Expires", "0")
 		w.Header().Set("Surrogate-Control", "no-store")
 		next.ServeHTTP(w, r)
+	})
+}
+
+func hostDetailHandler(staticFlies embed.FS) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var hostPageTemplate = template.Must(template.ParseFS(staticFlies, "static/templates/host-page.html.tmpl"))
+		var hostname = r.URL.Query().Get("hostname")
+
+		hostPageTemplate.Execute(w, struct {
+			Hostname string
+		}{
+			Hostname: hostname,
+		})
 	})
 }

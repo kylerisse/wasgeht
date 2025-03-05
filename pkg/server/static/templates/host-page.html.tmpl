@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Host Page</title>
+    <link rel="stylesheet" type="text/css" href="host-detail.css">
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/hosts">Hosts</a>
+    </nav>
+
+    <h1>Host Page</h1>
+    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_15m.png"/>
+    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1d.png"/>
+    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_1w.png"/>
+    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4d.png"/>
+    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_4h.png"/>
+    <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_latency_8h.png"/>
+</body>
+</html>
