@@ -6,7 +6,7 @@ function getDashboardData() {
         .catch( error => console.log(error) );
 }
 
-const refreshInterval = 5 * 1000; // 5 seconds
+const refreshInterval = 15 * 1000; // 15 seconds
 
 function renderDashboard() {
     getDashboardData()
@@ -43,3 +43,14 @@ function DashboardItem(props) {
 
 renderDashboard();
 const dashboardRefreshInterval = setInterval(renderDashboard, refreshInterval);
+
+let countdown = 15;
+function updateCountdown() {
+    countdown -= 1;
+    document.getElementById("countdown").textContent = `Next refresh in: ${countdown}s`;
+    
+    if (countdown <= 0) {
+        countdown = 15;
+    }
+}
+const countdownInterval = setInterval(updateCountdown, 1000);
