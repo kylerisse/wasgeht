@@ -16,5 +16,11 @@
   "fake4": {},
   "onedotone": {
     "address": "1.1.1.1"
+  },
+  "localhostv4": {
+    "address": "127.0.0.1"
+  },
+  "localhostv6": {
+    "address": "::1"
   }
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"time"
@@ -23,6 +24,10 @@ func (s *Server) startAPI() {
 	// Serve api
 	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		s.handleAPI(w, r)
+	})
+
+	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		s.handlePrometheus(w, r)
 	})
 
 	content, err := fs.Sub(staticFlies, "static")
@@ -64,6 +69,21 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(hosts); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+func (s *Server) handlePrometheus(w http.ResponseWriter, _ *http.Request) {
+	w.Write([]byte("# HELP ping_latency_ns Latency in nanosesconds to ping host.\n"))
+	w.Write([]byte("# TYPE ping_latency_ns counter\n"))
+	for name, h := range s.hosts {
+		w.Write(fmt.Appendf([]byte{},
+			"ping_latency_ns{host=\"%s\", address=\"%s\", alive=\"%t\"} %d\n",
+			name,
+			h.Address,
+			h.Alive,
+			h.Latency.Nanoseconds(),
+		))
+	}
+	w.Header().Set("Content-Type", "text/plain")
 }
 
 // noCacheMiddleware sets headers to prevent caching
