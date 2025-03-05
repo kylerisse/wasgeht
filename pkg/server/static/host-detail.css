@@ -1,0 +1,28 @@
+
+
+#latency-graph-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+#latency-graph-tabs button {
+    padding: 10px 20px;
+    margin: 0 10px;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    color: #007bff;
+    cursor: pointer;
+}
+
+#latency-graph-tabs button.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.container {
+    padding: 20px;
+    margin: 0 auto;
+    max-width: 1000px;
+}

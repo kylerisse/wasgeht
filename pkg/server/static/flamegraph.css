@@ -1,0 +1,47 @@
+.dashboard-body {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.dashboard-item {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+
+    flex-basis: 10%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    .name, .address {
+        font-weight: bold;
+    }
+    text-align: center;
+    height: 48px;
+}
+
+.dashboard-item a {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.dashboard-item a:hover, .dashboard-item a:focus {
+    background-color: rgba(255,255,255,.3);
+}
+
+.dashboard-item.alive {
+    background: rgb(104, 191, 104);   
+    border-color: rgb(73, 142, 73);
+}
+
+.dashboard-item.dead {
+    background: pink;
+    border-color: rgb(215, 152, 152);
+}
