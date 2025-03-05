@@ -21,6 +21,9 @@ type HostAPIResponse struct {
 //go:embed static/*
 var staticFlies embed.FS
 
+//go:embed templates/*
+var templateFiles embed.FS
+
 func (s *Server) startAPI() {
 	// Serve api
 	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +43,7 @@ func (s *Server) startAPI() {
 	imgFS := http.FileServer(http.Dir(s.graphDir))
 	http.Handle("/imgs/", noCacheMiddleware(imgFS))
 
-	http.Handle("/host-detail", hostDetailHandler(staticFlies))
+	http.Handle("/host-detail", hostDetailHandler(templateFiles))
 
 	// Serve static content
 	htmlFS := http.FileServer(http.FS(content))
@@ -100,9 +103,9 @@ func noCacheMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func hostDetailHandler(staticFlies embed.FS) http.Handler {
+func hostDetailHandler(templateFiles embed.FS) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var hostPageTemplate = template.Must(template.ParseFS(staticFlies, "static/templates/host-page.html.tmpl"))
+		var hostPageTemplate = template.Must(template.ParseFS(templateFiles, "templates/host-page.html.tmpl"))
 		var hostname = r.URL.Query().Get("hostname")
 
 		hostPageTemplate.Execute(w, struct {
