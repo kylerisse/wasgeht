@@ -194,18 +194,25 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 // initGraphs initializes a list of graphs for different time lengths and consolidation functions.
 // This method adds multiple graphs (e.g., hourly, daily, weekly, etc.) to the RRD.
 func (r *RRD) initGraphs() {
-	// Define the list of time lengths and consolidation functions for each graph.
-	timeLengthsMax := []string{"15m", "4h", "8h", "1d", "4d", "1w"} // Only use "MAX" for these time lengths.
+	// Define the map of time lengths and consolidation functions for each graph.
+	timeLengths := map[string]string{
+		"15m": "MAX",
+		"4h":  "MAX",
+		"8h":  "MAX",
+		"1d":  "AVERAGE",
+		"4d":  "AVERAGE",
+		"1w":  "AVERAGE",
+	}
 
-	// Loop over each time length to create graphs with MAX consolidation function.
-	for _, timeLength := range timeLengthsMax {
-		graph, err := newGraph(r.host.Name, r.graphDir, r.file.Name(), timeLength, "MAX", r.metric, r.logger)
+	// Loop over each time length to create graphs with specified consolidation function.
+	for timeLength, conFunc := range timeLengths {
+		graph, err := newGraph(r.host.Name, r.graphDir, r.file.Name(), timeLength, conFunc, r.metric, r.logger)
 		if err != nil {
-			r.logger.Errorf("Failed to create MAX graph for host %s with time length %s: %v", r.host.Name, timeLength, err)
+			r.logger.Errorf("Failed to create %s graph for host %s with time length %s: %v", conFunc, r.host.Name, timeLength, err)
 			continue
 		}
 		r.graphs = append(r.graphs, graph)
-		r.logger.Debugf("Added MAX graph for host %s with time length %s.", r.host.Name, timeLength)
+		r.logger.Debugf("Added %s graph for host %s with time length %s.", conFunc, r.host.Name, timeLength)
 	}
 
 	r.logger.Debugf("Total graphs initialized for host %s: %d", r.host.Name, len(r.graphs))
