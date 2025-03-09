@@ -18,8 +18,8 @@ function renderDashboard() {
                     name: key,
                     ...data[key]
                 }));
-                
-            sortedData.forEach(item => { 
+
+            sortedData.forEach(item => {
                 const { name, address, alive, latency, lastupdate } = item;
                 $Dashboard.appendChild(DashboardItem({ name, address, alive, latency, lastupdate }));
             })
@@ -48,7 +48,7 @@ let countdown = 15;
 function updateCountdown() {
     countdown -= 1;
     document.getElementById("countdown").textContent = `Next refresh in: ${countdown}s`;
-    
+
     if (countdown <= 0) {
         countdown = 15;
     }
