@@ -55,7 +55,6 @@ func NewRRD(host *host.Host, rrdDir string, graphDir string, metric string, logg
 			fmt.Sprintf("DS:%s:GAUGE:120:0:U", metric),
 			"RRA:MAX:0.5:1:10080",      // 1-minute max for 1 week (10080 data points)
 			"RRA:AVERAGE:0.5:1:10080",  // 1-minute average for 1 week (10080 data points)
-			"RRA:AVERAGE:0.5:1:10080",  // 1-minute average for 1 week (10080 data points)
 			"RRA:AVERAGE:0.5:5:8928",   // 5-minute average for 31 days (8928 data points)
 			"RRA:AVERAGE:0.5:15:8736",  // 15-minute average for 13 weeks (8736 data points)
 			"RRA:AVERAGE:0.5:60:8784",  // 1-hour average for 1 year (8789 data points)
