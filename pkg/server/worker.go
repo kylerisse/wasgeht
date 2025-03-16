@@ -54,9 +54,6 @@ func (s *Server) worker(name string, h *host.Host) {
 		}
 	}
 
-	// Perform the initial ping before the ticket starts
-	performPing()
-
 	// Run periodic pings every minute
 	for {
 		select {

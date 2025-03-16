@@ -18,6 +18,8 @@
 
 ### Using Nix (Recommended)
 
+If you have **direnv** installed, follow the instructions when entering this directory.
+
 If you have **Nix** installed, you can simply enter a development shell with all required dependencies using:
 
 ```bash

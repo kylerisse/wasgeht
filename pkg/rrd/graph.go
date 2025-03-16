@@ -137,7 +137,9 @@ func (g *graph) draw() error {
 		"--width", "800",
 		"--height", "200",
 		"--lower-limit", "0",
-		"--rigid",
+	}
+	if g.consolidationFunction == "MAX" {
+		args = append(args, "--rigid")
 	}
 	args = append(args, defs...)
 	args = append(args, cdefs...)

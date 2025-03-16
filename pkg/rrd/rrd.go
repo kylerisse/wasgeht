@@ -53,7 +53,13 @@ func NewRRD(host *host.Host, rrdDir string, graphDir string, metric string, logg
 		cmd := exec.Command("rrdtool", "create", rrdPath,
 			"--step", "60",
 			fmt.Sprintf("DS:%s:GAUGE:120:0:U", metric),
-			"RRA:MAX:0.5:1:10080", // 1-minute max for 1 week (10080 data points)
+			"RRA:MAX:0.5:1:10080",      // 1-minute max for 1 week (10080 data points)
+			"RRA:AVERAGE:0.5:1:10080",  // 1-minute average for 1 week (10080 data points)
+			"RRA:AVERAGE:0.5:1:10080",  // 1-minute average for 1 week (10080 data points)
+			"RRA:AVERAGE:0.5:5:8928",   // 5-minute average for 31 days (8928 data points)
+			"RRA:AVERAGE:0.5:15:8736",  // 15-minute average for 13 weeks (8736 data points)
+			"RRA:AVERAGE:0.5:60:8784",  // 1-hour average for 1 year (8789 data points)
+			"RRA:AVERAGE:0.5:480:5490", // 8-hour average for 5 years (5490 data points)
 		)
 
 		// Run the command
@@ -197,11 +203,17 @@ func (r *RRD) initGraphs() {
 	// Define the map of time lengths and consolidation functions for each graph.
 	timeLengths := map[string]string{
 		"15m": "MAX",
+		"1h":  "MAX",
 		"4h":  "MAX",
 		"8h":  "MAX",
 		"1d":  "AVERAGE",
 		"4d":  "AVERAGE",
 		"1w":  "AVERAGE",
+		"31d": "AVERAGE",
+		"93d": "AVERAGE",
+		"1y":  "AVERAGE",
+		"2y":  "AVERAGE",
+		"5y":  "AVERAGE",
 	}
 
 	// Loop over each time length to create graphs with specified consolidation function.
