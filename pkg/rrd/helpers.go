@@ -18,11 +18,17 @@ func expandTimeLength(timeLength string) string {
 	case "4d":
 		return "four days"
 	case "1w":
-		return "one week"
-	case "1m":
-		return "one month"
+		return "week"
+	case "31d":
+		return "month"
+	case "93d":
+		return "quarter"
 	case "1y":
-		return "one year"
+		return "year"
+	case "2y":
+		return "two years"
+	case "5y":
+		return "five years"
 	}
 	return timeLength
 }
