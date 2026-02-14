@@ -1,3 +1,4 @@
 .direnv/**
-/wasgehtd
 /data/**
+out/**
+*.log
