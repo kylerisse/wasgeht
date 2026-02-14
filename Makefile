@@ -1,5 +1,9 @@
 # wasgeht
 
+test:
+	staticcheck ./...
+	go test -count=1 --race -v ./...
+
 build:
 	go build -o out/wasgehtd cmd/wasgehtd/main.go
 

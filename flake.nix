@@ -16,6 +16,7 @@
           air
           gnumake
           go
+          go-tools
           gopls
           prometheus
           rrdtool

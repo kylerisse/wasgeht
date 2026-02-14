@@ -49,7 +49,7 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 		return nil, fmt.Errorf("failed to create directory %s: %w", dirPath, err)
 	}
 
-	label := fmt.Sprintf("%s", "latency")
+	label := "latency"
 	title := fmt.Sprintf("%s %s over the last %s", host, "latency", expandTimeLength(timeLength))
 	comment := fmt.Sprintf("%s %s over last %s", consolidationFunction, "latency", timeLength)
 
