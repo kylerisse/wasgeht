@@ -1,14 +1,14 @@
 # wasgeht
 
 build:
-	go build -o wasgehtd cmd/wasgehtd/main.go
+	go build -o out/wasgehtd cmd/wasgehtd/main.go
 
 deps:
 	go mod verify
 	go mod tidy
 
 clean:
-	rm wasgehtd
+	rm -f out/*
 	rm -rf data/graphs/*
 
 mrproper: clean
