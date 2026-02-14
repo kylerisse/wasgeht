@@ -106,7 +106,7 @@ func (g *graph) draw() error {
 	defs = append(defs, def)
 
 	cdefs := []string{}
-	cdef := fmt.Sprintf("CDEF:%s_%s=%s_raw,1000000,/", g.metric, g.unit, g.metric)
+	cdef := fmt.Sprintf("CDEF:%s_%s=%s_raw,1000,/", g.metric, g.unit, g.metric)
 	cdefs = append(cdefs, cdef)
 
 	lines := []string{
