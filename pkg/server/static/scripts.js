@@ -5,18 +5,18 @@ let countdown = 15; // Refresh countdown in seconds
 // Throttle function to limit the rate at which a function can fire.
 function throttle(func, limit) {
     let inThrottle;
-    return function() {
+    return function () {
         const args = arguments;
         const context = this;
         if (!inThrottle) {
             func.apply(context, args);
             inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
+            setTimeout(() => (inThrottle = false), limit);
         }
-    }
+    };
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', function () {
     // Initial load of the table data
     loadTableData();
 
@@ -28,9 +28,9 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function loadTableData() {
-    fetch("/api")
-        .then(response => response.json())
-        .then(data => {
+    fetch('/api')
+        .then((response) => response.json())
+        .then((data) => {
             updateTable(data);
             countdown = 15; // Reset countdown after loading new data
 
@@ -39,19 +39,21 @@ function loadTableData() {
                 sortTable(sortedColumn, false);
             }
         })
-        .catch(error => console.error('Error fetching host data:', error));
+        .catch((error) => console.error('Error fetching host data:', error));
 }
 
 function updateTable(data) {
     // Remove all existing graph popups to prevent lingering images
-    document.querySelectorAll('.graph-popup').forEach(el => el.remove());
+    document.querySelectorAll('.graph-popup').forEach((el) => el.remove());
 
-    const tbody = document.getElementById("hostTable").getElementsByTagName("tbody")[0];
+    const tbody = document
+        .getElementById('hostTable')
+        .getElementsByTagName('tbody')[0];
     tbody.innerHTML = ''; // Clear existing rows
 
     for (const [host, info] of Object.entries(data)) {
         const row = tbody.insertRow();
-        row.className = info.alive ? "up" : "down";
+        row.className = info.alive ? 'up' : 'down';
 
         const cellHost = row.insertCell(0);
         const hostDetailLink = document.createElement('a');
@@ -60,15 +62,15 @@ function updateTable(data) {
         cellHost.appendChild(hostDetailLink);
 
         const cellStatus = row.insertCell(1);
-        cellStatus.textContent = info.alive ? "UP" : "DOWN";
+        cellStatus.textContent = info.alive ? 'UP' : 'DOWN';
 
         // Create the graph popup but don't append it to the cell
-        const graphContainer = document.createElement("div");
-        graphContainer.className = "graph-popup";
+        const graphContainer = document.createElement('div');
+        graphContainer.className = 'graph-popup';
 
-        const img = document.createElement("img");
+        const img = document.createElement('img');
         // Append a timestamp to prevent caching
-        img.src = `/imgs/${host}/${host}_latency_15m.png?${new Date().getTime()}`;
+        img.src = `/imgs/${host}/${host}_ping_15m.png?${new Date().getTime()}`;
         img.alt = `Latency graph for ${host}`;
         img.width = 600; // Adjust dimensions as needed
         img.height = 200;
@@ -86,7 +88,7 @@ function updateTable(data) {
         // Preload image when updating
         function updateImage() {
             const timestamp = new Date().getTime();
-            const newSrc = `/imgs/${host}/${host}_latency_15m.png?${timestamp}`;
+            const newSrc = `/imgs/${host}/${host}_ping_15m.png?${timestamp}`;
             const preloadImg = new Image();
             preloadImg.src = newSrc;
             preloadImg.onload = () => {
@@ -94,47 +96,50 @@ function updateTable(data) {
             };
         }
 
-        cellStatus.addEventListener('mousemove', throttle(function (e) {
-            // Update the image to fetch the latest graph
-            updateImage();
+        cellStatus.addEventListener(
+            'mousemove',
+            throttle(function (e) {
+                // Update the image to fetch the latest graph
+                updateImage();
 
-            // Get mouse position
-            let mouseX = e.clientX;
-            let mouseY = e.clientY;
+                // Get mouse position
+                let mouseX = e.clientX;
+                let mouseY = e.clientY;
 
-            // Adjust position to place the graph to the right of the mouse pointer
-            let graphWidth = img.width;
-            let graphHeight = img.height;
+                // Adjust position to place the graph to the right of the mouse pointer
+                let graphWidth = img.width;
+                let graphHeight = img.height;
 
-            // Calculate position, adjust to keep within viewport
-            let xOffset = 20; // Offset to the right of the mouse pointer
-            let yOffset = -20; // Offset above the mouse pointer
+                // Calculate position, adjust to keep within viewport
+                let xOffset = 20; // Offset to the right of the mouse pointer
+                let yOffset = -20; // Offset above the mouse pointer
 
-            let left = mouseX + xOffset;
-            let top = mouseY + yOffset;
+                let left = mouseX + xOffset;
+                let top = mouseY + yOffset;
 
-            // Get viewport dimensions
-            let viewportWidth = window.innerWidth;
-            let viewportHeight = window.innerHeight;
+                // Get viewport dimensions
+                let viewportWidth = window.innerWidth;
+                let viewportHeight = window.innerHeight;
 
-            // Adjust left position if the graph goes off the right edge
-            if ((left + graphWidth) > viewportWidth) {
-                left = mouseX - graphWidth - xOffset;
-            }
+                // Adjust left position if the graph goes off the right edge
+                if (left + graphWidth > viewportWidth) {
+                    left = mouseX - graphWidth - xOffset;
+                }
 
-            // Adjust top position if the graph goes off the bottom edge
-            if ((top + graphHeight) > viewportHeight) {
-                top = viewportHeight - graphHeight - 10; // 10px padding from bottom
-            }
+                // Adjust top position if the graph goes off the bottom edge
+                if (top + graphHeight > viewportHeight) {
+                    top = viewportHeight - graphHeight - 10; // 10px padding from bottom
+                }
 
-            // Adjust top position if the graph goes off the top edge
-            if (top < 0) {
-                top = 10; // 10px padding from top
-            }
+                // Adjust top position if the graph goes off the top edge
+                if (top < 0) {
+                    top = 10; // 10px padding from top
+                }
 
-            graphContainer.style.left = `${left + window.scrollX}px`;
-            graphContainer.style.top = `${top + window.scrollY}px`;
-        }, 2000)); // Throttle to execute at most once every 2 seconds
+                graphContainer.style.left = `${left + window.scrollX}px`;
+                graphContainer.style.top = `${top + window.scrollY}px`;
+            }, 2000),
+        ); // Throttle to execute at most once every 2 seconds
 
         cellStatus.addEventListener('mouseleave', function () {
             graphContainer.style.display = 'none';
@@ -144,7 +149,8 @@ function updateTable(data) {
 
 function updateCountdown() {
     countdown -= 1;
-    document.getElementById("countdown").textContent = `Next refresh in: ${countdown}s`;
+    document.getElementById('countdown').textContent =
+        `Next refresh in: ${countdown}s`;
 
     if (countdown <= 0) {
         countdown = 15;
@@ -161,7 +167,7 @@ function handleSort(columnIndex) {
 }
 
 function sortTable(columnIndex, toggleSortOrder = true) {
-    const table = document.getElementById("hostTable");
+    const table = document.getElementById('hostTable');
     const rows = Array.from(table.rows).slice(1); // Skip header row
     const isAscending = sortOrder[columnIndex];
 
@@ -169,18 +175,20 @@ function sortTable(columnIndex, toggleSortOrder = true) {
         const aText = a.cells[columnIndex].textContent;
         const bText = b.cells[columnIndex].textContent;
 
-        if (columnIndex === 1) { // Sort by status: UP before DOWN
+        if (columnIndex === 1) {
+            // Sort by status: UP before DOWN
             if (aText === bText) return 0;
-            return (aText === "UP" ? -1 : 1) * (isAscending ? 1 : -1);
-        } else { // Sort by host name
+            return (aText === 'UP' ? -1 : 1) * (isAscending ? 1 : -1);
+        } else {
+            // Sort by host name
             return aText.localeCompare(bText) * (isAscending ? 1 : -1);
         }
     });
 
     // Rebuild table body
-    const tbody = table.getElementsByTagName("tbody")[0];
+    const tbody = table.getElementsByTagName('tbody')[0];
     tbody.innerHTML = '';
-    sortedRows.forEach(row => tbody.appendChild(row));
+    sortedRows.forEach((row) => tbody.appendChild(row));
 
     // Track the sorted column index
     sortedColumn = columnIndex;
@@ -190,7 +198,7 @@ function sortTable(columnIndex, toggleSortOrder = true) {
 }
 
 function updateHeaders() {
-    const headers = document.querySelectorAll("#hostTable th");
+    const headers = document.querySelectorAll('#hostTable th');
 
     headers.forEach((header) => {
         // Simply clear any arrows that might exist
