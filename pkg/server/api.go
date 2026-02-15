@@ -12,7 +12,6 @@ import (
 
 type HostAPIResponse struct {
 	Address    string        `json:"address,omitempty"`
-	Radios     []string      `json:"radios,omitempty"`
 	Alive      bool          `json:"alive"`
 	Latency    time.Duration `json:"latency"`
 	LastUpdate int64         `json:"lastupdate"`
@@ -63,7 +62,6 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		// Create a response struct with the last update time
 		hostResponse := HostAPIResponse{
 			Address:    h.Address,
-			Radios:     h.Radios,
 			Alive:      h.Alive,
 			Latency:    h.Latency,
 			LastUpdate: h.LastUpdate,
