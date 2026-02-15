@@ -3,8 +3,7 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  args_bin = ["-log-level=debug"]
-  bin = "out/wasgehtd"
+  entrypoint = ["out/wasgehtd", "-log-level=debug"]
   cmd = "make build"
   delay = 1000
   exclude_dir = ["data"]
@@ -14,7 +13,7 @@ tmp_dir = "tmp"
   follow_symlink = false
   full_bin = ""
   include_dir = ["cmd", "pkg"]
-  include_ext = ["go", "html" ]
+  include_ext = ["go", "html", "js", "css", "tmpl" ]
   include_file = []
   kill_delay = "3s"
   log = "build-errors.log"
