@@ -37,8 +37,9 @@ func (s *Server) worker(name string, h *host.Host) {
 		return
 	}
 
-	// Initialize RRD file for the host
-	rrdFile, err := rrd.NewRRD(h, s.rrdDir, s.graphDir, "latency", s.logger)
+	// Initialize RRD file for the host (now takes name string, not *host.Host)
+	// checkType names the file (ping.rrd), dsName names the data source inside it (latency)
+	rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, pingCheck.Type(), "latency", s.logger)
 	if err != nil {
 		s.logger.Errorf("Worker for host %s: Failed to initialize RRD (%v)", name, err)
 		return
@@ -55,10 +56,12 @@ func (s *Server) worker(name string, h *host.Host) {
 		latencyUpdate := rrdValuesFromResult(result)
 
 		s.logger.Debugf("Worker for host %s: Updating RRD with values %v.", name, latencyUpdate)
-		err := rrdFile.SafeUpdate(result.Timestamp, latencyUpdate)
+		lastUpdate, err := rrdFile.SafeUpdate(result.Timestamp, latencyUpdate)
 		if err != nil {
 			s.logger.Errorf("Worker for host %s: Failed to update RRD (%v)", name, err)
 		} else {
+			// Track LastUpdate on host for backward compatibility with API
+			h.LastUpdate = lastUpdate
 			s.logger.Debugf("Worker for host %s: RRD update successful.", name)
 		}
 
