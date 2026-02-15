@@ -15,7 +15,6 @@
 
 ## Requirements
 
-
 ### Using Nix (Recommended)
 
 If you have **direnv** installed, follow the instructions when entering this directory.
@@ -32,37 +31,43 @@ This loads the environment specified in `shell.nix`:
 
 - Go (for building),
 - gnumake (for Makefile),
+- air (for live reload during development),
 - rrdtool (for handling RRD databases),
 - unixtools.ping (ping utility).
 
 Once inside the shell, you can run the usual make commands
 
-### Without Nix ###
+### Without Nix
 
 Ensure the following are installed:
 
 - **Go** (1.23+ recommended)
+- **air** (for live reload during development, optional)
 - **rrdtool** and **unixtools ping** must be installed and available on the system path.
 - Basic Unix tools for building and running (`make`, etc.).
 
 ## Quick Start
 
 1. **Clone** the repository:
-    ```bash
-    git clone https://github.com/kylerisse/wasgeht.git
-    cd wasgeht
-    ```
+
+   ```bash
+   git clone https://github.com/kylerisse/wasgeht.git
+   cd wasgeht
+   ```
 
 2. **Install dependencies**:
-    ```bash
-    make deps
-    ```
+
+   ```bash
+   make deps
+   ```
 
 3. **Build** the binary:
-    ```bash
-    make build
-    ```
-    This will compile the Go code and produce a `wasgehtd` binary in the project root.
+
+   ```bash
+   make build
+   ```
+
+   This will compile the Go code and produce a `wasgehtd` binary in the project root.
 
 4. **Prepare data directories**:
 
@@ -77,9 +82,10 @@ Ensure the following are installed:
    Update or create your own JSON file listing your hosts (see `sample-hosts.json` for reference).
 
 6. **Run** the application:
-    ```bash
-    ./wasgehtd --host-file=sample-hosts.json --data-dir=./data --port=1982 --log-level=info
-    ```
+
+   ```bash
+   ./wasgehtd --host-file=sample-hosts.json --data-dir=./data --port=1982 --log-level=info
+   ```
 
 7. **Access the web interface**:
 
@@ -91,6 +97,32 @@ Ensure the following are installed:
 - **Data Directory** (`--data-dir`): Root directory that contains `rrds/` and `graphs/`.
 - **Port** (`--port`): Port on which the API and front-end are served.
 - **Logging Level** (`--log-level`): Set the verbosity of logs (e.g., `debug`, `info`, `warn`, `error`, `fatal`, `panic`).
+
+## Data Directory Layout
+
+RRD files and graph images are organized into per-host subdirectories:
+
+```
+data/
+├── rrds/
+│   ├── router/
+│   │   └── ping.rrd
+│   ├── google/
+│   │   └── ping.rrd
+│   └── ...
+└── graphs/
+    └── imgs/
+        ├── router/
+        │   ├── router_ping_15m.png
+        │   ├── router_ping_1h.png
+        │   └── ...
+        ├── google/
+        │   ├── google_ping_15m.png
+        │   └── ...
+        └── ...
+```
+
+Each check type gets its own RRD file (e.g., `ping.rrd`), making it straightforward to add new check types in the future without filename collisions.
 
 ## Makefile Targets
 
@@ -109,7 +141,7 @@ Ensure the following are installed:
 
 MIT License
 
-Copyright (c) 2025 Kyle Risse
+Copyright (c) 2026 Kyle Risse
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -9,15 +9,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kylerisse/wasgeht/pkg/host"
 	"github.com/sirupsen/logrus"
 )
 
 // RRD represents an RRD file, including metadata and synchronization tools.
 // It contains the file pointer, a mutex for thread safety, a list of data sources, and archive definitions.
 type RRD struct {
-	host     *host.Host
-	metric   string
+	name     string
+	checkTyp string        // check type name, used for file naming
+	dsName   string        // RRD data source name (e.g. "latency")
 	file     *os.File      // Pointer to the actual RRD file
 	mutex    *sync.RWMutex // Wrap file access
 	graphs   []*graph
@@ -25,34 +25,43 @@ type RRD struct {
 	graphDir string
 }
 
-// NewRRD creates and initializes a new RRD struct for the specified host.
+// NewRRD creates and initializes a new RRD struct for the specified name.
 // If the specified RRD file does not exist, it will be created using rrdtool with predefined data sources and archives.
 //
+// RRD files are stored under {rrdDir}/{name}/{checkType}.rrd and graphs under {graphDir}/imgs/{name}/.
+//
 // Parameters:
-//   - host: The name of the host for which the RRD file will be created.
+//   - name: The identifier (typically host name) for which the RRD file will be created.
 //   - rrdDir: The directory where the RRD file should be stored.
 //   - graphDir: The directory where the graphs should be stored.
-//   - metric: The metric name.
+//   - checkType: The check type name, used for the RRD filename (e.g. "ping").
+//   - dsName: The RRD data source name (e.g. "latency").
 //   - logger: The logger instance.
 //
 // Returns:
 //   - *RRD: A pointer to the newly created RRD struct.
 //   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(host *host.Host, rrdDir string, graphDir string, metric string, logger *logrus.Logger) (*RRD, error) {
+func NewRRD(name string, rrdDir string, graphDir string, checkType string, dsName string, logger *logrus.Logger) (*RRD, error) {
 	// verify rrdDir exists
 	if _, err := os.Stat(rrdDir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("directory %s does not exist", rrdDir)
 	}
 
-	// Construct the RRD file path including the metric name
-	rrdPath := fmt.Sprintf("%s/%s_%s.rrd", rrdDir, host.Name, metric)
-	logger.Debugf("RRD path for host %s and metric %s: %s", host.Name, metric, rrdPath)
+	// Create per-name subdirectory under rrdDir
+	nameDir := fmt.Sprintf("%s/%s", rrdDir, name)
+	if err := os.MkdirAll(nameDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create directory %s: %w", nameDir, err)
+	}
+
+	// Construct the RRD file path: {rrdDir}/{name}/{checkType}.rrd
+	rrdPath := fmt.Sprintf("%s/%s.rrd", nameDir, checkType)
+	logger.Debugf("RRD path for %s check type %s: %s", name, checkType, rrdPath)
 
 	if _, err := os.Stat(rrdPath); os.IsNotExist(err) {
 		logger.Debugf("RRD file %s does not exist. Creating new RRD file.", rrdPath)
 		cmd := exec.Command("rrdtool", "create", rrdPath,
 			"--step", "60",
-			fmt.Sprintf("DS:%s:GAUGE:120:0:U", metric),
+			fmt.Sprintf("DS:%s:GAUGE:120:0:U", dsName),
 			"RRA:MAX:0.5:1:10080",      // 1-minute max for 1 week (10080 data points)
 			"RRA:AVERAGE:0.5:1:10080",  // 1-minute average for 1 week (10080 data points)
 			"RRA:AVERAGE:0.5:5:8928",   // 5-minute average for 31 days (8928 data points)
@@ -77,8 +86,9 @@ func NewRRD(host *host.Host, rrdDir string, graphDir string, metric string, logg
 
 	// Initialize the RRD struct
 	rrd := &RRD{
-		host:     host,
-		metric:   metric,
+		name:     name,
+		checkTyp: checkType,
+		dsName:   dsName,
 		file:     file,
 		mutex:    &sync.RWMutex{},
 		graphs:   []*graph{},
@@ -88,7 +98,7 @@ func NewRRD(host *host.Host, rrdDir string, graphDir string, metric string, logg
 
 	rrd.initGraphs()
 
-	logger.Debugf("RRD struct initialized for host %s and metric %s.", host.Name, metric)
+	logger.Debugf("RRD struct initialized for %s check type %s.", name, checkType)
 	return rrd, nil
 }
 
@@ -142,11 +152,13 @@ func (r *RRD) getLastUpdate() (int64, error) {
 	return lastUpdate, nil
 }
 
-// SafeUpdate updates the RRD file with the given timestamp and latency value if the timestamp is newer.
+// SafeUpdate updates the RRD file with the given timestamp and values if the timestamp is newer.
 //
 // This function acquires a write lock to ensure that only one update can be performed at a time.
 // It checks if the given timestamp is newer than the latest existing update.
-func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
+//
+// Returns the Unix timestamp of the update on success, or an error if the update was skipped or failed.
+func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) (int64, error) {
 	r.logger.Debugf("Attempting to update RRD file %s at timestamp %d with values %v.", r.file.Name(), timestamp.Unix(), values)
 
 	// Acquire write lock for updating.
@@ -156,14 +168,14 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 	// Get the last update timestamp.
 	lastUpdate, err := r.getLastUpdate()
 	if err != nil {
-		return fmt.Errorf("failed to get last update: %w", err)
+		return 0, fmt.Errorf("failed to get last update: %w", err)
 	}
 
 	// If the given timestamp is not newer, skip the update.
 	timestampUnix := timestamp.Unix()
 	if timestampUnix <= lastUpdate {
 		r.logger.Debugf("Skipping update for RRD file %s: provided timestamp %d is not newer than last update %d.", r.file.Name(), timestamp.Unix(), lastUpdate)
-		return fmt.Errorf("skipping update as timestamp %d is not newer than last update %d", timestamp.Unix(), lastUpdate)
+		return 0, fmt.Errorf("skipping update as timestamp %d is not newer than last update %d", timestamp.Unix(), lastUpdate)
 	}
 
 	if len(values) > 0 {
@@ -177,10 +189,9 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 
 		// Execute the "rrdtool update" command to add the new data point.
 		cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)
-		r.host.LastUpdate = timestampUnix
 
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
+			return 0, fmt.Errorf("failed to update RRD file %s with rrdtool: %w", r.file.Name(), err)
 		}
 
 		r.logger.Debugf("RRD file %s updated successfully.", r.file.Name())
@@ -193,7 +204,7 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) error {
 		}
 	}
 
-	return nil
+	return timestampUnix, nil
 }
 
 // initGraphs initializes a list of graphs for different time lengths and consolidation functions.
@@ -217,14 +228,14 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with specified consolidation function.
 	for timeLength, conFunc := range timeLengths {
-		graph, err := newGraph(r.host.Name, r.graphDir, r.file.Name(), timeLength, conFunc, r.metric, r.logger)
+		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.dsName, r.logger)
 		if err != nil {
-			r.logger.Errorf("Failed to create %s graph for host %s with time length %s: %v", conFunc, r.host.Name, timeLength, err)
+			r.logger.Errorf("Failed to create %s graph for %s with time length %s: %v", conFunc, r.name, timeLength, err)
 			continue
 		}
 		r.graphs = append(r.graphs, graph)
-		r.logger.Debugf("Added %s graph for host %s with time length %s.", conFunc, r.host.Name, timeLength)
+		r.logger.Debugf("Added %s graph for %s with time length %s.", conFunc, r.name, timeLength)
 	}
 
-	r.logger.Debugf("Total graphs initialized for host %s: %d", r.host.Name, len(r.graphs))
+	r.logger.Debugf("Total graphs initialized for %s: %d", r.name, len(r.graphs))
 }
