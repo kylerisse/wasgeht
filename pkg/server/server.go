@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/kylerisse/wasgeht/pkg/check"
+	"github.com/kylerisse/wasgeht/pkg/check/ping"
 	"github.com/kylerisse/wasgeht/pkg/host"
 	"github.com/sirupsen/logrus"
 )
@@ -13,6 +15,7 @@ import (
 // Server represents the ping server
 type Server struct {
 	hosts      map[string]*host.Host
+	registry   *check.Registry
 	done       chan struct{}
 	wg         sync.WaitGroup
 	logger     *logrus.Logger
@@ -28,8 +31,14 @@ func NewServer(hostFile string, rrdDir string, graphDir string, listenPort strin
 		return nil, err
 	}
 
+	registry := check.NewRegistry()
+	if err := registry.Register(ping.TypeName, ping.Factory); err != nil {
+		return nil, fmt.Errorf("failed to register ping check: %w", err)
+	}
+
 	return &Server{
 		hosts:      hosts,
+		registry:   registry,
 		done:       make(chan struct{}),
 		logger:     logger,
 		rrdDir:     rrdDir,
