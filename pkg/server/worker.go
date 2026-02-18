@@ -6,12 +6,17 @@ import (
 	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
-	"github.com/kylerisse/wasgeht/pkg/check/ping"
 	"github.com/kylerisse/wasgeht/pkg/host"
 	"github.com/kylerisse/wasgeht/pkg/rrd"
 )
 
-// worker periodically runs a check against the assigned host
+// checkInstance pairs a check with its RRD file for the worker loop.
+type checkInstance struct {
+	check   check.Check
+	rrdFile *rrd.RRD
+}
+
+// worker periodically runs all enabled checks against the assigned host
 func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
@@ -26,50 +31,17 @@ func (s *Server) worker(name string, h *host.Host) {
 		return
 	}
 
-	// Initialize the ping check for this host
+	// Resolve target: use explicit address or fall back to hostname
 	target := h.Address
 	if target == "" {
 		target = name
 	}
-	pingCheck, err := ping.New(target, ping.WithTimeout(3*time.Second))
-	if err != nil {
-		s.logger.Errorf("Worker for host %s: Failed to create ping check (%v)", name, err)
+
+	// Initialize all enabled checks and their RRD files
+	instances := s.initChecks(name, h, target)
+	if len(instances) == 0 {
+		s.logger.Warningf("Worker for host %s: no checks to run, exiting", name)
 		return
-	}
-
-	// Initialize RRD file for the host (now takes name string, not *host.Host)
-	// checkType names the file (ping.rrd), dsName names the data source inside it (latency)
-	rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, pingCheck.Type(), "latency", s.logger)
-	if err != nil {
-		s.logger.Errorf("Worker for host %s: Failed to initialize RRD (%v)", name, err)
-		return
-	}
-
-	// Define the performCheck function
-	performCheck := func() {
-		result := pingCheck.Run(context.Background())
-
-		// Translate check.Result back into host state for backward compatibility
-		applyPingResult(h, name, result)
-
-		// Build RRD update from result metrics
-		latencyUpdate := rrdValuesFromResult(result)
-
-		s.logger.Debugf("Worker for host %s: Updating RRD with values %v.", name, latencyUpdate)
-		lastUpdate, err := rrdFile.SafeUpdate(result.Timestamp, latencyUpdate)
-		if err != nil {
-			s.logger.Errorf("Worker for host %s: Failed to update RRD (%v)", name, err)
-		} else {
-			// Track LastUpdate on host for backward compatibility with API
-			h.LastUpdate = lastUpdate
-			s.logger.Debugf("Worker for host %s: RRD update successful.", name)
-		}
-
-		if result.Success {
-			s.logger.Infof("Worker for host %s: Latency=%v (check successful)", name, h.Latency)
-		} else {
-			s.logger.Warningf("Worker for host %s: Check failed (%v)", name, result.Err)
-		}
 	}
 
 	// Run periodic checks every minute
@@ -79,7 +51,7 @@ func (s *Server) worker(name string, h *host.Host) {
 			s.logger.Infof("Worker for host %s received shutdown signal.", name)
 			return
 		default:
-			performCheck()
+			s.runChecks(name, h, instances)
 
 			select {
 			case <-time.After(time.Minute):
@@ -90,6 +62,79 @@ func (s *Server) worker(name string, h *host.Host) {
 			}
 		}
 	}
+}
+
+// initChecks creates check instances and RRD files for all enabled checks on a host.
+func (s *Server) initChecks(name string, h *host.Host, target string) []checkInstance {
+	enabledChecks := h.EnabledChecks()
+	instances := make([]checkInstance, 0, len(enabledChecks))
+
+	for checkType, cfg := range enabledChecks {
+		// Build the config for the factory: inject target, copy user config
+		factoryCfg := buildFactoryConfig(cfg, target)
+
+		chk, err := s.registry.Create(checkType, factoryCfg)
+		if err != nil {
+			s.logger.Errorf("Worker for host %s: failed to create %s check (%v)", name, checkType, err)
+			continue
+		}
+
+		// Initialize RRD file for this check
+		// checkType names the file (ping.rrd), dsName names the data source inside it (latency)
+		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, "latency", s.logger)
+		if err != nil {
+			s.logger.Errorf("Worker for host %s: failed to initialize RRD for %s check (%v)", name, checkType, err)
+			continue
+		}
+
+		instances = append(instances, checkInstance{check: chk, rrdFile: rrdFile})
+		s.logger.Infof("Worker for host %s: initialized %s check", name, checkType)
+	}
+
+	return instances
+}
+
+// runChecks executes all check instances for a host and updates their RRD files.
+func (s *Server) runChecks(name string, h *host.Host, instances []checkInstance) {
+	for _, inst := range instances {
+		result := inst.check.Run(context.Background())
+		checkType := inst.check.Type()
+
+		// Backward compatibility: translate ping results into host state
+		if checkType == "ping" {
+			applyPingResult(h, name, result)
+		}
+
+		// Build RRD update from result metrics
+		latencyUpdate := rrdValuesFromResult(result)
+
+		s.logger.Debugf("Worker for host %s [%s]: Updating RRD with values %v.", name, checkType, latencyUpdate)
+		lastUpdate, err := inst.rrdFile.SafeUpdate(result.Timestamp, latencyUpdate)
+		if err != nil {
+			s.logger.Errorf("Worker for host %s [%s]: Failed to update RRD (%v)", name, checkType, err)
+		} else {
+			// Track LastUpdate on host for backward compatibility with API
+			h.LastUpdate = lastUpdate
+			s.logger.Debugf("Worker for host %s [%s]: RRD update successful.", name, checkType)
+		}
+
+		if result.Success {
+			s.logger.Infof("Worker for host %s [%s]: check successful", name, checkType)
+		} else {
+			s.logger.Warningf("Worker for host %s [%s]: check failed (%v)", name, checkType, result.Err)
+		}
+	}
+}
+
+// buildFactoryConfig creates a config map for a check factory by copying the
+// user-provided config and injecting the resolved target address.
+func buildFactoryConfig(cfg map[string]any, target string) map[string]any {
+	factoryCfg := make(map[string]any, len(cfg)+1)
+	for k, v := range cfg {
+		factoryCfg[k] = v
+	}
+	factoryCfg["target"] = target
+	return factoryCfg
 }
 
 // applyPingResult translates a check.Result into host state fields

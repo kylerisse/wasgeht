@@ -8,12 +8,26 @@
   "watson": {},
   "zugzug": {},
   "google": {
-    "address": "8.8.8.8"
+    "address": "8.8.8.8",
+    "checks": {
+      "ping": { "timeout": "5s" }
+    }
   },
   "fake1": {},
-  "fake2": {},
-  "fake3": {},
-  "fake4": {},
+  "fake2": {
+    "address": "8.8.4.4",
+    "checks": {
+      "ping": { "timeout": "1s" }
+    }
+  },
+  "fake3": {
+    "address": "1.0.0.1"
+  },
+  "fake4": {
+    "checks": {
+      "ping": { "enabled": false }
+    }
+  },
   "onedotone": {
     "address": "1.1.1.1"
   },
