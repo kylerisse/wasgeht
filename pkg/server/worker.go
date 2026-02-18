@@ -10,10 +10,11 @@ import (
 	"github.com/kylerisse/wasgeht/pkg/rrd"
 )
 
-// checkInstance pairs a check with its RRD file for the worker loop.
+// checkInstance pairs a check with its RRD file and metric definitions.
 type checkInstance struct {
-	check   check.Check
-	rrdFile *rrd.RRD
+	check      check.Check
+	rrdFile    *rrd.RRD
+	metricDefs []check.MetricDef
 }
 
 // worker periodically runs all enabled checks against the assigned host
@@ -70,6 +71,18 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 	instances := make([]checkInstance, 0, len(enabledChecks))
 
 	for checkType, cfg := range enabledChecks {
+		// Look up the descriptor to learn what metrics this check produces
+		desc, err := s.registry.Describe(checkType)
+		if err != nil {
+			s.logger.Errorf("Worker for host %s: no descriptor for %s check (%v)", name, checkType, err)
+			continue
+		}
+
+		if len(desc.Metrics) == 0 {
+			s.logger.Errorf("Worker for host %s: %s check declares no metrics", name, checkType)
+			continue
+		}
+
 		// Build the config for the factory: inject target, copy user config
 		factoryCfg := buildFactoryConfig(cfg, target)
 
@@ -79,15 +92,21 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 			continue
 		}
 
-		// Initialize RRD file for this check
-		// checkType names the file (ping.rrd), dsName names the data source inside it (latency)
-		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, "latency", s.logger)
+		// Initialize RRD file for this check.
+		// Currently one RRD file per check type using the first metric's DSName.
+		// Multi-DS RRD support is future work.
+		dsName := desc.Metrics[0].DSName
+		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, dsName, s.logger)
 		if err != nil {
 			s.logger.Errorf("Worker for host %s: failed to initialize RRD for %s check (%v)", name, checkType, err)
 			continue
 		}
 
-		instances = append(instances, checkInstance{check: chk, rrdFile: rrdFile})
+		instances = append(instances, checkInstance{
+			check:      chk,
+			rrdFile:    rrdFile,
+			metricDefs: desc.Metrics,
+		})
 		s.logger.Infof("Worker for host %s: initialized %s check", name, checkType)
 	}
 
@@ -105,11 +124,11 @@ func (s *Server) runChecks(name string, h *host.Host, instances []checkInstance)
 			applyPingResult(h, name, result)
 		}
 
-		// Build RRD update from result metrics
-		latencyUpdate := rrdValuesFromResult(result)
+		// Build RRD update from result metrics using the descriptor
+		values := rrdValuesFromResult(result, inst.metricDefs)
 
-		s.logger.Debugf("Worker for host %s [%s]: Updating RRD with values %v.", name, checkType, latencyUpdate)
-		lastUpdate, err := inst.rrdFile.SafeUpdate(result.Timestamp, latencyUpdate)
+		s.logger.Debugf("Worker for host %s [%s]: Updating RRD with values %v.", name, checkType, values)
+		lastUpdate, err := inst.rrdFile.SafeUpdate(result.Timestamp, values)
 		if err != nil {
 			s.logger.Errorf("Worker for host %s [%s]: Failed to update RRD (%v)", name, checkType, err)
 		} else {
@@ -150,15 +169,18 @@ func applyPingResult(h *host.Host, name string, result check.Result) {
 	}
 }
 
-// rrdValuesFromResult extracts the latency metric from a check.Result
-// as a float64 slice suitable for RRD update. Returns an empty slice
-// if the check failed or the metric is absent.
-func rrdValuesFromResult(result check.Result) []float64 {
+// rrdValuesFromResult extracts metric values from a check.Result in the
+// order declared by the metric definitions. Returns an empty slice if the
+// check failed or no declared metrics are present.
+func rrdValuesFromResult(result check.Result, metrics []check.MetricDef) []float64 {
 	if !result.Success {
 		return []float64{}
 	}
-	if latencyUs, ok := result.Metrics["latency_us"]; ok {
-		return []float64{latencyUs}
+	var vals []float64
+	for _, m := range metrics {
+		if v, ok := result.Metrics[m.ResultKey]; ok {
+			vals = append(vals, v)
+		}
 	}
-	return []float64{}
+	return vals
 }

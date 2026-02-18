@@ -8,6 +8,11 @@ import (
 	"github.com/kylerisse/wasgeht/pkg/host"
 )
 
+// pingMetrics is the standard ping metric definition used across tests.
+var pingMetrics = []check.MetricDef{
+	{ResultKey: "latency_us", DSName: "latency"},
+}
+
 func TestBuildFactoryConfig_InjectsTarget(t *testing.T) {
 	cfg := map[string]any{"timeout": "5s"}
 	result := buildFactoryConfig(cfg, "8.8.8.8")
@@ -104,7 +109,7 @@ func TestRrdValuesFromResult_Success(t *testing.T) {
 		Metrics: map[string]float64{"latency_us": 5678.0},
 	}
 
-	vals := rrdValuesFromResult(result)
+	vals := rrdValuesFromResult(result, pingMetrics)
 	if len(vals) != 1 || vals[0] != 5678.0 {
 		t.Errorf("expected [5678.0], got %v", vals)
 	}
@@ -113,7 +118,7 @@ func TestRrdValuesFromResult_Success(t *testing.T) {
 func TestRrdValuesFromResult_Failure(t *testing.T) {
 	result := check.Result{Success: false}
 
-	vals := rrdValuesFromResult(result)
+	vals := rrdValuesFromResult(result, pingMetrics)
 	if len(vals) != 0 {
 		t.Errorf("expected empty slice, got %v", vals)
 	}
@@ -125,8 +130,67 @@ func TestRrdValuesFromResult_NoLatencyMetric(t *testing.T) {
 		Metrics: map[string]float64{"something_else": 42.0},
 	}
 
-	vals := rrdValuesFromResult(result)
+	vals := rrdValuesFromResult(result, pingMetrics)
 	if len(vals) != 0 {
 		t.Errorf("expected empty slice for missing latency, got %v", vals)
+	}
+}
+
+func TestRrdValuesFromResult_MultipleMetrics(t *testing.T) {
+	multiMetrics := []check.MetricDef{
+		{ResultKey: "rx_bytes", DSName: "rx"},
+		{ResultKey: "tx_bytes", DSName: "tx"},
+	}
+	result := check.Result{
+		Success: true,
+		Metrics: map[string]float64{
+			"rx_bytes": 1000.0,
+			"tx_bytes": 2000.0,
+		},
+	}
+
+	vals := rrdValuesFromResult(result, multiMetrics)
+	if len(vals) != 2 {
+		t.Fatalf("expected 2 values, got %d", len(vals))
+	}
+	if vals[0] != 1000.0 {
+		t.Errorf("expected rx_bytes=1000.0, got %f", vals[0])
+	}
+	if vals[1] != 2000.0 {
+		t.Errorf("expected tx_bytes=2000.0, got %f", vals[1])
+	}
+}
+
+func TestRrdValuesFromResult_PartialMetrics(t *testing.T) {
+	multiMetrics := []check.MetricDef{
+		{ResultKey: "rx_bytes", DSName: "rx"},
+		{ResultKey: "tx_bytes", DSName: "tx"},
+	}
+	result := check.Result{
+		Success: true,
+		Metrics: map[string]float64{
+			"rx_bytes": 1000.0,
+			// tx_bytes missing
+		},
+	}
+
+	vals := rrdValuesFromResult(result, multiMetrics)
+	if len(vals) != 1 {
+		t.Fatalf("expected 1 value for partial metrics, got %d", len(vals))
+	}
+	if vals[0] != 1000.0 {
+		t.Errorf("expected rx_bytes=1000.0, got %f", vals[0])
+	}
+}
+
+func TestRrdValuesFromResult_EmptyMetricDefs(t *testing.T) {
+	result := check.Result{
+		Success: true,
+		Metrics: map[string]float64{"latency_us": 1234.0},
+	}
+
+	vals := rrdValuesFromResult(result, []check.MetricDef{})
+	if len(vals) != 0 {
+		t.Errorf("expected empty slice for empty metric defs, got %v", vals)
 	}
 }

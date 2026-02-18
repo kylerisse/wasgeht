@@ -8,6 +8,10 @@
 // provides a uniform shape regardless of check type: success/failure,
 // a set of named metrics, and an optional error.
 //
+// Each check type provides a Descriptor that declares what metrics it
+// produces, allowing the system to generically wire up storage and
+// visualization without per-type knowledge.
+//
 // The Registry provides type discovery, allowing check types to be
 // registered by name and instantiated from configuration at runtime.
 package check
@@ -48,34 +52,58 @@ type Result struct {
 	Err error
 }
 
+// MetricDef describes a single metric produced by a check type.
+type MetricDef struct {
+	// ResultKey is the key used in Result.Metrics (e.g. "latency_us").
+	ResultKey string
+
+	// DSName is the RRD data source name (e.g. "latency").
+	DSName string
+}
+
+// Descriptor declares static metadata about a check type, including
+// what metrics it produces. This is registered alongside the Factory
+// so the system can generically wire up storage and graphs without
+// per-type knowledge.
+type Descriptor struct {
+	// Metrics lists the metrics this check type produces.
+	Metrics []MetricDef
+}
+
 // Factory is a function that creates a Check from a raw configuration map.
 // Each check type registers a Factory with the Registry.
 type Factory func(config map[string]any) (Check, error)
 
+// registration bundles a Factory with its Descriptor.
+type registration struct {
+	factory    Factory
+	descriptor Descriptor
+}
+
 // Registry holds registered check types and their factories.
 // It is safe for concurrent use.
 type Registry struct {
-	mu        sync.RWMutex
-	factories map[string]Factory
+	mu            sync.RWMutex
+	registrations map[string]registration
 }
 
 // NewRegistry creates an empty Registry.
 func NewRegistry() *Registry {
 	return &Registry{
-		factories: make(map[string]Factory),
+		registrations: make(map[string]registration),
 	}
 }
 
-// Register adds a check type factory under the given name.
+// Register adds a check type factory and descriptor under the given name.
 // Returns an error if the name is already registered.
-func (r *Registry) Register(name string, factory Factory) error {
+func (r *Registry) Register(name string, factory Factory, desc Descriptor) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, exists := r.factories[name]; exists {
+	if _, exists := r.registrations[name]; exists {
 		return fmt.Errorf("check type %q is already registered", name)
 	}
-	r.factories[name] = factory
+	r.registrations[name] = registration{factory: factory, descriptor: desc}
 	return nil
 }
 
@@ -83,13 +111,26 @@ func (r *Registry) Register(name string, factory Factory) error {
 // Returns an error if the type is not registered or the factory fails.
 func (r *Registry) Create(name string, config map[string]any) (Check, error) {
 	r.mu.RLock()
-	factory, exists := r.factories[name]
+	reg, exists := r.registrations[name]
 	r.mu.RUnlock()
 
 	if !exists {
 		return nil, fmt.Errorf("unknown check type %q", name)
 	}
-	return factory(config)
+	return reg.factory(config)
+}
+
+// Describe returns the Descriptor for the given check type.
+// Returns an error if the type is not registered.
+func (r *Registry) Describe(name string) (Descriptor, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	reg, exists := r.registrations[name]
+	if !exists {
+		return Descriptor{}, fmt.Errorf("unknown check type %q", name)
+	}
+	return reg.descriptor, nil
 }
 
 // Types returns the names of all registered check types.
@@ -97,8 +138,8 @@ func (r *Registry) Types() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	types := make([]string, 0, len(r.factories))
-	for name := range r.factories {
+	types := make([]string, 0, len(r.registrations))
+	for name := range r.registrations {
 		types = append(types, name)
 	}
 	return types

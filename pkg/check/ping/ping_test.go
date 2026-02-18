@@ -250,9 +250,22 @@ func TestFactory_WrongCountType(t *testing.T) {
 	}
 }
 
+func TestDesc(t *testing.T) {
+	if len(Desc.Metrics) != 1 {
+		t.Fatalf("expected 1 metric in Desc, got %d", len(Desc.Metrics))
+	}
+	m := Desc.Metrics[0]
+	if m.ResultKey != "latency_us" {
+		t.Errorf("expected ResultKey 'latency_us', got %q", m.ResultKey)
+	}
+	if m.DSName != "latency" {
+		t.Errorf("expected DSName 'latency', got %q", m.DSName)
+	}
+}
+
 func TestRegistryIntegration(t *testing.T) {
 	reg := check.NewRegistry()
-	err := reg.Register(TypeName, Factory)
+	err := reg.Register(TypeName, Factory, Desc)
 	if err != nil {
 		t.Fatalf("failed to register ping: %v", err)
 	}
@@ -263,6 +276,14 @@ func TestRegistryIntegration(t *testing.T) {
 	}
 	if chk.Type() != "ping" {
 		t.Errorf("expected type 'ping', got %q", chk.Type())
+	}
+
+	desc, err := reg.Describe("ping")
+	if err != nil {
+		t.Fatalf("failed to describe ping: %v", err)
+	}
+	if len(desc.Metrics) != 1 || desc.Metrics[0].ResultKey != "latency_us" {
+		t.Errorf("unexpected descriptor: %+v", desc)
 	}
 }
 

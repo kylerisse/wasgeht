@@ -28,6 +28,10 @@ func failingFactory(config map[string]any) (Check, error) {
 	return nil, fmt.Errorf("factory error")
 }
 
+var stubDescriptor = Descriptor{
+	Metrics: []MetricDef{{ResultKey: "value", DSName: "value"}},
+}
+
 func TestResult_ZeroValue(t *testing.T) {
 	var r Result
 	if r.Success {
@@ -62,7 +66,7 @@ func TestRegistry_RegisterAndCreate(t *testing.T) {
 	reg := NewRegistry()
 
 	expected := Result{Success: true, Timestamp: time.Now()}
-	err := reg.Register("stub", stubFactory("stub", expected))
+	err := reg.Register("stub", stubFactory("stub", expected), stubDescriptor)
 	if err != nil {
 		t.Fatalf("Register failed: %v", err)
 	}
@@ -84,12 +88,12 @@ func TestRegistry_RegisterAndCreate(t *testing.T) {
 func TestRegistry_DuplicateRegister(t *testing.T) {
 	reg := NewRegistry()
 
-	err := reg.Register("dup", stubFactory("dup", Result{}))
+	err := reg.Register("dup", stubFactory("dup", Result{}), stubDescriptor)
 	if err != nil {
 		t.Fatalf("first Register failed: %v", err)
 	}
 
-	err = reg.Register("dup", stubFactory("dup", Result{}))
+	err = reg.Register("dup", stubFactory("dup", Result{}), stubDescriptor)
 	if err == nil {
 		t.Error("expected error on duplicate registration")
 	}
@@ -107,7 +111,7 @@ func TestRegistry_CreateUnknownType(t *testing.T) {
 func TestRegistry_CreateFactoryError(t *testing.T) {
 	reg := NewRegistry()
 
-	err := reg.Register("bad", failingFactory)
+	err := reg.Register("bad", failingFactory, stubDescriptor)
 	if err != nil {
 		t.Fatalf("Register failed: %v", err)
 	}
@@ -121,9 +125,9 @@ func TestRegistry_CreateFactoryError(t *testing.T) {
 func TestRegistry_Types(t *testing.T) {
 	reg := NewRegistry()
 
-	reg.Register("ping", stubFactory("ping", Result{}))
-	reg.Register("http", stubFactory("http", Result{}))
-	reg.Register("tcp", stubFactory("tcp", Result{}))
+	reg.Register("ping", stubFactory("ping", Result{}), stubDescriptor)
+	reg.Register("http", stubFactory("http", Result{}), stubDescriptor)
+	reg.Register("tcp", stubFactory("tcp", Result{}), stubDescriptor)
 
 	types := reg.Types()
 	sort.Strings(types)
@@ -157,7 +161,7 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 		go func(n int) {
 			defer wg.Done()
 			name := fmt.Sprintf("type-%d", n)
-			reg.Register(name, stubFactory(name, Result{}))
+			reg.Register(name, stubFactory(name, Result{}), stubDescriptor)
 		}(i)
 	}
 	wg.Wait()
@@ -195,7 +199,7 @@ func TestRegistry_ConfigPassthrough(t *testing.T) {
 		return &stubCheck{typeName: "configtest"}, nil
 	}
 
-	reg.Register("configtest", factory)
+	reg.Register("configtest", factory, stubDescriptor)
 
 	config := map[string]any{
 		"target":  "example.com",
@@ -212,4 +216,84 @@ func TestRegistry_ConfigPassthrough(t *testing.T) {
 	if receivedConfig["timeout"] != 5.0 {
 		t.Errorf("expected timeout 5.0, got %v", receivedConfig["timeout"])
 	}
+}
+
+func TestRegistry_Describe(t *testing.T) {
+	reg := NewRegistry()
+
+	desc := Descriptor{
+		Metrics: []MetricDef{
+			{ResultKey: "latency_us", DSName: "latency"},
+		},
+	}
+	reg.Register("ping", stubFactory("ping", Result{}), desc)
+
+	got, err := reg.Describe("ping")
+	if err != nil {
+		t.Fatalf("Describe failed: %v", err)
+	}
+	if len(got.Metrics) != 1 {
+		t.Fatalf("expected 1 metric, got %d", len(got.Metrics))
+	}
+	if got.Metrics[0].ResultKey != "latency_us" {
+		t.Errorf("expected ResultKey 'latency_us', got %q", got.Metrics[0].ResultKey)
+	}
+	if got.Metrics[0].DSName != "latency" {
+		t.Errorf("expected DSName 'latency', got %q", got.Metrics[0].DSName)
+	}
+}
+
+func TestRegistry_DescribeUnknownType(t *testing.T) {
+	reg := NewRegistry()
+
+	_, err := reg.Describe("nonexistent")
+	if err == nil {
+		t.Error("expected error for unknown check type")
+	}
+}
+
+func TestRegistry_DescribeMultipleMetrics(t *testing.T) {
+	reg := NewRegistry()
+
+	desc := Descriptor{
+		Metrics: []MetricDef{
+			{ResultKey: "rx_bytes", DSName: "rx"},
+			{ResultKey: "tx_bytes", DSName: "tx"},
+		},
+	}
+	reg.Register("bandwidth", stubFactory("bandwidth", Result{}), desc)
+
+	got, err := reg.Describe("bandwidth")
+	if err != nil {
+		t.Fatalf("Describe failed: %v", err)
+	}
+	if len(got.Metrics) != 2 {
+		t.Fatalf("expected 2 metrics, got %d", len(got.Metrics))
+	}
+}
+
+func TestRegistry_ConcurrentDescribe(t *testing.T) {
+	reg := NewRegistry()
+
+	desc := Descriptor{
+		Metrics: []MetricDef{{ResultKey: "val", DSName: "val"}},
+	}
+	reg.Register("test", stubFactory("test", Result{}), desc)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			got, err := reg.Describe("test")
+			if err != nil {
+				t.Errorf("Describe failed: %v", err)
+				return
+			}
+			if len(got.Metrics) != 1 {
+				t.Errorf("expected 1 metric, got %d", len(got.Metrics))
+			}
+		}()
+	}
+	wg.Wait()
 }

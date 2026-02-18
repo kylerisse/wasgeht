@@ -27,6 +27,13 @@ const (
 	DefaultCount = 1
 )
 
+// Desc describes the metrics produced by a ping check.
+var Desc = check.Descriptor{
+	Metrics: []check.MetricDef{
+		{ResultKey: "latency_us", DSName: "latency"},
+	},
+}
+
 // Ping implements check.Check using ICMP echo requests.
 type Ping struct {
 	target  string
