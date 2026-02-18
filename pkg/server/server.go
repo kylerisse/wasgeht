@@ -32,7 +32,7 @@ func NewServer(hostFile string, rrdDir string, graphDir string, listenPort strin
 	}
 
 	registry := check.NewRegistry()
-	if err := registry.Register(ping.TypeName, ping.Factory); err != nil {
+	if err := registry.Register(ping.TypeName, ping.Factory, ping.Desc); err != nil {
 		return nil, fmt.Errorf("failed to register ping check: %w", err)
 	}
 
