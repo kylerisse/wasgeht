@@ -74,6 +74,7 @@ func loadHosts(filePath string) (map[string]*host.Host, error) {
 	for name, h := range hosts {
 		newHost := h // Create a new instance for the pointer
 		newHost.Name = name
+		newHost.ApplyDefaults()
 		hostPointers[name] = &newHost
 	}
 
