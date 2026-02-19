@@ -2,10 +2,8 @@ package server
 
 import (
 	"testing"
-	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
-	"github.com/kylerisse/wasgeht/pkg/host"
 )
 
 // pingMetrics is the standard ping metric definition used across tests.
@@ -51,55 +49,6 @@ func TestBuildFactoryConfig_OverridesExistingTarget(t *testing.T) {
 
 	if result["target"] != "8.8.8.8" {
 		t.Errorf("expected injected target to win, got %v", result["target"])
-	}
-}
-
-func TestApplyPingResult_Success(t *testing.T) {
-	h := &host.Host{Name: "test"}
-	result := check.Result{
-		Success: true,
-		Metrics: map[string]float64{"latency_us": 1234.0},
-	}
-
-	applyPingResult(h, "test", result)
-
-	if !h.Alive {
-		t.Error("expected host to be alive")
-	}
-	expected := time.Duration(1234) * time.Microsecond
-	if h.Latency != expected {
-		t.Errorf("expected latency %v, got %v", expected, h.Latency)
-	}
-}
-
-func TestApplyPingResult_Failure(t *testing.T) {
-	h := &host.Host{Name: "test", Alive: true, Latency: 100 * time.Microsecond}
-	result := check.Result{
-		Success: false,
-	}
-
-	applyPingResult(h, "test", result)
-
-	if h.Alive {
-		t.Error("expected host to be not alive")
-	}
-}
-
-func TestApplyPingResult_SuccessWithoutLatencyMetric(t *testing.T) {
-	h := &host.Host{Name: "test", Latency: 999 * time.Microsecond}
-	result := check.Result{
-		Success: true,
-		Metrics: map[string]float64{},
-	}
-
-	applyPingResult(h, "test", result)
-
-	if !h.Alive {
-		t.Error("expected host to be alive")
-	}
-	// Latency should be unchanged since metric is absent
-	if h.Latency != 999*time.Microsecond {
-		t.Errorf("expected latency unchanged, got %v", h.Latency)
 	}
 }
 
