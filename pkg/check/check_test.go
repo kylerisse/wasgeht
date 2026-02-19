@@ -29,7 +29,7 @@ func failingFactory(config map[string]any) (Check, error) {
 }
 
 var stubDescriptor = Descriptor{
-	Metrics: []MetricDef{{ResultKey: "value", DSName: "value"}},
+	Metrics: []MetricDef{{ResultKey: "value", DSName: "value", Label: "value", Unit: "units"}},
 }
 
 func TestResult_ZeroValue(t *testing.T) {
@@ -223,7 +223,7 @@ func TestRegistry_Describe(t *testing.T) {
 
 	desc := Descriptor{
 		Metrics: []MetricDef{
-			{ResultKey: "latency_us", DSName: "latency"},
+			{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms"},
 		},
 	}
 	reg.Register("ping", stubFactory("ping", Result{}), desc)
@@ -241,6 +241,12 @@ func TestRegistry_Describe(t *testing.T) {
 	if got.Metrics[0].DSName != "latency" {
 		t.Errorf("expected DSName 'latency', got %q", got.Metrics[0].DSName)
 	}
+	if got.Metrics[0].Label != "latency" {
+		t.Errorf("expected Label 'latency', got %q", got.Metrics[0].Label)
+	}
+	if got.Metrics[0].Unit != "ms" {
+		t.Errorf("expected Unit 'ms', got %q", got.Metrics[0].Unit)
+	}
 }
 
 func TestRegistry_DescribeUnknownType(t *testing.T) {
@@ -257,8 +263,8 @@ func TestRegistry_DescribeMultipleMetrics(t *testing.T) {
 
 	desc := Descriptor{
 		Metrics: []MetricDef{
-			{ResultKey: "rx_bytes", DSName: "rx"},
-			{ResultKey: "tx_bytes", DSName: "tx"},
+			{ResultKey: "rx_bytes", DSName: "rx", Label: "received", Unit: "bytes"},
+			{ResultKey: "tx_bytes", DSName: "tx", Label: "transmitted", Unit: "bytes"},
 		},
 	}
 	reg.Register("bandwidth", stubFactory("bandwidth", Result{}), desc)
@@ -276,7 +282,7 @@ func TestRegistry_ConcurrentDescribe(t *testing.T) {
 	reg := NewRegistry()
 
 	desc := Descriptor{
-		Metrics: []MetricDef{{ResultKey: "val", DSName: "val"}},
+		Metrics: []MetricDef{{ResultKey: "val", DSName: "val", Label: "value", Unit: "units"}},
 	}
 	reg.Register("test", stubFactory("test", Result{}), desc)
 

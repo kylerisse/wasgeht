@@ -261,6 +261,12 @@ func TestDesc(t *testing.T) {
 	if m.DSName != "latency" {
 		t.Errorf("expected DSName 'latency', got %q", m.DSName)
 	}
+	if m.Label != "latency" {
+		t.Errorf("expected Label 'latency', got %q", m.Label)
+	}
+	if m.Unit != "ms" {
+		t.Errorf("expected Unit 'ms', got %q", m.Unit)
+	}
 }
 
 func TestRegistryIntegration(t *testing.T) {

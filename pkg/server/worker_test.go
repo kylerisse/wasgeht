@@ -8,7 +8,7 @@ import (
 
 // pingMetrics is the standard ping metric definition used across tests.
 var pingMetrics = []check.MetricDef{
-	{ResultKey: "latency_us", DSName: "latency"},
+	{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms"},
 }
 
 func TestBuildFactoryConfig_InjectsTarget(t *testing.T) {
@@ -87,8 +87,8 @@ func TestRrdValuesFromResult_NoLatencyMetric(t *testing.T) {
 
 func TestRrdValuesFromResult_MultipleMetrics(t *testing.T) {
 	multiMetrics := []check.MetricDef{
-		{ResultKey: "rx_bytes", DSName: "rx"},
-		{ResultKey: "tx_bytes", DSName: "tx"},
+		{ResultKey: "rx_bytes", DSName: "rx", Label: "received", Unit: "bytes"},
+		{ResultKey: "tx_bytes", DSName: "tx", Label: "transmitted", Unit: "bytes"},
 	}
 	result := check.Result{
 		Success: true,
@@ -112,8 +112,8 @@ func TestRrdValuesFromResult_MultipleMetrics(t *testing.T) {
 
 func TestRrdValuesFromResult_PartialMetrics(t *testing.T) {
 	multiMetrics := []check.MetricDef{
-		{ResultKey: "rx_bytes", DSName: "rx"},
-		{ResultKey: "tx_bytes", DSName: "tx"},
+		{ResultKey: "rx_bytes", DSName: "rx", Label: "received", Unit: "bytes"},
+		{ResultKey: "tx_bytes", DSName: "tx", Label: "transmitted", Unit: "bytes"},
 	}
 	result := check.Result{
 		Success: true,
