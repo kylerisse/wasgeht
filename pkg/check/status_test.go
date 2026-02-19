@@ -3,7 +3,6 @@ package check
 import (
 	"sync"
 	"testing"
-	"time"
 )
 
 func TestNewStatus_ZeroValues(t *testing.T) {
@@ -11,8 +10,8 @@ func TestNewStatus_ZeroValues(t *testing.T) {
 	if s.Alive() {
 		t.Error("new status should not be alive")
 	}
-	if s.Latency() != 0 {
-		t.Errorf("new status should have zero latency, got %v", s.Latency())
+	if v, ok := s.Metric("latency_us"); ok {
+		t.Errorf("new status should have no metrics, got latency_us=%f", v)
 	}
 	if s.LastUpdate() != 0 {
 		t.Errorf("new status should have zero last update, got %d", s.LastUpdate())
@@ -29,9 +28,12 @@ func TestStatus_SetResult_Success(t *testing.T) {
 	if !s.Alive() {
 		t.Error("expected alive after successful result")
 	}
-	expected := time.Duration(1234) * time.Microsecond
-	if s.Latency() != expected {
-		t.Errorf("expected latency %v, got %v", expected, s.Latency())
+	v, ok := s.Metric("latency_us")
+	if !ok {
+		t.Fatal("expected latency_us metric to be present")
+	}
+	if v != 1234.0 {
+		t.Errorf("expected latency_us=1234.0, got %f", v)
 	}
 }
 
@@ -50,9 +52,12 @@ func TestStatus_SetResult_Failure(t *testing.T) {
 	if s.Alive() {
 		t.Error("expected not alive after failed result")
 	}
+	if _, ok := s.Metric("latency_us"); ok {
+		t.Error("expected no metrics after failed result")
+	}
 }
 
-func TestStatus_SetResult_SuccessWithoutLatency(t *testing.T) {
+func TestStatus_SetResult_SuccessWithoutMetrics(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
@@ -62,8 +67,31 @@ func TestStatus_SetResult_SuccessWithoutLatency(t *testing.T) {
 	if !s.Alive() {
 		t.Error("expected alive after successful result")
 	}
-	if s.Latency() != 0 {
-		t.Errorf("expected zero latency when metric absent, got %v", s.Latency())
+	if _, ok := s.Metric("latency_us"); ok {
+		t.Error("expected no latency_us when metric absent")
+	}
+}
+
+func TestStatus_Metric_MultipleMetrics(t *testing.T) {
+	s := NewStatus()
+	s.SetResult(Result{
+		Success: true,
+		Metrics: map[string]float64{
+			"latency_us":    1234.0,
+			"response_code": 200.0,
+		},
+	})
+
+	v, ok := s.Metric("latency_us")
+	if !ok || v != 1234.0 {
+		t.Errorf("expected latency_us=1234.0, got %f (ok=%v)", v, ok)
+	}
+	v, ok = s.Metric("response_code")
+	if !ok || v != 200.0 {
+		t.Errorf("expected response_code=200.0, got %f (ok=%v)", v, ok)
+	}
+	if _, ok := s.Metric("nonexistent"); ok {
+		t.Error("expected nonexistent metric to not be found")
 	}
 }
 
@@ -89,9 +117,8 @@ func TestStatus_Snapshot(t *testing.T) {
 	if !snap.Alive {
 		t.Error("snapshot should be alive")
 	}
-	expected := time.Duration(5678) * time.Microsecond
-	if snap.Latency != expected {
-		t.Errorf("snapshot latency: expected %v, got %v", expected, snap.Latency)
+	if v, ok := snap.Metrics["latency_us"]; !ok || v != 5678.0 {
+		t.Errorf("snapshot metrics: expected latency_us=5678.0, got %v (ok=%v)", v, ok)
 	}
 	if snap.LastUpdate != 1700000000 {
 		t.Errorf("snapshot last update: expected 1700000000, got %d", snap.LastUpdate)
@@ -113,6 +140,28 @@ func TestStatus_Snapshot_Independent(t *testing.T) {
 	// Snapshot should still reflect old state
 	if !snap.Alive {
 		t.Error("snapshot should be independent of subsequent mutations")
+	}
+	if _, ok := snap.Metrics["latency_us"]; !ok {
+		t.Error("snapshot metrics should be independent of subsequent mutations")
+	}
+}
+
+func TestStatus_Snapshot_MetricsMapIndependent(t *testing.T) {
+	s := NewStatus()
+	s.SetResult(Result{
+		Success: true,
+		Metrics: map[string]float64{"latency_us": 1000.0},
+	})
+
+	snap := s.Snapshot()
+
+	// Mutate the snapshot's metrics map
+	snap.Metrics["latency_us"] = 9999.0
+
+	// Status should be unaffected
+	v, ok := s.Metric("latency_us")
+	if !ok || v != 1000.0 {
+		t.Errorf("mutating snapshot should not affect status, got %f", v)
 	}
 }
 
@@ -139,7 +188,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			_ = s.Alive()
-			_ = s.Latency()
+			_, _ = s.Metric("latency_us")
 			_ = s.LastUpdate()
 			_ = s.Snapshot()
 		}()

@@ -59,6 +59,12 @@ type MetricDef struct {
 
 	// DSName is the RRD data source name (e.g. "latency").
 	DSName string
+
+	// Label is a human-readable label for graphs and display (e.g. "latency").
+	Label string
+
+	// Unit is the unit of measurement for graphs and display (e.g. "ms").
+	Unit string
 }
 
 // Descriptor declares static metadata about a check type, including

@@ -34,12 +34,14 @@ type graph struct {
 //   - consolidationFunction: The RRD consolidation function ("AVERAGE", "MAX", etc.).
 //   - checkType: The check type name, used for graph file naming (e.g., "ping").
 //   - dsName: The RRD data source name (e.g., "latency").
+//   - label: The human-readable label for the metric (e.g., "latency").
+//   - unit: The unit of measurement (e.g., "ms").
 //   - logger: The logger instance.
 //
 // Returns:
 //   - *Graph: A pointer to the newly created Graph struct.
 //   - error: An error if something went wrong during the initialization.
-func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, dsName string, logger *logrus.Logger) (*graph, error) {
+func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, dsName string, label string, unit string, logger *logrus.Logger) (*graph, error) {
 
 	// Define directory and file paths
 	dirPath := fmt.Sprintf("%s/imgs/%s", graphDir, host)
@@ -50,9 +52,8 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 		return nil, fmt.Errorf("failed to create directory %s: %w", dirPath, err)
 	}
 
-	label := "latency"
-	title := fmt.Sprintf("%s %s over the last %s", host, "latency", expandTimeLength(timeLength))
-	comment := fmt.Sprintf("%s %s over last %s", consolidationFunction, "latency", timeLength)
+	title := fmt.Sprintf("%s %s over the last %s", host, label, expandTimeLength(timeLength))
+	comment := fmt.Sprintf("%s %s over last %s", consolidationFunction, label, timeLength)
 
 	graph := &graph{
 		rrdPath:               rrdPath,
@@ -61,7 +62,7 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 		title:                 title,
 		timeLength:            timeLength,
 		dsName:                dsName,
-		unit:                  "ms",
+		unit:                  unit,
 		consolidationFunction: consolidationFunction,
 		color:                 GREEN,
 		comment:               comment,

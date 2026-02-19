@@ -2,7 +2,6 @@ package check
 
 import (
 	"sync"
-	"time"
 )
 
 // Status tracks the latest result of a check execution.
@@ -10,12 +9,11 @@ import (
 // but writes should be done through SetResult.
 type Status struct {
 	mu         sync.RWMutex
-	alive      bool
-	latency    time.Duration
+	lastResult Result
 	lastUpdate int64
 }
 
-// NewStatus creates a Status with zero values (not alive, no latency).
+// NewStatus creates a Status with zero values (not alive, no metrics).
 func NewStatus() *Status {
 	return &Status{}
 }
@@ -24,14 +22,20 @@ func NewStatus() *Status {
 func (s *Status) Alive() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.alive
+	return s.lastResult.Success
 }
 
-// Latency returns the latency from the check's last execution.
-func (s *Status) Latency() time.Duration {
+// Metric returns the value of a named metric from the last result.
+// Returns the value and true if found, or 0 and false if not present
+// or the last check failed.
+func (s *Status) Metric(key string) (float64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.latency
+	if !s.lastResult.Success || s.lastResult.Metrics == nil {
+		return 0, false
+	}
+	v, ok := s.lastResult.Metrics[key]
+	return v, ok
 }
 
 // LastUpdate returns the unix timestamp of the last successful RRD update.
@@ -41,19 +45,11 @@ func (s *Status) LastUpdate() int64 {
 	return s.lastUpdate
 }
 
-// SetResult updates the status from a check Result.
-// For successful results, it extracts latency from the "latency_us" metric
-// if present. For failed results, alive is set to false.
+// SetResult stores the latest check result.
 func (s *Status) SetResult(result Result) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	s.alive = result.Success
-	if result.Success {
-		if latencyUs, ok := result.Metrics["latency_us"]; ok {
-			s.latency = time.Duration(latencyUs) * time.Microsecond
-		}
-	}
+	s.lastResult = result
 }
 
 // SetLastUpdate records the unix timestamp of the last successful RRD update.
@@ -68,9 +64,19 @@ func (s *Status) SetLastUpdate(ts int64) {
 func (s *Status) Snapshot() StatusSnapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// Deep copy the metrics map so the snapshot is independent
+	var metrics map[string]float64
+	if s.lastResult.Metrics != nil {
+		metrics = make(map[string]float64, len(s.lastResult.Metrics))
+		for k, v := range s.lastResult.Metrics {
+			metrics[k] = v
+		}
+	}
+
 	return StatusSnapshot{
-		Alive:      s.alive,
-		Latency:    s.latency,
+		Alive:      s.lastResult.Success,
+		Metrics:    metrics,
 		LastUpdate: s.lastUpdate,
 	}
 }
@@ -78,6 +84,6 @@ func (s *Status) Snapshot() StatusSnapshot {
 // StatusSnapshot is a point-in-time copy of Status fields.
 type StatusSnapshot struct {
 	Alive      bool
-	Latency    time.Duration
+	Metrics    map[string]float64
 	LastUpdate int64
 }

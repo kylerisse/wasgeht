@@ -7,14 +7,13 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
-	"time"
 )
 
 // CheckStatusResponse represents the status of a single check in the API response.
 type CheckStatusResponse struct {
-	Alive      bool          `json:"alive"`
-	Latency    time.Duration `json:"latency"`
-	LastUpdate int64         `json:"lastupdate"`
+	Alive      bool               `json:"alive"`
+	Metrics    map[string]float64 `json:"metrics,omitempty"`
+	LastUpdate int64              `json:"lastupdate"`
 }
 
 // HostAPIResponse represents a host in the API response.
@@ -72,7 +71,7 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		for checkType, snap := range snapshots {
 			checksResponse[checkType] = CheckStatusResponse{
 				Alive:      snap.Alive,
-				Latency:    snap.Latency,
+				Metrics:    snap.Metrics,
 				LastUpdate: snap.LastUpdate,
 			}
 		}
@@ -94,8 +93,8 @@ func (s *Server) handlePrometheus(w http.ResponseWriter, _ *http.Request) {
 
 	w.Write([]byte("# HELP check_alive Whether the check target is reachable (1=up, 0=down).\n"))
 	w.Write([]byte("# TYPE check_alive gauge\n"))
-	w.Write([]byte("# HELP check_latency_ns Latency in nanoseconds for the check.\n"))
-	w.Write([]byte("# TYPE check_latency_ns gauge\n"))
+	w.Write([]byte("# HELP check_metric Check metric value.\n"))
+	w.Write([]byte("# TYPE check_metric gauge\n"))
 
 	for name, h := range s.hosts {
 		snapshots := s.hostStatuses(name)
@@ -111,13 +110,16 @@ func (s *Server) handlePrometheus(w http.ResponseWriter, _ *http.Request) {
 				checkType,
 				aliveVal,
 			))
-			w.Write(fmt.Appendf([]byte{},
-				"check_latency_ns{host=\"%s\", address=\"%s\", check=\"%s\"} %d\n",
-				name,
-				h.Address,
-				checkType,
-				snap.Latency.Nanoseconds(),
-			))
+			for metricKey, metricVal := range snap.Metrics {
+				w.Write(fmt.Appendf([]byte{},
+					"check_metric{host=\"%s\", address=\"%s\", check=\"%s\", metric=\"%s\"} %f\n",
+					name,
+					h.Address,
+					checkType,
+					metricKey,
+					metricVal,
+				))
+			}
 		}
 	}
 }
