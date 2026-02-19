@@ -1,23 +1,18 @@
 package host
 
-import (
-	"time"
-)
-
 // DefaultChecks is the check configuration applied to hosts that don't
 // declare an explicit "checks" block — ping with default settings.
 var DefaultChecks = map[string]map[string]any{
 	"ping": {},
 }
 
-// Host represents the configuration and status of a host
+// Host represents the configuration of a monitored host.
+// It holds identity and check configuration only — runtime state
+// (alive, latency, etc.) is tracked per-check in check.Status.
 type Host struct {
-	Name       string                    // Name of the host
-	Address    string                    `json:"address,omitempty"` // Optional address
-	Checks     map[string]map[string]any `json:"checks,omitempty"`  // Per-check-type configuration
-	Alive      bool                      `json:"alive"`             // Whether the host is reachable
-	Latency    time.Duration             `json:"latency"`           // Latest ping latency
-	LastUpdate int64                     `json:"lastupdate"`        // Cached LastUpdate
+	Name    string                    // Name of the host
+	Address string                    `json:"address,omitempty"` // Optional address
+	Checks  map[string]map[string]any `json:"checks,omitempty"`  // Per-check-type configuration
 }
 
 // ApplyDefaults fills in zero-value fields with sensible defaults.

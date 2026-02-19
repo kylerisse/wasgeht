@@ -15,6 +15,8 @@ import (
 // Server represents the ping server
 type Server struct {
 	hosts      map[string]*host.Host
+	statuses   map[string]map[string]*check.Status // host -> checkType -> status
+	statusesMu sync.RWMutex                        // protects the statuses map structure
 	registry   *check.Registry
 	done       chan struct{}
 	wg         sync.WaitGroup
@@ -36,8 +38,15 @@ func NewServer(hostFile string, rrdDir string, graphDir string, listenPort strin
 		return nil, fmt.Errorf("failed to register ping check: %w", err)
 	}
 
+	// Initialize the statuses map with an empty map per host
+	statuses := make(map[string]map[string]*check.Status, len(hosts))
+	for name := range hosts {
+		statuses[name] = make(map[string]*check.Status)
+	}
+
 	return &Server{
 		hosts:      hosts,
+		statuses:   statuses,
 		registry:   registry,
 		done:       make(chan struct{}),
 		logger:     logger,
@@ -64,6 +73,37 @@ func (s *Server) Stop() {
 	close(s.done)
 	s.wg.Wait()
 	s.logger.Info("All workers stopped.")
+}
+
+// getOrCreateStatus returns the status for a host/check pair, creating it if needed.
+func (s *Server) getOrCreateStatus(hostName, checkType string) *check.Status {
+	s.statusesMu.Lock()
+	defer s.statusesMu.Unlock()
+
+	if _, ok := s.statuses[hostName]; !ok {
+		s.statuses[hostName] = make(map[string]*check.Status)
+	}
+	if _, ok := s.statuses[hostName][checkType]; !ok {
+		s.statuses[hostName][checkType] = check.NewStatus()
+	}
+	return s.statuses[hostName][checkType]
+}
+
+// hostStatuses returns a snapshot of all check statuses for a given host.
+func (s *Server) hostStatuses(hostName string) map[string]check.StatusSnapshot {
+	s.statusesMu.RLock()
+	defer s.statusesMu.RUnlock()
+
+	checks, ok := s.statuses[hostName]
+	if !ok {
+		return nil
+	}
+
+	snapshots := make(map[string]check.StatusSnapshot, len(checks))
+	for checkType, status := range checks {
+		snapshots[checkType] = status.Snapshot()
+	}
+	return snapshots
 }
 
 // loadHosts reads the JSON file and populates a map of host configurations

@@ -10,11 +10,12 @@ import (
 	"github.com/kylerisse/wasgeht/pkg/rrd"
 )
 
-// checkInstance pairs a check with its RRD file and metric definitions.
+// checkInstance pairs a check with its RRD file, metric definitions, and status tracker.
 type checkInstance struct {
 	check      check.Check
 	rrdFile    *rrd.RRD
 	metricDefs []check.MetricDef
+	status     *check.Status
 }
 
 // worker periodically runs all enabled checks against the assigned host
@@ -52,7 +53,7 @@ func (s *Server) worker(name string, h *host.Host) {
 			s.logger.Infof("Worker for host %s received shutdown signal.", name)
 			return
 		default:
-			s.runChecks(name, h, instances)
+			s.runChecks(name, instances)
 
 			select {
 			case <-time.After(time.Minute):
@@ -102,10 +103,14 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 			continue
 		}
 
+		// Get or create the status tracker for this host/check pair
+		status := s.getOrCreateStatus(name, checkType)
+
 		instances = append(instances, checkInstance{
 			check:      chk,
 			rrdFile:    rrdFile,
 			metricDefs: desc.Metrics,
+			status:     status,
 		})
 		s.logger.Infof("Worker for host %s: initialized %s check", name, checkType)
 	}
@@ -113,16 +118,14 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 	return instances
 }
 
-// runChecks executes all check instances for a host and updates their RRD files.
-func (s *Server) runChecks(name string, h *host.Host, instances []checkInstance) {
+// runChecks executes all check instances for a host and updates their status and RRD files.
+func (s *Server) runChecks(name string, instances []checkInstance) {
 	for _, inst := range instances {
 		result := inst.check.Run(context.Background())
 		checkType := inst.check.Type()
 
-		// Backward compatibility: translate ping results into host state
-		if checkType == "ping" {
-			applyPingResult(h, name, result)
-		}
+		// Update the check status
+		inst.status.SetResult(result)
 
 		// Build RRD update from result metrics using the descriptor
 		values := rrdValuesFromResult(result, inst.metricDefs)
@@ -132,8 +135,7 @@ func (s *Server) runChecks(name string, h *host.Host, instances []checkInstance)
 		if err != nil {
 			s.logger.Errorf("Worker for host %s [%s]: Failed to update RRD (%v)", name, checkType, err)
 		} else {
-			// Track LastUpdate on host for backward compatibility with API
-			h.LastUpdate = lastUpdate
+			inst.status.SetLastUpdate(lastUpdate)
 			s.logger.Debugf("Worker for host %s [%s]: RRD update successful.", name, checkType)
 		}
 
@@ -154,19 +156,6 @@ func buildFactoryConfig(cfg map[string]any, target string) map[string]any {
 	}
 	factoryCfg["target"] = target
 	return factoryCfg
-}
-
-// applyPingResult translates a check.Result into host state fields
-// for backward compatibility with the existing API and UI.
-func applyPingResult(h *host.Host, name string, result check.Result) {
-	if result.Success {
-		h.Alive = true
-		if latencyUs, ok := result.Metrics["latency_us"]; ok {
-			h.Latency = time.Duration(latencyUs) * time.Microsecond
-		}
-	} else {
-		h.Alive = false
-	}
 }
 
 // rrdValuesFromResult extracts metric values from a check.Result in the

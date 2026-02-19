@@ -10,11 +10,17 @@ import (
 	"time"
 )
 
-type HostAPIResponse struct {
-	Address    string        `json:"address,omitempty"`
+// CheckStatusResponse represents the status of a single check in the API response.
+type CheckStatusResponse struct {
 	Alive      bool          `json:"alive"`
 	Latency    time.Duration `json:"latency"`
 	LastUpdate int64         `json:"lastupdate"`
+}
+
+// HostAPIResponse represents a host in the API response.
+type HostAPIResponse struct {
+	Address string                         `json:"address,omitempty"`
+	Checks  map[string]CheckStatusResponse `json:"checks"`
 }
 
 //go:embed static/*
@@ -59,14 +65,22 @@ func (s *Server) startAPI() {
 func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	hosts := make(map[string]HostAPIResponse)
 	for name, h := range s.hosts {
-		// Create a response struct with the last update time
-		hostResponse := HostAPIResponse{
-			Address:    h.Address,
-			Alive:      h.Alive,
-			Latency:    h.Latency,
-			LastUpdate: h.LastUpdate,
+		checksResponse := make(map[string]CheckStatusResponse)
+
+		// Get all check statuses for this host
+		snapshots := s.hostStatuses(name)
+		for checkType, snap := range snapshots {
+			checksResponse[checkType] = CheckStatusResponse{
+				Alive:      snap.Alive,
+				Latency:    snap.Latency,
+				LastUpdate: snap.LastUpdate,
+			}
 		}
-		hosts[name] = hostResponse
+
+		hosts[name] = HostAPIResponse{
+			Address: h.Address,
+			Checks:  checksResponse,
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -76,18 +90,36 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePrometheus(w http.ResponseWriter, _ *http.Request) {
-	w.Write([]byte("# HELP ping_latency_ns Latency in nanosesconds to ping host.\n"))
-	w.Write([]byte("# TYPE ping_latency_ns counter\n"))
-	for name, h := range s.hosts {
-		w.Write(fmt.Appendf([]byte{},
-			"ping_latency_ns{host=\"%s\", address=\"%s\", alive=\"%t\"} %d\n",
-			name,
-			h.Address,
-			h.Alive,
-			h.Latency.Nanoseconds(),
-		))
-	}
 	w.Header().Set("Content-Type", "text/plain")
+
+	w.Write([]byte("# HELP check_alive Whether the check target is reachable (1=up, 0=down).\n"))
+	w.Write([]byte("# TYPE check_alive gauge\n"))
+	w.Write([]byte("# HELP check_latency_ns Latency in nanoseconds for the check.\n"))
+	w.Write([]byte("# TYPE check_latency_ns gauge\n"))
+
+	for name, h := range s.hosts {
+		snapshots := s.hostStatuses(name)
+		for checkType, snap := range snapshots {
+			aliveVal := 0
+			if snap.Alive {
+				aliveVal = 1
+			}
+			w.Write(fmt.Appendf([]byte{},
+				"check_alive{host=\"%s\", address=\"%s\", check=\"%s\"} %d\n",
+				name,
+				h.Address,
+				checkType,
+				aliveVal,
+			))
+			w.Write(fmt.Appendf([]byte{},
+				"check_latency_ns{host=\"%s\", address=\"%s\", check=\"%s\"} %d\n",
+				name,
+				h.Address,
+				checkType,
+				snap.Latency.Nanoseconds(),
+			))
+		}
+	}
 }
 
 // noCacheMiddleware sets headers to prevent caching
