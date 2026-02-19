@@ -1,11 +1,14 @@
 # Was Geht
 
+[![CI](https://github.com/kylerisse/wasgeht/actions/workflows/ci.yml/badge.svg)](https://github.com/kylerisse/wasgeht/actions/workflows/ci.yml)
+
 ## Overview
 
-**Was Geht** is a small Go application that pings a list of hosts at regular intervals, tracks their availability (UP or DOWN), and records the latency in a Round Robin Database (RRD). A lightweight web interface serves host status information and interactive graphs of the recorded latency.
+**Was Geht** is a small Go application that monitors a list of hosts at regular intervals, tracks their availability and metrics, and records the data in Round Robin Databases (RRD). A lightweight web interface serves host status information and interactive graphs of the recorded metrics.
 
 ## Features
 
+- **Extensible Check System**: Modular check types (ping, with more planned) via a Registry/Factory pattern.
 - **Ping Monitoring**: Sends ICMP Echo Requests to check host availability.
 - **Latency Logging**: Uses RRD to store latency data over time.
 - **Graphs Generation**: Generates historical latency graphs (15 minutes, 4 hours, 8 hours, etc.) for each host.
@@ -27,7 +30,7 @@ nix develop
 
 You will need experimental features `flakes` and `nix-command`.
 
-This loads the environment specified in `shell.nix`:
+This loads the environment specified in `flake.nix`:
 
 - Go (for building),
 - gnumake (for Makefile),
@@ -41,7 +44,7 @@ Once inside the shell, you can run the usual make commands
 
 Ensure the following are installed:
 
-- **Go** (1.23+ recommended)
+- **Go** (1.25+ recommended)
 - **air** (for live reload during development, optional)
 - **rrdtool** and **unixtools ping** must be installed and available on the system path.
 - Basic Unix tools for building and running (`make`, etc.).
@@ -126,6 +129,7 @@ Each check type gets its own RRD file (e.g., `ping.rrd`), making it straightforw
 
 ## Makefile Targets
 
+- **test**: Runs staticcheck and `go test` with race detection.
 - **build**: Compiles the Go code and produces `wasgehtd`.
 - **deps**: Verifies module dependencies and updates `go.mod` and `go.sum`.
 - **clean**: Removes the `wasgehtd` binary and any generated graphs.
