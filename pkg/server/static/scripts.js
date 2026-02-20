@@ -42,6 +42,32 @@ function loadTableData() {
 		.catch((error) => console.error('Error fetching host data:', error));
 }
 
+function statusRowClass(status) {
+	switch (status) {
+		case 'up':
+			return 'status-up';
+		case 'down':
+			return 'status-down';
+		case 'degraded':
+			return 'status-degraded';
+		default:
+			return 'status-unknown';
+	}
+}
+
+function statusLabel(status) {
+	switch (status) {
+		case 'up':
+			return 'UP';
+		case 'down':
+			return 'DOWN';
+		case 'degraded':
+			return 'DEGRADED';
+		default:
+			return 'UNKNOWN';
+	}
+}
+
 function updateTable(data) {
 	// Remove all existing graph popups to prevent lingering images
 	document.querySelectorAll('.graph-popup').forEach((el) => el.remove());
@@ -54,10 +80,8 @@ function updateTable(data) {
 	for (const [host, info] of Object.entries(data)) {
 		const row = tbody.insertRow();
 
-		// Determine alive status from ping check
-		const pingCheck = info.checks && info.checks.ping;
-		const alive = pingCheck ? pingCheck.alive : false;
-		row.className = alive ? 'up' : 'down';
+		const status = info.status || 'unknown';
+		row.className = statusRowClass(status);
 
 		const cellHost = row.insertCell(0);
 		const hostDetailLink = document.createElement('a');
@@ -66,7 +90,7 @@ function updateTable(data) {
 		cellHost.appendChild(hostDetailLink);
 
 		const cellStatus = row.insertCell(1);
-		cellStatus.textContent = alive ? 'UP' : 'DOWN';
+		cellStatus.textContent = statusLabel(status);
 
 		// Create the graph popup but don't append it to the cell
 		const graphContainer = document.createElement('div');
@@ -175,14 +199,19 @@ function sortTable(columnIndex, toggleSortOrder = true) {
 	const rows = Array.from(table.rows).slice(1); // Skip header row
 	const isAscending = sortOrder[columnIndex];
 
+	// Status sort priority: UP > DEGRADED > UNKNOWN > DOWN
+	const statusPriority = { UP: 0, DEGRADED: 1, UNKNOWN: 2, DOWN: 3 };
+
 	const sortedRows = rows.sort((a, b) => {
 		const aText = a.cells[columnIndex].textContent;
 		const bText = b.cells[columnIndex].textContent;
 
 		if (columnIndex === 1) {
-			// Sort by status: UP before DOWN
-			if (aText === bText) return 0;
-			return (aText === 'UP' ? -1 : 1) * (isAscending ? 1 : -1);
+			// Sort by status priority
+			const aPri = statusPriority[aText] ?? 99;
+			const bPri = statusPriority[bText] ?? 99;
+			if (aPri === bPri) return 0;
+			return (aPri - bPri) * (isAscending ? 1 : -1);
 		} else {
 			// Sort by host name
 			return aText.localeCompare(bText) * (isAscending ? 1 : -1);
