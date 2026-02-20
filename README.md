@@ -9,6 +9,7 @@
 ## Features
 
 - **Extensible Check System**: Modular check types (ping, with more planned) via a Registry/Factory pattern.
+- **Host Status Aggregation**: Each host has an aggregate status (`up`, `down`, `degraded`, `unknown`) computed from all its checks. A check must be alive and have reported within the last 5 minutes to count as healthy.
 - **Ping Monitoring**: Sends ICMP Echo Requests to check host availability.
 - **Latency Logging**: Uses RRD to store latency data over time.
 - **Graphs Generation**: Generates historical latency graphs (15 minutes, 4 hours, 8 hours, etc.) for each host.
@@ -100,6 +101,58 @@ Ensure the following are installed:
 - **Data Directory** (`--data-dir`): Root directory that contains `rrds/` and `graphs/`.
 - **Port** (`--port`): Port on which the API and front-end are served.
 - **Logging Level** (`--log-level`): Set the verbosity of logs (e.g., `debug`, `info`, `warn`, `error`, `fatal`, `panic`).
+
+## Host Status
+
+Each host has an aggregate status derived from all its enabled checks:
+
+| Status       | Color  | Meaning                                                      |
+| ------------ | ------ | ------------------------------------------------------------ |
+| **up**       | Green  | All checks are alive and reported within the last 5 minutes. |
+| **degraded** | Yellow | Some checks are healthy, others are down or stale.           |
+| **down**     | Red    | All checks are down (but at least one has reported before).  |
+| **unknown**  | Gray   | No checks configured, or no check has ever reported.         |
+
+A check result is considered **stale** if its last successful RRD update is older than 5 minutes. Stale checks are treated the same as down checks for the purpose of host status aggregation.
+
+## API
+
+### `GET /api`
+
+Returns JSON with the status of all hosts:
+
+```json
+{
+	"google": {
+		"address": "8.8.8.8",
+		"status": "up",
+		"checks": {
+			"ping": {
+				"alive": true,
+				"metrics": {
+					"latency_us": 12345
+				},
+				"lastupdate": 1700000000
+			}
+		}
+	},
+	"router": {
+		"status": "unknown",
+		"checks": {}
+	}
+}
+```
+
+The `status` field is one of `up`, `down`, `degraded`, or `unknown` (see [Host Status](#host-status) above).
+
+### `GET /metrics`
+
+Exposes Prometheus-formatted metrics:
+
+```
+check_alive{host="google", address="8.8.8.8", check="ping"} 1
+check_metric{host="google", address="8.8.8.8", check="ping", metric="latency_us"} 12345
+```
 
 ## Data Directory Layout
 
