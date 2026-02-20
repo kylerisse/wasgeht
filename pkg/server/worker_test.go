@@ -8,7 +8,7 @@ import (
 
 // pingMetrics is the standard ping metric definition used across tests.
 var pingMetrics = []check.MetricDef{
-	{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms"},
+	{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
 }
 
 func TestBuildFactoryConfig_InjectsTarget(t *testing.T) {
@@ -55,12 +55,12 @@ func TestBuildFactoryConfig_OverridesExistingTarget(t *testing.T) {
 func TestRrdValuesFromResult_Success(t *testing.T) {
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]float64{"latency_us": 5678.0},
+		Metrics: map[string]int64{"latency_us": 56780},
 	}
 
 	vals := rrdValuesFromResult(result, pingMetrics)
-	if len(vals) != 1 || vals[0] != 5678.0 {
-		t.Errorf("expected [5678.0], got %v", vals)
+	if len(vals) != 1 || vals[0] != 56780 {
+		t.Errorf("expected [56780], got %v", vals)
 	}
 }
 
@@ -76,7 +76,7 @@ func TestRrdValuesFromResult_Failure(t *testing.T) {
 func TestRrdValuesFromResult_NoLatencyMetric(t *testing.T) {
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]float64{"something_else": 42.0},
+		Metrics: map[string]int64{"something_else": 420},
 	}
 
 	vals := rrdValuesFromResult(result, pingMetrics)
@@ -92,9 +92,9 @@ func TestRrdValuesFromResult_MultipleMetrics(t *testing.T) {
 	}
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]float64{
-			"rx_bytes": 1000.0,
-			"tx_bytes": 2000.0,
+		Metrics: map[string]int64{
+			"rx_bytes": 10000,
+			"tx_bytes": 2000,
 		},
 	}
 
@@ -102,11 +102,11 @@ func TestRrdValuesFromResult_MultipleMetrics(t *testing.T) {
 	if len(vals) != 2 {
 		t.Fatalf("expected 2 values, got %d", len(vals))
 	}
-	if vals[0] != 1000.0 {
-		t.Errorf("expected rx_bytes=1000.0, got %f", vals[0])
+	if vals[0] != 10000 {
+		t.Errorf("expected rx_bytes=10000, got %d", vals[0])
 	}
-	if vals[1] != 2000.0 {
-		t.Errorf("expected tx_bytes=2000.0, got %f", vals[1])
+	if vals[1] != 2000 {
+		t.Errorf("expected tx_bytes=2000, got %d", vals[1])
 	}
 }
 
@@ -117,8 +117,8 @@ func TestRrdValuesFromResult_PartialMetrics(t *testing.T) {
 	}
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]float64{
-			"rx_bytes": 1000.0,
+		Metrics: map[string]int64{
+			"rx_bytes": 10000,
 			// tx_bytes missing
 		},
 	}
@@ -127,15 +127,15 @@ func TestRrdValuesFromResult_PartialMetrics(t *testing.T) {
 	if len(vals) != 1 {
 		t.Fatalf("expected 1 value for partial metrics, got %d", len(vals))
 	}
-	if vals[0] != 1000.0 {
-		t.Errorf("expected rx_bytes=1000.0, got %f", vals[0])
+	if vals[0] != 10000 {
+		t.Errorf("expected rx_bytes=10000, got %d", vals[0])
 	}
 }
 
 func TestRrdValuesFromResult_EmptyMetricDefs(t *testing.T) {
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]float64{"latency_us": 1234.0},
+		Metrics: map[string]int64{"latency_us": 12340},
 	}
 
 	vals := rrdValuesFromResult(result, []check.MetricDef{})

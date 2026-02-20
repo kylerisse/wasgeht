@@ -11,7 +11,7 @@ func TestNewStatus_ZeroValues(t *testing.T) {
 		t.Error("new status should not be alive")
 	}
 	if v, ok := s.Metric("latency_us"); ok {
-		t.Errorf("new status should have no metrics, got latency_us=%f", v)
+		t.Errorf("new status should have no metrics, got latency_us=%d", v)
 	}
 	if s.LastUpdate() != 0 {
 		t.Errorf("new status should have zero last update, got %d", s.LastUpdate())
@@ -22,7 +22,7 @@ func TestStatus_SetResult_Success(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]float64{"latency_us": 1234.0},
+		Metrics: map[string]int64{"latency_us": 1234},
 	})
 
 	if !s.Alive() {
@@ -32,8 +32,8 @@ func TestStatus_SetResult_Success(t *testing.T) {
 	if !ok {
 		t.Fatal("expected latency_us metric to be present")
 	}
-	if v != 1234.0 {
-		t.Errorf("expected latency_us=1234.0, got %f", v)
+	if v != 1234 {
+		t.Errorf("expected latency_us=1234.0, got %d", v)
 	}
 }
 
@@ -42,7 +42,7 @@ func TestStatus_SetResult_Failure(t *testing.T) {
 	// First set it alive
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]float64{"latency_us": 1000.0},
+		Metrics: map[string]int64{"latency_us": 1000},
 	})
 	// Then fail
 	s.SetResult(Result{
@@ -61,7 +61,7 @@ func TestStatus_SetResult_SuccessWithoutMetrics(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]float64{},
+		Metrics: map[string]int64{},
 	})
 
 	if !s.Alive() {
@@ -76,19 +76,19 @@ func TestStatus_Metric_MultipleMetrics(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]float64{
-			"latency_us":    1234.0,
-			"response_code": 200.0,
+		Metrics: map[string]int64{
+			"latency_us":    12340,
+			"response_code": 2000,
 		},
 	})
 
 	v, ok := s.Metric("latency_us")
-	if !ok || v != 1234.0 {
-		t.Errorf("expected latency_us=1234.0, got %f (ok=%v)", v, ok)
+	if !ok || v != 12340 {
+		t.Errorf("expected latency_us=12340, got %d (ok=%v)", v, ok)
 	}
 	v, ok = s.Metric("response_code")
-	if !ok || v != 200.0 {
-		t.Errorf("expected response_code=200.0, got %f (ok=%v)", v, ok)
+	if !ok || v != 2000 {
+		t.Errorf("expected response_code=2000, got %d (ok=%v)", v, ok)
 	}
 	if _, ok := s.Metric("nonexistent"); ok {
 		t.Error("expected nonexistent metric to not be found")
@@ -108,7 +108,7 @@ func TestStatus_Snapshot(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]float64{"latency_us": 5678.0},
+		Metrics: map[string]int64{"latency_us": 5678},
 	})
 	s.SetLastUpdate(1700000000)
 
@@ -117,8 +117,8 @@ func TestStatus_Snapshot(t *testing.T) {
 	if !snap.Alive {
 		t.Error("snapshot should be alive")
 	}
-	if v, ok := snap.Metrics["latency_us"]; !ok || v != 5678.0 {
-		t.Errorf("snapshot metrics: expected latency_us=5678.0, got %v (ok=%v)", v, ok)
+	if v, ok := snap.Metrics["latency_us"]; !ok || v != 5678 {
+		t.Errorf("snapshot metrics: expected latency_us=5678, got %v (ok=%v)", v, ok)
 	}
 	if snap.LastUpdate != 1700000000 {
 		t.Errorf("snapshot last update: expected 1700000000, got %d", snap.LastUpdate)
@@ -129,7 +129,7 @@ func TestStatus_Snapshot_Independent(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]float64{"latency_us": 1000.0},
+		Metrics: map[string]int64{"latency_us": 1000},
 	})
 
 	snap := s.Snapshot()
@@ -150,18 +150,18 @@ func TestStatus_Snapshot_MetricsMapIndependent(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]float64{"latency_us": 1000.0},
+		Metrics: map[string]int64{"latency_us": 1000},
 	})
 
 	snap := s.Snapshot()
 
 	// Mutate the snapshot's metrics map
-	snap.Metrics["latency_us"] = 9999.0
+	snap.Metrics["latency_us"] = 9999
 
 	// Status should be unaffected
 	v, ok := s.Metric("latency_us")
-	if !ok || v != 1000.0 {
-		t.Errorf("mutating snapshot should not affect status, got %f", v)
+	if !ok || v != 1000 {
+		t.Errorf("mutating snapshot should not affect status, got %d", v)
 	}
 }
 
@@ -176,7 +176,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			s.SetResult(Result{
 				Success: true,
-				Metrics: map[string]float64{"latency_us": float64(n)},
+				Metrics: map[string]int64{"latency_us": int64(n)},
 			})
 			s.SetLastUpdate(int64(n))
 		}(i)

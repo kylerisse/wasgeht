@@ -267,6 +267,9 @@ func TestDesc(t *testing.T) {
 	if m.Unit != "ms" {
 		t.Errorf("expected Unit 'ms', got %q", m.Unit)
 	}
+	if m.Scale != 1000 {
+		t.Errorf("expected Scale 1000, got %d", m.Scale)
+	}
 }
 
 func TestRegistryIntegration(t *testing.T) {
@@ -290,6 +293,9 @@ func TestRegistryIntegration(t *testing.T) {
 	}
 	if len(desc.Metrics) != 1 || desc.Metrics[0].ResultKey != "latency_us" {
 		t.Errorf("unexpected descriptor: %+v", desc)
+	}
+	if desc.Metrics[0].Scale != 1000 {
+		t.Errorf("expected Scale 1000, got %d", desc.Metrics[0].Scale)
 	}
 }
 
@@ -317,7 +323,7 @@ func TestRun_Localhost(t *testing.T) {
 		t.Fatal("expected latency_us metric")
 	}
 	if latency <= 0 {
-		t.Errorf("expected positive latency, got %f", latency)
+		t.Errorf("expected positive latency, got %d", latency)
 	}
 }
 
