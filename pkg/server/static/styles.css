@@ -1,63 +1,80 @@
-body, html {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    position: relative;
+body,
+html {
+	margin: 0;
+	padding: 0;
+	font-family: Arial, sans-serif;
+	position: relative;
 }
 table {
-    width: 100%;
-    border-collapse: collapse;
+	width: 100%;
+	border-collapse: collapse;
 }
-th, td {
-    border: 1px solid black;
-    padding: 8px;
-    text-align: left;
-    /* Remove position: relative; from th, td */
+th,
+td {
+	border: 1px solid black;
+	padding: 8px;
+	text-align: left;
 }
 th {
-    cursor: pointer;
+	cursor: pointer;
 }
+tr.status-up {
+	background-color: #c8e6c9; /* Light green */
+}
+tr.status-down {
+	background-color: #ffcccb; /* Light red */
+}
+tr.status-degraded {
+	background-color: #fff9c4; /* Light yellow */
+}
+tr.status-unknown {
+	background-color: #e0e0e0; /* Light gray */
+}
+
+/* Legacy classes kept for backward compatibility */
 tr.up {
-    background-color: #c8e6c9; /* Light green */
+	background-color: #c8e6c9;
 }
 tr.down {
-    background-color: #ffcccb; /* Light red */
+	background-color: #ffcccb;
 }
+
 #countdown {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: #f0f0f0;
-    padding: 10px;
-    border-radius: 5px;
-    font-weight: bold;
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	background-color: #f0f0f0;
+	padding: 10px;
+	border-radius: 5px;
+	font-weight: bold;
 }
 
 /* New styles for the graph popup */
 .graph-popup {
-    display: none;
-    position: absolute;
-    z-index: 10;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    padding: 5px;
-    pointer-events: none; /* Allow mouse events to pass through */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
-    border-radius: 4px; /* Optional: Rounded corners */
+	display: none;
+	position: absolute;
+	z-index: 10;
+	border: 1px solid #ccc;
+	background-color: #fff;
+	padding: 5px;
+	pointer-events: none;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	border-radius: 4px;
 }
 
-body, html {
-    margin: 0;
-    padding: 0;
+body,
+html {
+	margin: 0;
+	padding: 0;
 }
 nav {
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
+	padding: 20px;
+	background-color: #f8f9fa;
+	border-bottom: 1px solid #e9ecef;
 }
 
 nav a {
-    padding: 20px 10px;
-    color: #007bff;
-    text-decoration: none;
+	padding: 20px 10px;
+	color: #007bff;
+	text-decoration: none;
 }

@@ -18,19 +18,19 @@ function renderDashboard() {
 		}));
 
 		sortedData.forEach((item) => {
-			const { name, address, checks } = item;
-			const pingCheck = checks && checks.ping;
-			const alive = pingCheck ? pingCheck.alive : false;
-			$Dashboard.appendChild(DashboardItem({ name, address, alive }));
+			const { name, address, status } = item;
+			$Dashboard.appendChild(
+				DashboardItem({ name, address, status: status || 'unknown' }),
+			);
 		});
 	});
 }
 
 function DashboardItem(props) {
-	const { name, address, alive } = props;
+	const { name, address, status } = props;
 	const $DashboardItem = document.createElement('div');
 	$DashboardItem.classList.add('dashboard-item');
-	$DashboardItem.classList.add(alive ? 'alive' : 'dead');
+	$DashboardItem.classList.add(`status-${status}`);
 
 	$DashboardItem.innerHTML = `
         <a href="/host-detail?hostname=${name}">

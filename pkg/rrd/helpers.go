@@ -1,8 +1,12 @@
 package rrd
 
+// Standard colors for RRD graph elements.
 const RED = "FF0000"
 const GREEN = "00FF00"
 
+// expandTimeLength converts a short time duration code (e.g. "15m", "1h", "4d")
+// into a human-readable string for use in graph titles and comments.
+// Returns the input unchanged if it does not match a known code.
 func expandTimeLength(timeLength string) string {
 	switch timeLength {
 	case "15m":
