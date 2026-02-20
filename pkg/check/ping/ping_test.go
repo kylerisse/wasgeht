@@ -323,7 +323,7 @@ func TestRun_Localhost(t *testing.T) {
 		t.Fatal("expected latency_us metric")
 	}
 	if latency <= 0 {
-		t.Errorf("expected positive latency, got %f", latency)
+		t.Errorf("expected positive latency, got %d", latency)
 	}
 }
 

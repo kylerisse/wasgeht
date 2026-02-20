@@ -25,12 +25,12 @@ func TestResult_WithMetrics(t *testing.T) {
 	r := Result{
 		Timestamp: time.Now(),
 		Success:   true,
-		Metrics:   map[string]float64{"latency_us": 1234.5},
+		Metrics:   map[string]int64{"latency_us": 12345},
 	}
 	if !r.Success {
 		t.Error("expected success")
 	}
-	if v, ok := r.Metrics["latency_us"]; !ok || v != 1234.5 {
-		t.Errorf("expected latency_us=1234.5, got %v", v)
+	if v, ok := r.Metrics["latency_us"]; !ok || v != 12345 {
+		t.Errorf("expected latency_us=12345, got %v", v)
 	}
 }

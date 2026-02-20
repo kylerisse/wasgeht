@@ -167,7 +167,7 @@ func (r *RRD) getLastUpdate() (int64, error) {
 // It checks if the given timestamp is newer than the latest existing update.
 //
 // Returns the Unix timestamp of the update on success, or an error if the update was skipped or failed.
-func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) (int64, error) {
+func (r *RRD) SafeUpdate(timestamp time.Time, values []int64) (int64, error) {
 	r.logger.Debugf("Attempting to update RRD file %s at timestamp %d with values %v.", r.file.Name(), timestamp.Unix(), values)
 
 	// Acquire write lock for updating.
@@ -191,7 +191,7 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []float64) (int64, error) {
 		// Prepare the update string: "<timestamp>:<value1>:<value2>:..."
 		updateStr := fmt.Sprintf("%d", timestamp.Unix())
 		for _, value := range values {
-			updateStr += fmt.Sprintf(":%f", value)
+			updateStr += fmt.Sprintf(":%d", value)
 		}
 
 		r.logger.Debugf("Updating RRD file %s with update string: %s", r.file.Name(), updateStr)

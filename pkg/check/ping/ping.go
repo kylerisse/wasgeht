@@ -126,8 +126,8 @@ func (p *Ping) Run(ctx context.Context) check.Result {
 	return check.Result{
 		Timestamp: now,
 		Success:   true,
-		Metrics: map[string]float64{
-			"latency_us": float64(latency.Microseconds()),
+		Metrics: map[string]int64{
+			"latency_us": int64(latency.Microseconds()),
 		},
 	}
 }

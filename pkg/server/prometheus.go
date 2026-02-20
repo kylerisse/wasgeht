@@ -30,7 +30,7 @@ func (s *Server) handlePrometheus(w http.ResponseWriter, _ *http.Request) {
 			))
 			for metricKey, metricVal := range snap.Metrics {
 				w.Write(fmt.Appendf([]byte{},
-					"check_metric{host=\"%s\", address=\"%s\", check=\"%s\", metric=\"%s\"} %f\n",
+					"check_metric{host=\"%s\", address=\"%s\", check=\"%s\", metric=\"%s\"} %d\n",
 					name,
 					h.Address,
 					checkType,
