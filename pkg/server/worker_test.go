@@ -8,7 +8,7 @@ import (
 
 // pingMetrics is the standard ping metric definition used across tests.
 var pingMetrics = []check.MetricDef{
-	{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms"},
+	{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
 }
 
 func TestBuildFactoryConfig_InjectsTarget(t *testing.T) {

@@ -18,6 +18,7 @@ type graph struct {
 	timeLength            string // Time length for the graph (e.g., "4h" "1d")
 	dsName                string // RRD data source name (e.g., "latency")
 	unit                  string // Unit of measurement (e.g., "ms")
+	scale                 int    // Divisor to convert raw value to display unit (0 or 1 = no scaling)
 	consolidationFunction string // Consolidation function (e.g., "AVERAGE" "MAX")
 	color                 string // Metric color (e.g., "#FF0001" (red))
 	comment               string // Comment at bottom of graph
@@ -36,12 +37,13 @@ type graph struct {
 //   - dsName: The RRD data source name (e.g., "latency").
 //   - label: The human-readable label for the metric (e.g., "latency").
 //   - unit: The unit of measurement (e.g., "ms").
+//   - scale: The divisor to convert the raw stored value to display unit (0 or 1 = no scaling).
 //   - logger: The logger instance.
 //
 // Returns:
 //   - *Graph: A pointer to the newly created Graph struct.
 //   - error: An error if something went wrong during the initialization.
-func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, dsName string, label string, unit string, logger *logrus.Logger) (*graph, error) {
+func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, dsName string, label string, unit string, scale int, logger *logrus.Logger) (*graph, error) {
 
 	// Define directory and file paths
 	dirPath := fmt.Sprintf("%s/imgs/%s", graphDir, host)
@@ -63,6 +65,7 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 		timeLength:            timeLength,
 		dsName:                dsName,
 		unit:                  unit,
+		scale:                 scale,
 		consolidationFunction: consolidationFunction,
 		color:                 GREEN,
 		comment:               comment,
@@ -76,6 +79,21 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 	}
 	logger.Debugf("Graph initialized and drawn for host %s, check type %s, time length %s.", host, checkType, timeLength)
 	return graph, nil
+}
+
+// displayVarName returns the RRD variable name used for display.
+// When scaling is applied, the variable includes the unit suffix (e.g., "latency_ms").
+// When no scaling is needed, it uses the raw variable directly (e.g., "latency_raw").
+func (g *graph) displayVarName() string {
+	if g.needsScaling() {
+		return fmt.Sprintf("%s_%s", g.dsName, g.unit)
+	}
+	return fmt.Sprintf("%s_raw", g.dsName)
+}
+
+// needsScaling returns true if the raw value needs to be divided by a scale factor for display.
+func (g *graph) needsScaling() bool {
+	return g.scale > 1
 }
 
 // draw draws a graph based on the current parameters of the Graph struct.
@@ -102,33 +120,37 @@ func (g *graph) draw() error {
 			COMMENT:"\MAX latency over last 4h"
 	*/
 
-	// Prepare the DEF and CDEF strings for each metric.
-	defs := []string{}
-	def := fmt.Sprintf("DEF:%s_raw=%s:%s:%s", g.dsName, g.rrdPath, g.dsName, g.consolidationFunction)
-	defs = append(defs, def)
+	displayVar := g.displayVarName()
 
-	cdefs := []string{}
-	cdef := fmt.Sprintf("CDEF:%s_%s=%s_raw,1000,/", g.dsName, g.unit, g.dsName)
-	cdefs = append(cdefs, cdef)
-
-	lines := []string{
-		fmt.Sprintf("AREA:%s_%s#%s:%s", g.dsName, g.unit, g.color, g.label),
+	// Prepare the DEF string for the raw data source.
+	defs := []string{
+		fmt.Sprintf("DEF:%s_raw=%s:%s:%s", g.dsName, g.rrdPath, g.dsName, g.consolidationFunction),
 	}
 
-	gprints := []string{}
-	gfmt := "%.2lf"
-	gprintsMinval := fmt.Sprintf("Min\\: %s %s", gfmt, g.unit)
-	gprints = append(gprints, fmt.Sprintf("GPRINT:%s_%s:MIN:%s", g.dsName, g.unit, gprintsMinval))
-	gprintsMaxval := fmt.Sprintf("Max\\: %s %s", gfmt, g.unit)
-	gprints = append(gprints, fmt.Sprintf("GPRINT:%s_%s:MAX:%s", g.dsName, g.unit, gprintsMaxval))
-	gprintsAverageval := fmt.Sprintf("Average\\: %s %s", gfmt, g.unit)
-	gprints = append(gprints, fmt.Sprintf("GPRINT:%s_%s:AVERAGE:%s", g.dsName, g.unit, gprintsAverageval))
-	gprintsLastval := fmt.Sprintf("Last\\: %s %s", gfmt, g.unit)
-	gprints = append(gprints, fmt.Sprintf("GPRINT:%s_%s:LAST:%s", g.dsName, g.unit, gprintsLastval))
+	// Prepare the CDEF string: apply scaling if needed, otherwise alias raw to display var.
+	var cdefs []string
+	if g.needsScaling() {
+		cdefs = append(cdefs, fmt.Sprintf("CDEF:%s=%s_raw,%d,/", displayVar, g.dsName, g.scale))
+	}
+	// When no scaling is needed, displayVar is already "dsName_raw" which is the DEF name,
+	// so no CDEF is required.
 
-	commentStrings := []string{}
-	commentStrings = append(commentStrings, "COMMENT:\\n")
-	commentStrings = append(commentStrings, fmt.Sprintf("COMMENT:%s", g.comment))
+	lines := []string{
+		fmt.Sprintf("AREA:%s#%s:%s", displayVar, g.color, g.label),
+	}
+
+	gfmt := "%.2lf"
+	gprints := []string{
+		fmt.Sprintf("GPRINT:%s:MIN:Min\\: %s %s", displayVar, gfmt, g.unit),
+		fmt.Sprintf("GPRINT:%s:MAX:Max\\: %s %s", displayVar, gfmt, g.unit),
+		fmt.Sprintf("GPRINT:%s:AVERAGE:Average\\: %s %s", displayVar, gfmt, g.unit),
+		fmt.Sprintf("GPRINT:%s:LAST:Last\\: %s %s", displayVar, gfmt, g.unit),
+	}
+
+	commentStrings := []string{
+		"COMMENT:\\n",
+		fmt.Sprintf("COMMENT:%s", g.comment),
+	}
 
 	// Prepare the command for generating the graph.
 	args := []string{

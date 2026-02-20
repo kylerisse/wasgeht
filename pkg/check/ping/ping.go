@@ -30,7 +30,7 @@ const (
 // Desc describes the metrics produced by a ping check.
 var Desc = check.Descriptor{
 	Metrics: []check.MetricDef{
-		{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms"},
+		{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
 	},
 }
 

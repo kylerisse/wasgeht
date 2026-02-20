@@ -20,6 +20,7 @@ type RRD struct {
 	dsName   string        // RRD data source name (e.g. "latency")
 	label    string        // human-readable label for graphs (e.g. "latency")
 	unit     string        // unit of measurement for graphs (e.g. "ms")
+	scale    int           // divisor to convert raw value to display unit (0 or 1 = no scaling)
 	file     *os.File      // Pointer to the actual RRD file
 	mutex    *sync.RWMutex // Wrap file access
 	graphs   []*graph
@@ -40,12 +41,13 @@ type RRD struct {
 //   - dsName: The RRD data source name (e.g. "latency").
 //   - label: The human-readable label for graph titles and axes (e.g. "latency").
 //   - unit: The unit of measurement for graph display (e.g. "ms").
+//   - scale: The divisor to convert the raw stored value to display unit (0 or 1 = no scaling).
 //   - logger: The logger instance.
 //
 // Returns:
 //   - *RRD: A pointer to the newly created RRD struct.
 //   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(name string, rrdDir string, graphDir string, checkType string, dsName string, label string, unit string, logger *logrus.Logger) (*RRD, error) {
+func NewRRD(name string, rrdDir string, graphDir string, checkType string, dsName string, label string, unit string, scale int, logger *logrus.Logger) (*RRD, error) {
 	// verify rrdDir exists
 	if _, err := os.Stat(rrdDir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("directory %s does not exist", rrdDir)
@@ -95,6 +97,7 @@ func NewRRD(name string, rrdDir string, graphDir string, checkType string, dsNam
 		dsName:   dsName,
 		label:    label,
 		unit:     unit,
+		scale:    scale,
 		file:     file,
 		mutex:    &sync.RWMutex{},
 		graphs:   []*graph{},
@@ -234,7 +237,7 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with specified consolidation function.
 	for timeLength, conFunc := range timeLengths {
-		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.dsName, r.label, r.unit, r.logger)
+		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.dsName, r.label, r.unit, r.scale, r.logger)
 		if err != nil {
 			r.logger.Errorf("Failed to create %s graph for %s with time length %s: %v", conFunc, r.name, timeLength, err)
 			continue

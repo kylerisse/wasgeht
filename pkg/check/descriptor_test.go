@@ -14,7 +14,7 @@ func TestDescriptor_ZeroValue(t *testing.T) {
 func TestDescriptor_WithMetrics(t *testing.T) {
 	d := Descriptor{
 		Metrics: []MetricDef{
-			{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms"},
+			{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
 			{ResultKey: "rx_bytes", DSName: "rx", Label: "received", Unit: "bytes"},
 		},
 	}
@@ -24,7 +24,24 @@ func TestDescriptor_WithMetrics(t *testing.T) {
 	if d.Metrics[0].ResultKey != "latency_us" {
 		t.Errorf("expected first ResultKey 'latency_us', got %q", d.Metrics[0].ResultKey)
 	}
+	if d.Metrics[0].Scale != 1000 {
+		t.Errorf("expected first Scale 1000, got %d", d.Metrics[0].Scale)
+	}
 	if d.Metrics[1].DSName != "rx" {
 		t.Errorf("expected second DSName 'rx', got %q", d.Metrics[1].DSName)
+	}
+}
+
+func TestDescriptor_ScaleZeroMeansNoScaling(t *testing.T) {
+	d := MetricDef{ResultKey: "rtt_ms", DSName: "rtt", Label: "rtt", Unit: "ms", Scale: 0}
+	if d.Scale != 0 {
+		t.Errorf("expected Scale 0, got %d", d.Scale)
+	}
+}
+
+func TestDescriptor_ScaleOneMeansNoScaling(t *testing.T) {
+	d := MetricDef{ResultKey: "rtt_ms", DSName: "rtt", Label: "rtt", Unit: "ms", Scale: 1}
+	if d.Scale != 1 {
+		t.Errorf("expected Scale 1, got %d", d.Scale)
 	}
 }

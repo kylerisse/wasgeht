@@ -13,6 +13,12 @@ type MetricDef struct {
 
 	// Unit is the unit of measurement for graphs and display (e.g. "ms").
 	Unit string
+
+	// Scale is the divisor applied to convert the raw stored value to
+	// the display unit. For example, ping stores microseconds but
+	// displays milliseconds, so Scale is 1000.
+	// A value of 0 or 1 means no scaling is applied.
+	Scale int
 }
 
 // Descriptor declares static metadata about a check type, including

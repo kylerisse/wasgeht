@@ -97,7 +97,7 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 		// Currently one RRD file per check type using the first metric's DSName.
 		// Multi-DS RRD support is future work.
 		metric := desc.Metrics[0]
-		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, metric.DSName, metric.Label, metric.Unit, s.logger)
+		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, metric.DSName, metric.Label, metric.Unit, metric.Scale, s.logger)
 		if err != nil {
 			s.logger.Errorf("Worker for host %s: failed to initialize RRD for %s check (%v)", name, checkType, err)
 			continue
