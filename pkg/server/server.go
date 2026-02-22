@@ -8,11 +8,12 @@ import (
 
 	"github.com/kylerisse/wasgeht/pkg/check"
 	"github.com/kylerisse/wasgeht/pkg/check/ping"
+	"github.com/kylerisse/wasgeht/pkg/check/wifistations"
 	"github.com/kylerisse/wasgeht/pkg/host"
 	"github.com/sirupsen/logrus"
 )
 
-// Server represents the ping server
+// Server represents the monitoring server
 type Server struct {
 	hosts      map[string]*host.Host
 	statuses   map[string]map[string]*check.Status // host -> checkType -> status
@@ -36,6 +37,9 @@ func NewServer(hostFile string, rrdDir string, graphDir string, listenPort strin
 	registry := check.NewRegistry()
 	if err := registry.Register(ping.TypeName, ping.Factory); err != nil {
 		return nil, fmt.Errorf("failed to register ping check: %w", err)
+	}
+	if err := registry.Register(wifistations.TypeName, wifistations.Factory); err != nil {
+		return nil, fmt.Errorf("failed to register wifi_stations check: %w", err)
 	}
 
 	// Initialize the statuses map with an empty map per host

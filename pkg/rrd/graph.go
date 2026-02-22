@@ -11,11 +11,11 @@ import (
 
 // Standard colors for graph elements, cycled for multi-metric graphs.
 var stackColors = []string{
-	GREEN,    // first metric
-	"0000FF", // blue — second metric
-	"FF8C00", // dark orange — third
-	"9400D3", // dark violet — fourth
-	"00CED1", // dark turquoise — fifth
+	GREEN,     // first metric
+	BLUE,      // second
+	ORANGE,    // third
+	VIOLET,    // fourth
+	TURQUOISE, // fifth
 }
 
 // graph represents an RRD graph, including metadata and synchronization tools.
