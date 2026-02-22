@@ -9,27 +9,27 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kylerisse/wasgeht/pkg/check"
 	"github.com/sirupsen/logrus"
 )
 
 // RRD represents an RRD file, including metadata and synchronization tools.
-// It contains the file pointer, a mutex for thread safety, a list of data sources, and archive definitions.
+// It contains the file pointer, a mutex for thread safety, metric definitions,
+// and graph instances for visualization.
 type RRD struct {
 	name     string
-	checkTyp string        // check type name, used for file naming
-	dsName   string        // RRD data source name (e.g. "latency")
-	label    string        // human-readable label for graphs (e.g. "latency")
-	unit     string        // unit of measurement for graphs (e.g. "ms")
-	scale    int           // divisor to convert raw value to display unit (0 or 1 = no scaling)
-	file     *os.File      // Pointer to the actual RRD file
-	mutex    *sync.RWMutex // Wrap file access
+	checkTyp string            // check type name, used for file naming
+	metrics  []check.MetricDef // metrics stored as data sources in this RRD
+	file     *os.File          // Pointer to the actual RRD file
+	mutex    *sync.RWMutex     // Wrap file access
 	graphs   []*graph
 	logger   *logrus.Logger
 	graphDir string
 }
 
 // NewRRD creates and initializes a new RRD struct for the specified name.
-// If the specified RRD file does not exist, it will be created using rrdtool with predefined data sources and archives.
+// If the specified RRD file does not exist, it will be created using rrdtool
+// with one data source per metric in the provided slice.
 //
 // RRD files are stored under {rrdDir}/{name}/{checkType}.rrd and graphs under {graphDir}/imgs/{name}/.
 //
@@ -38,16 +38,17 @@ type RRD struct {
 //   - rrdDir: The directory where the RRD file should be stored.
 //   - graphDir: The directory where the graphs should be stored.
 //   - checkType: The check type name, used for the RRD filename (e.g. "ping").
-//   - dsName: The RRD data source name (e.g. "latency").
-//   - label: The human-readable label for graph titles and axes (e.g. "latency").
-//   - unit: The unit of measurement for graph display (e.g. "ms").
-//   - scale: The divisor to convert the raw stored value to display unit (0 or 1 = no scaling).
+//   - metrics: The metric definitions describing the data sources to create.
 //   - logger: The logger instance.
 //
 // Returns:
 //   - *RRD: A pointer to the newly created RRD struct.
 //   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(name string, rrdDir string, graphDir string, checkType string, dsName string, label string, unit string, scale int, logger *logrus.Logger) (*RRD, error) {
+func NewRRD(name string, rrdDir string, graphDir string, checkType string, metrics []check.MetricDef, logger *logrus.Logger) (*RRD, error) {
+	if len(metrics) == 0 {
+		return nil, fmt.Errorf("at least one metric definition is required")
+	}
+
 	// verify rrdDir exists
 	if _, err := os.Stat(rrdDir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("directory %s does not exist", rrdDir)
@@ -65,18 +66,25 @@ func NewRRD(name string, rrdDir string, graphDir string, checkType string, dsNam
 
 	if _, err := os.Stat(rrdPath); os.IsNotExist(err) {
 		logger.Debugf("RRD file %s does not exist. Creating new RRD file.", rrdPath)
-		cmd := exec.Command("rrdtool", "create", rrdPath,
+
+		// Build rrdtool create args with one DS per metric
+		args := []string{
+			"create", rrdPath,
 			"--step", "60",
-			fmt.Sprintf("DS:%s:GAUGE:120:0:U", dsName),
+		}
+		for _, m := range metrics {
+			args = append(args, fmt.Sprintf("DS:%s:GAUGE:120:0:U", m.DSName))
+		}
+		args = append(args,
 			"RRA:MAX:0.5:1:10080",      // 1-minute max for 1 week (10080 data points)
 			"RRA:AVERAGE:0.5:1:10080",  // 1-minute average for 1 week (10080 data points)
 			"RRA:AVERAGE:0.5:5:8928",   // 5-minute average for 31 days (8928 data points)
 			"RRA:AVERAGE:0.5:15:8736",  // 15-minute average for 13 weeks (8736 data points)
-			"RRA:AVERAGE:0.5:60:8784",  // 1-hour average for 1 year (8789 data points)
+			"RRA:AVERAGE:0.5:60:8784",  // 1-hour average for 1 year (8784 data points)
 			"RRA:AVERAGE:0.5:480:5490", // 8-hour average for 5 years (5490 data points)
 		)
 
-		// Run the command
+		cmd := exec.Command("rrdtool", args...)
 		if err := cmd.Run(); err != nil {
 			return nil, fmt.Errorf("failed to create RRD file %s with rrdtool: %w", rrdPath, err)
 		}
@@ -94,10 +102,7 @@ func NewRRD(name string, rrdDir string, graphDir string, checkType string, dsNam
 	rrd := &RRD{
 		name:     name,
 		checkTyp: checkType,
-		dsName:   dsName,
-		label:    label,
-		unit:     unit,
-		scale:    scale,
+		metrics:  metrics,
 		file:     file,
 		mutex:    &sync.RWMutex{},
 		graphs:   []*graph{},
@@ -107,7 +112,7 @@ func NewRRD(name string, rrdDir string, graphDir string, checkType string, dsNam
 
 	rrd.initGraphs()
 
-	logger.Debugf("RRD struct initialized for %s check type %s.", name, checkType)
+	logger.Debugf("RRD struct initialized for %s check type %s with %d data source(s).", name, checkType, len(metrics))
 	return rrd, nil
 }
 
@@ -131,8 +136,9 @@ func (r *RRD) getLastUpdate() (int64, error) {
 	}
 
 	// Extract the last line and parse the timestamp.
+	// Format: "timestamp: val1 val2 val3" or "timestamp:val1:val2:val3"
 	lastLine := lines[len(lines)-1]
-	parts := strings.Split(lastLine, ":")
+	parts := strings.SplitN(lastLine, ":", 2)
 	if len(parts) < 2 {
 		return 0, fmt.Errorf("unexpected format in the last line: %s", lastLine)
 	}
@@ -144,17 +150,31 @@ func (r *RRD) getLastUpdate() (int64, error) {
 		return 0, fmt.Errorf("failed to parse last update timestamp: %w", err)
 	}
 
-	// Check if the value in the second column is a valid number.
-	valueStr := strings.TrimSpace(parts[1])
-	if valueStr == "" || valueStr == "NaN" || valueStr == "U" {
-		// Value is not a valid number, return 0 and nil
-		r.logger.Debugf("Last update value is invalid or undefined for RRD file %s.", r.file.Name())
+	// Check if any value column contains valid data.
+	// With multiple DS, the values portion may look like " val1 val2 val3"
+	// or ":val1:val2:val3" depending on rrdtool version. We split on
+	// whitespace and check each token.
+	valuePortion := strings.TrimSpace(parts[1])
+	if valuePortion == "" {
 		return 0, nil
 	}
 
-	if _, err := strconv.ParseFloat(valueStr, 64); err != nil {
-		// Value is not a valid number, return 0 and nil
-		r.logger.Debugf("Last update value is not a valid float for RRD file %s.", r.file.Name())
+	// rrdtool lastupdate separates values with spaces
+	valueTokens := strings.Fields(valuePortion)
+	hasValidValue := false
+	for _, tok := range valueTokens {
+		tok = strings.TrimSpace(tok)
+		if tok == "" || tok == "NaN" || tok == "U" {
+			continue
+		}
+		if _, err := strconv.ParseFloat(tok, 64); err == nil {
+			hasValidValue = true
+			break
+		}
+	}
+
+	if !hasValidValue {
+		r.logger.Debugf("Last update values are all invalid or undefined for RRD file %s.", r.file.Name())
 		return 0, nil
 	}
 
@@ -237,7 +257,7 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with specified consolidation function.
 	for timeLength, conFunc := range timeLengths {
-		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.dsName, r.label, r.unit, r.scale, r.logger)
+		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.metrics, r.logger)
 		if err != nil {
 			r.logger.Errorf("Failed to create %s graph for %s with time length %s: %v", conFunc, r.name, timeLength, err)
 			continue
