@@ -8,9 +8,11 @@
 // provides a uniform shape regardless of check type: success/failure,
 // a set of named metrics, and an optional error.
 //
-// Each check type provides a Descriptor that declares what metrics it
-// produces, allowing the system to generically wire up storage and
-// visualization without per-type knowledge.
+// Each check instance provides a Descriptor via Describe() that declares
+// what metrics it produces. This allows check instances with config-dependent
+// metrics (e.g. wifi_stations with a variable number of radios) to declare
+// their own metric shape, while checks with static metrics (e.g. ping) can
+// simply return a package-level constant.
 //
 // The Registry provides type discovery, allowing check types to be
 // registered by name and instantiated from configuration at runtime.
@@ -24,6 +26,11 @@ import (
 type Check interface {
 	// Type returns the registered name of this check type (e.g. "ping", "http").
 	Type() string
+
+	// Describe returns the Descriptor for this check instance, declaring
+	// what metrics it produces. The descriptor may vary between instances
+	// of the same check type depending on configuration.
+	Describe() Descriptor
 
 	// Run executes the check and returns a Result.
 	// The provided context can be used for cancellation and timeouts.

@@ -8,14 +8,17 @@
 
 ## Features
 
-- **Extensible Check System**: Modular check types (ping, with more planned) via a Registry/Factory pattern.
+- **Extensible Check System**: Modular check types via a Registry/Factory pattern. Each check type implements a common `Check` interface and declares its own metrics through a `Descriptor`.
+- **Built-in Check Types**:
+  - **ping**: ICMP echo requests for host availability and latency.
+  - **wifi_stations**: Scrapes a Prometheus metrics endpoint for connected WiFi client counts per radio interface.
+- **Multi-Metric Checks**: Checks can produce multiple metrics stored as separate data sources in a single RRD file. Multi-metric checks render as stacked area graphs.
 - **Host Status Aggregation**: Each host has an aggregate status (`up`, `down`, `degraded`, `unknown`) computed from all its checks. A check must be alive and have reported within the last 5 minutes to count as healthy.
-- **Ping Monitoring**: Sends ICMP Echo Requests to check host availability.
-- **Latency Logging**: Uses RRD to store latency data over time.
-- **Graphs Generation**: Generates historical latency graphs (15 minutes, 4 hours, 8 hours, etc.) for each host.
+- **RRD Storage**: Uses Round Robin Databases for time-series data, with configurable archives from 1-minute resolution (1 week) to 8-hour resolution (5 years).
+- **Graph Generation**: Generates historical graphs at multiple time scales (15 minutes through 5 years) for each check type on each host.
 - **Simple Web Interface**: Serves an HTML/JS front-end to display host status and dynamically loaded graphs. Available in table and flame graph formats.
 - **REST API**: Exposes JSON data of all hosts and their status at `GET /api`.
-- **Prometheus Support**: Exposes metrics in prometheus format at `GET /metrics`.
+- **Prometheus Support**: Exposes metrics in Prometheus format at `GET /metrics`.
 
 ## Requirements
 
@@ -102,6 +105,65 @@ Ensure the following are installed:
 - **Port** (`--port`): Port on which the API and front-end are served.
 - **Logging Level** (`--log-level`): Set the verbosity of logs (e.g., `debug`, `info`, `warn`, `error`, `fatal`, `panic`).
 
+### Host Configuration
+
+Hosts are defined in a JSON file. Each host can specify an address and a set of checks. Hosts without an explicit `checks` block default to a ping check.
+
+```json
+{
+	"router": {},
+	"google": {
+		"address": "8.8.8.8",
+		"checks": {
+			"ping": { "timeout": "5s" }
+		}
+	},
+	"ap1": {
+		"checks": {
+			"ping": {},
+			"wifi_stations": {
+				"radios": ["phy0-ap0", "phy1-ap0"]
+			}
+		}
+	},
+	"disabled-example": {
+		"checks": {
+			"ping": { "enabled": false }
+		}
+	}
+}
+```
+
+### Check Types
+
+#### ping
+
+Sends ICMP echo requests to check host availability and measure latency.
+
+| Option    | Type   | Default | Description                    |
+| --------- | ------ | ------- | ------------------------------ |
+| `timeout` | string | `"3s"`  | Ping timeout (Go duration)     |
+| `count`   | number | `1`     | Number of ping packets to send |
+| `enabled` | bool   | `true`  | Set to `false` to disable      |
+
+#### wifi_stations
+
+Scrapes a Prometheus metrics endpoint for `wifi_stations{ifname="..."}` gauge values, reporting connected client counts per radio interface. Each configured radio becomes a separate data source in the RRD, rendered as a stacked area graph.
+
+| Option    | Type     | Default                      | Description                                |
+| --------- | -------- | ---------------------------- | ------------------------------------------ |
+| `radios`  | []string | _(required)_                 | List of `ifname` label values to monitor   |
+| `url`     | string   | `http://{host}:9100/metrics` | Full URL override for the metrics endpoint |
+| `timeout` | string   | `"5s"`                       | HTTP scrape timeout (Go duration)          |
+| `enabled` | bool     | `true`                       | Set to `false` to disable                  |
+
+The target host expects a Prometheus node exporter (or compatible) exposing metrics like:
+
+```
+wifi_stations{ifname="phy0-ap0"} 3
+wifi_stations{ifname="phy1-ap0"} 7
+```
+
 ## Host Status
 
 Each host has an aggregate status derived from all its enabled checks:
@@ -136,6 +198,26 @@ Returns JSON with the status of all hosts:
 			}
 		}
 	},
+	"ap1": {
+		"status": "up",
+		"checks": {
+			"ping": {
+				"alive": true,
+				"metrics": {
+					"latency_us": 237
+				},
+				"lastupdate": 1700000000
+			},
+			"wifi_stations": {
+				"alive": true,
+				"metrics": {
+					"phy0-ap0": 3,
+					"phy1-ap0": 7
+				},
+				"lastupdate": 1700000000
+			}
+		}
+	},
 	"router": {
 		"status": "unknown",
 		"checks": {}
@@ -152,6 +234,8 @@ Exposes Prometheus-formatted metrics:
 ```
 check_alive{host="google", address="8.8.8.8", check="ping"} 1
 check_metric{host="google", address="8.8.8.8", check="ping", metric="latency_us"} 12345
+check_alive{host="ap1", address="", check="ping"} 1
+check_metric{host="ap1", address="", check="ping", metric="latency_us"} 237
 ```
 
 ## Data Directory Layout
@@ -165,6 +249,9 @@ data/
 │   │   └── ping.rrd
 │   ├── google/
 │   │   └── ping.rrd
+│   ├── ap1/
+│   │   ├── ping.rrd
+│   │   └── wifi_stations.rrd
 │   └── ...
 └── graphs/
     └── imgs/
@@ -172,13 +259,16 @@ data/
         │   ├── router_ping_15m.png
         │   ├── router_ping_1h.png
         │   └── ...
-        ├── google/
-        │   ├── google_ping_15m.png
+        ├── ap1/
+        │   ├── ap1_ping_15m.png
+        │   ├── ap1_ping_1h.png
+        │   ├── ap1_wifi_stations_15m.png
+        │   ├── ap1_wifi_stations_1h.png
         │   └── ...
         └── ...
 ```
 
-Each check type gets its own RRD file (e.g., `ping.rrd`), making it straightforward to add new check types in the future without filename collisions.
+Each check type gets its own RRD file (e.g., `ping.rrd`, `wifi_stations.rrd`). Multi-metric checks store all their data sources in a single RRD file.
 
 ## Makefile Targets
 

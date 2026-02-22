@@ -2,6 +2,8 @@ package rrd
 
 import (
 	"testing"
+
+	"github.com/kylerisse/wasgeht/pkg/check"
 )
 
 func TestExpandTimeLength(t *testing.T) {
@@ -49,8 +51,8 @@ func TestNeedsScaling(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := &graph{scale: tt.scale}
-			if got := g.needsScaling(); got != tt.want {
+			m := check.MetricDef{Scale: tt.scale}
+			if got := needsScaling(m); got != tt.want {
 				t.Errorf("needsScaling() with scale=%d: got %v, want %v", tt.scale, got, tt.want)
 			}
 		})
@@ -73,10 +75,26 @@ func TestDisplayVarName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := &graph{dsName: tt.dsName, unit: tt.unit, scale: tt.scale}
-			if got := g.displayVarName(); got != tt.want {
+			m := check.MetricDef{DSName: tt.dsName, Unit: tt.unit, Scale: tt.scale}
+			if got := displayVarName(m); got != tt.want {
 				t.Errorf("displayVarName() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestStackColors_HasEntries(t *testing.T) {
+	if len(stackColors) == 0 {
+		t.Error("stackColors should have at least one entry")
+	}
+}
+
+func TestStackColors_CyclesCorrectly(t *testing.T) {
+	// Ensure color indexing wraps around
+	for i := 0; i < len(stackColors)*2; i++ {
+		color := stackColors[i%len(stackColors)]
+		if color == "" {
+			t.Errorf("stackColors[%d %% %d] is empty", i, len(stackColors))
+		}
 	}
 }

@@ -1,7 +1,29 @@
 {
   "router": {},
-  "ap1": {},
-  "ap2": {},
+  "ap1": {
+    "checks": {
+      "ping": {},
+      "wifi_stations": {
+        "radios": ["phy0-ap0", "phy1-ap0"]
+      }
+    }
+  },
+  "ap2": {
+    "checks": {
+      "ping": {},
+      "wifi_stations": {
+        "radios": ["phy0-ap0", "phy1-ap0"]
+      }
+    }
+  },
+  "fakeap": {
+    "checks": {
+      "ping": { "enabled": false },
+      "wifi_stations": {
+        "radios": ["phy0-ap0", "phy1-ap0"]
+      }
+    }
+  },
   "qube": {},
   "pi3": {},
   "pi4": {},

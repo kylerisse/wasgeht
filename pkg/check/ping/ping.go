@@ -92,6 +92,12 @@ func (p *Ping) Type() string {
 	return TypeName
 }
 
+// Describe returns the Descriptor for this ping check instance.
+// Ping always produces the same metrics regardless of configuration.
+func (p *Ping) Describe() check.Descriptor {
+	return Desc
+}
+
 // Run executes the ping check and returns a Result.
 func (p *Ping) Run(ctx context.Context) check.Result {
 	now := time.Now()
