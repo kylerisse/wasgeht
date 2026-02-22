@@ -21,11 +21,11 @@ type MetricDef struct {
 	Scale int
 }
 
-// Descriptor declares static metadata about a check type, including
-// what metrics it produces. This is registered alongside the Factory
-// so the system can generically wire up storage and graphs without
-// per-type knowledge.
+// Descriptor declares metadata about a check instance, including what
+// metrics it produces. Each check instance returns its own Descriptor
+// via Check.Describe(), allowing config-dependent metric shapes (e.g.
+// a wifi_stations check with a variable number of radios).
 type Descriptor struct {
-	// Metrics lists the metrics this check type produces.
+	// Metrics lists the metrics this check instance produces.
 	Metrics []MetricDef
 }

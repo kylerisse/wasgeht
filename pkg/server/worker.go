@@ -72,24 +72,20 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 	instances := make([]checkInstance, 0, len(enabledChecks))
 
 	for checkType, cfg := range enabledChecks {
-		// Look up the descriptor to learn what metrics this check produces
-		desc, err := s.registry.Describe(checkType)
-		if err != nil {
-			s.logger.Errorf("Worker for host %s: no descriptor for %s check (%v)", name, checkType, err)
-			continue
-		}
-
-		if len(desc.Metrics) == 0 {
-			s.logger.Errorf("Worker for host %s: %s check declares no metrics", name, checkType)
-			continue
-		}
-
 		// Build the config for the factory: inject target, copy user config
 		factoryCfg := buildFactoryConfig(cfg, target)
 
 		chk, err := s.registry.Create(checkType, factoryCfg)
 		if err != nil {
 			s.logger.Errorf("Worker for host %s: failed to create %s check (%v)", name, checkType, err)
+			continue
+		}
+
+		// Get the instance-specific descriptor to learn what metrics this check produces
+		desc := chk.Describe()
+
+		if len(desc.Metrics) == 0 {
+			s.logger.Errorf("Worker for host %s: %s check declares no metrics", name, checkType)
 			continue
 		}
 

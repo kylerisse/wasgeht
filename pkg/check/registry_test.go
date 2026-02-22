@@ -11,16 +11,28 @@ import (
 
 // stubCheck is a minimal Check implementation for testing.
 type stubCheck struct {
-	typeName string
-	result   Result
+	typeName   string
+	result     Result
+	descriptor Descriptor
 }
 
 func (s *stubCheck) Type() string                 { return s.typeName }
+func (s *stubCheck) Describe() Descriptor         { return s.descriptor }
 func (s *stubCheck) Run(_ context.Context) Result { return s.result }
+
+var stubDescriptor = Descriptor{
+	Metrics: []MetricDef{{ResultKey: "value", DSName: "value", Label: "value", Unit: "units"}},
+}
 
 func stubFactory(typeName string, result Result) Factory {
 	return func(config map[string]any) (Check, error) {
-		return &stubCheck{typeName: typeName, result: result}, nil
+		return &stubCheck{typeName: typeName, result: result, descriptor: stubDescriptor}, nil
+	}
+}
+
+func stubFactoryWithDescriptor(typeName string, desc Descriptor) Factory {
+	return func(config map[string]any) (Check, error) {
+		return &stubCheck{typeName: typeName, descriptor: desc}, nil
 	}
 }
 
@@ -28,15 +40,11 @@ func failingFactory(config map[string]any) (Check, error) {
 	return nil, fmt.Errorf("factory error")
 }
 
-var stubDescriptor = Descriptor{
-	Metrics: []MetricDef{{ResultKey: "value", DSName: "value", Label: "value", Unit: "units"}},
-}
-
 func TestRegistry_RegisterAndCreate(t *testing.T) {
 	reg := NewRegistry()
 
 	expected := Result{Success: true, Timestamp: time.Now()}
-	err := reg.Register("stub", stubFactory("stub", expected), stubDescriptor)
+	err := reg.Register("stub", stubFactory("stub", expected))
 	if err != nil {
 		t.Fatalf("Register failed: %v", err)
 	}
@@ -58,12 +66,12 @@ func TestRegistry_RegisterAndCreate(t *testing.T) {
 func TestRegistry_DuplicateRegister(t *testing.T) {
 	reg := NewRegistry()
 
-	err := reg.Register("dup", stubFactory("dup", Result{}), stubDescriptor)
+	err := reg.Register("dup", stubFactory("dup", Result{}))
 	if err != nil {
 		t.Fatalf("first Register failed: %v", err)
 	}
 
-	err = reg.Register("dup", stubFactory("dup", Result{}), stubDescriptor)
+	err = reg.Register("dup", stubFactory("dup", Result{}))
 	if err == nil {
 		t.Error("expected error on duplicate registration")
 	}
@@ -81,7 +89,7 @@ func TestRegistry_CreateUnknownType(t *testing.T) {
 func TestRegistry_CreateFactoryError(t *testing.T) {
 	reg := NewRegistry()
 
-	err := reg.Register("bad", failingFactory, stubDescriptor)
+	err := reg.Register("bad", failingFactory)
 	if err != nil {
 		t.Fatalf("Register failed: %v", err)
 	}
@@ -95,9 +103,9 @@ func TestRegistry_CreateFactoryError(t *testing.T) {
 func TestRegistry_Types(t *testing.T) {
 	reg := NewRegistry()
 
-	reg.Register("ping", stubFactory("ping", Result{}), stubDescriptor)
-	reg.Register("http", stubFactory("http", Result{}), stubDescriptor)
-	reg.Register("tcp", stubFactory("tcp", Result{}), stubDescriptor)
+	reg.Register("ping", stubFactory("ping", Result{}))
+	reg.Register("http", stubFactory("http", Result{}))
+	reg.Register("tcp", stubFactory("tcp", Result{}))
 
 	types := reg.Types()
 	sort.Strings(types)
@@ -131,7 +139,7 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 		go func(n int) {
 			defer wg.Done()
 			name := fmt.Sprintf("type-%d", n)
-			reg.Register(name, stubFactory(name, Result{}), stubDescriptor)
+			reg.Register(name, stubFactory(name, Result{}))
 		}(i)
 	}
 	wg.Wait()
@@ -166,10 +174,10 @@ func TestRegistry_ConfigPassthrough(t *testing.T) {
 	var receivedConfig map[string]any
 	factory := func(config map[string]any) (Check, error) {
 		receivedConfig = config
-		return &stubCheck{typeName: "configtest"}, nil
+		return &stubCheck{typeName: "configtest", descriptor: stubDescriptor}, nil
 	}
 
-	reg.Register("configtest", factory, stubDescriptor)
+	reg.Register("configtest", factory)
 
 	config := map[string]any{
 		"target":  "example.com",
@@ -188,20 +196,16 @@ func TestRegistry_ConfigPassthrough(t *testing.T) {
 	}
 }
 
-func TestRegistry_Describe(t *testing.T) {
-	reg := NewRegistry()
-
+func TestCheck_Describe(t *testing.T) {
 	desc := Descriptor{
 		Metrics: []MetricDef{
 			{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms"},
 		},
 	}
-	reg.Register("ping", stubFactory("ping", Result{}), desc)
 
-	got, err := reg.Describe("ping")
-	if err != nil {
-		t.Fatalf("Describe failed: %v", err)
-	}
+	chk := &stubCheck{typeName: "ping", descriptor: desc}
+
+	got := chk.Describe()
 	if len(got.Metrics) != 1 {
 		t.Fatalf("expected 1 metric, got %d", len(got.Metrics))
 	}
@@ -211,40 +215,62 @@ func TestRegistry_Describe(t *testing.T) {
 	if got.Metrics[0].DSName != "latency" {
 		t.Errorf("expected DSName 'latency', got %q", got.Metrics[0].DSName)
 	}
-	if got.Metrics[0].Label != "latency" {
-		t.Errorf("expected Label 'latency', got %q", got.Metrics[0].Label)
-	}
-	if got.Metrics[0].Unit != "ms" {
-		t.Errorf("expected Unit 'ms', got %q", got.Metrics[0].Unit)
-	}
 }
 
-func TestRegistry_DescribeUnknownType(t *testing.T) {
-	reg := NewRegistry()
-
-	_, err := reg.Describe("nonexistent")
-	if err == nil {
-		t.Error("expected error for unknown check type")
-	}
-}
-
-func TestRegistry_DescribeMultipleMetrics(t *testing.T) {
-	reg := NewRegistry()
-
+func TestCheck_DescribeMultipleMetrics(t *testing.T) {
 	desc := Descriptor{
 		Metrics: []MetricDef{
 			{ResultKey: "rx_bytes", DSName: "rx", Label: "received", Unit: "bytes"},
 			{ResultKey: "tx_bytes", DSName: "tx", Label: "transmitted", Unit: "bytes"},
 		},
 	}
-	reg.Register("bandwidth", stubFactory("bandwidth", Result{}), desc)
 
-	got, err := reg.Describe("bandwidth")
-	if err != nil {
-		t.Fatalf("Describe failed: %v", err)
-	}
+	chk := &stubCheck{typeName: "bandwidth", descriptor: desc}
+
+	got := chk.Describe()
 	if len(got.Metrics) != 2 {
 		t.Fatalf("expected 2 metrics, got %d", len(got.Metrics))
+	}
+}
+
+func TestCheck_DescribeDynamic(t *testing.T) {
+	// Simulate a factory that builds descriptor from config (like wifi_stations)
+	factory := func(config map[string]any) (Check, error) {
+		radios, _ := config["radios"].([]string)
+		metrics := make([]MetricDef, len(radios))
+		for i, radio := range radios {
+			metrics[i] = MetricDef{
+				ResultKey: radio,
+				DSName:    fmt.Sprintf("radio%d", i),
+				Label:     radio,
+				Unit:      "clients",
+			}
+		}
+		return &stubCheck{
+			typeName:   "wifi_stations",
+			descriptor: Descriptor{Metrics: metrics},
+		}, nil
+	}
+
+	reg := NewRegistry()
+	reg.Register("wifi_stations", factory)
+
+	chk, err := reg.Create("wifi_stations", map[string]any{
+		"radios": []string{"phy0-ap0", "phy1-ap0"},
+	})
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	desc := chk.Describe()
+	if len(desc.Metrics) != 2 {
+		t.Fatalf("expected 2 metrics, got %d", len(desc.Metrics))
+	}
+	if desc.Metrics[0].ResultKey != "phy0-ap0" {
+		t.Errorf("expected first ResultKey 'phy0-ap0', got %q", desc.Metrics[0].ResultKey)
+	}
+	if desc.Metrics[1].DSName != "radio1" {
+		t.Errorf("expected second DSName 'radio1', got %q", desc.Metrics[1].DSName)
 	}
 }
 
@@ -254,18 +280,19 @@ func TestRegistry_ConcurrentDescribe(t *testing.T) {
 	desc := Descriptor{
 		Metrics: []MetricDef{{ResultKey: "val", DSName: "val", Label: "value", Unit: "units"}},
 	}
-	reg.Register("test", stubFactory("test", Result{}), desc)
+	reg.Register("test", stubFactoryWithDescriptor("test", desc))
 
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			got, err := reg.Describe("test")
+			chk, err := reg.Create("test", nil)
 			if err != nil {
-				t.Errorf("Describe failed: %v", err)
+				t.Errorf("Create failed: %v", err)
 				return
 			}
+			got := chk.Describe()
 			if len(got.Metrics) != 1 {
 				t.Errorf("expected 1 metric, got %d", len(got.Metrics))
 			}
