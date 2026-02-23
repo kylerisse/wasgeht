@@ -90,7 +90,7 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 		}
 
 		// Initialize RRD file for this check with all declared metrics as data sources.
-		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, desc.Metrics, s.logger)
+		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, desc.Metrics, desc.GraphStyle, desc.Label, s.logger)
 		if err != nil {
 			s.logger.Errorf("Worker for host %s: failed to initialize RRD for %s check (%v)", name, checkType, err)
 			continue

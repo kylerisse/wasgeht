@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
+	checkhttp "github.com/kylerisse/wasgeht/pkg/check/http"
 	"github.com/kylerisse/wasgeht/pkg/check/ping"
 	"github.com/kylerisse/wasgeht/pkg/check/wifistations"
 	"github.com/kylerisse/wasgeht/pkg/host"
@@ -40,6 +41,9 @@ func NewServer(hostFile string, rrdDir string, graphDir string, listenPort strin
 	}
 	if err := registry.Register(wifistations.TypeName, wifistations.Factory); err != nil {
 		return nil, fmt.Errorf("failed to register wifi_stations check: %w", err)
+	}
+	if err := registry.Register(checkhttp.TypeName, checkhttp.Factory); err != nil {
+		return nil, fmt.Errorf("failed to register http check: %w", err)
 	}
 
 	// Initialize the statuses map with an empty map per host
