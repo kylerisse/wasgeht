@@ -1,5 +1,12 @@
 {
-  "router": {},
+  "router": {
+    "checks": {
+      "ping": {
+        "label": "router ping",
+        "addresses": ["router.risse.tv"]
+      }
+    }
+  },
   "ap1": {
     "checks": {
       "ping": {
@@ -64,6 +71,10 @@
   },
   "pi3": {
     "checks": {
+      "ping": {
+        "label": "pi3 ping",
+        "addresses": ["pi3.risse.tv"]
+      },
       "http": {
         "label": "pi3 http",
         "urls": ["http://pi3.risse.tv:2017"]
@@ -72,6 +83,10 @@
   },
   "pi4": {
     "checks": {
+      "ping": {
+        "label": "pi4 ping",
+        "addresses": ["pi4.risse.tv"]
+      },
       "http": {
         "label": "pi4 http",
         "urls": ["http://pi4.risse.tv:2017"]

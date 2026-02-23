@@ -18,10 +18,11 @@ type checkInstance struct {
 	status     *check.Status
 }
 
-// worker periodically runs all enabled checks against the assigned host
+// worker periodically runs all enabled checks against the assigned host.
 func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
+	// Add a random delay of 1-59 seconds before starting to reduce initial filesystem activity.
 	startDelay := time.Duration(rand.Intn(59)+1) * time.Second
 	s.logger.Infof("Worker for host %s will start in %v", name, startDelay)
 	select {
@@ -32,12 +33,14 @@ func (s *Server) worker(name string, h *host.Host) {
 		return
 	}
 
-	instances := s.initChecks(name, h, name)
+	// Initialize all enabled checks and their RRD files.
+	instances := s.initChecks(name, h)
 	if len(instances) == 0 {
 		s.logger.Warningf("Worker for host %s: no checks to run, exiting", name)
 		return
 	}
 
+	// Run periodic checks every minute.
 	for {
 		select {
 		case <-s.done:
@@ -48,6 +51,7 @@ func (s *Server) worker(name string, h *host.Host) {
 
 			select {
 			case <-time.After(time.Minute):
+				// continue with the next iteration
 			case <-s.done:
 				s.logger.Infof("Worker for host %s received shutdown signal.", name)
 				return
@@ -56,12 +60,14 @@ func (s *Server) worker(name string, h *host.Host) {
 	}
 }
 
-// initChecks creates check instances and RRD files for all checks on a host.
-func (s *Server) initChecks(name string, h *host.Host, target string) []checkInstance {
+// initChecks creates check instances and RRD files for all enabled checks on a host.
+// Each check's factory receives the user-provided config directly; all required
+// addressing information must be present in the config itself.
+func (s *Server) initChecks(name string, h *host.Host) []checkInstance {
 	instances := make([]checkInstance, 0, len(h.Checks))
 
 	for checkType, cfg := range h.Checks {
-		factoryCfg := buildFactoryConfig(cfg, target)
+		factoryCfg := copyConfig(cfg)
 
 		chk, err := s.registry.Create(checkType, factoryCfg)
 		if err != nil {
@@ -123,19 +129,19 @@ func (s *Server) runChecks(name string, instances []checkInstance) {
 	}
 }
 
-// buildFactoryConfig creates a config map for a check factory by copying the
-// user-provided config and injecting the resolved target address.
-func buildFactoryConfig(cfg map[string]any, target string) map[string]any {
-	factoryCfg := make(map[string]any, len(cfg)+1)
+// copyConfig returns a shallow copy of the config map so that factories cannot
+// mutate the original host config.
+func copyConfig(cfg map[string]any) map[string]any {
+	out := make(map[string]any, len(cfg))
 	for k, v := range cfg {
-		factoryCfg[k] = v
+		out[k] = v
 	}
-	factoryCfg["target"] = target
-	return factoryCfg
+	return out
 }
 
 // rrdValuesFromResult extracts metric values from a check.Result in the
-// order declared by the metric definitions.
+// order declared by the metric definitions. Returns an empty slice if the
+// check failed or no declared metrics are present.
 func rrdValuesFromResult(result check.Result, metrics []check.MetricDef) []int64 {
 	if !result.Success {
 		return []int64{}
