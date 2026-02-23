@@ -11,8 +11,9 @@
 - **Extensible Check System**: Modular check types via a Registry/Factory pattern. Each check type implements a common `Check` interface and declares its own metrics through a `Descriptor`.
 - **Built-in Check Types**:
   - **ping**: ICMP echo requests for host availability and latency.
+  - **http**: HTTP/HTTPS endpoint reachability and per-URL response time.
   - **wifi_stations**: Scrapes a Prometheus metrics endpoint for connected WiFi client counts per radio interface.
-- **Multi-Metric Checks**: Checks can produce multiple metrics stored as separate data sources in a single RRD file. Multi-metric checks render as stacked area graphs.
+- **Multi-Metric Checks**: Checks can produce multiple metrics stored as separate data sources in a single RRD file. Multi-metric checks render as stacked area graphs or colored line graphs depending on the check type.
 - **Host Status Aggregation**: Each host has an aggregate status (`up`, `down`, `degraded`, `unknown`) computed from all its checks. A check must be alive and have reported within the last 5 minutes to count as healthy.
 - **RRD Storage**: Uses Round Robin Databases for time-series data, with configurable archives from 1-minute resolution (1 week) to 8-hour resolution (5 years).
 - **Graph Generation**: Generates historical graphs at multiple time scales (15 minutes through 5 years) for each check type on each host.
@@ -115,7 +116,10 @@ Hosts are defined in a JSON file. Each host can specify an address and a set of 
 	"google": {
 		"address": "8.8.8.8",
 		"checks": {
-			"ping": { "timeout": "5s" }
+			"ping": { "timeout": "5s" },
+			"http": {
+				"urls": ["https://www.google.com"]
+			}
 		}
 	},
 	"ap1": {
@@ -123,6 +127,19 @@ Hosts are defined in a JSON file. Each host can specify an address and a set of 
 			"ping": {},
 			"wifi_stations": {
 				"radios": ["phy0-ap0", "phy1-ap0"]
+			}
+		}
+	},
+	"qube": {
+		"checks": {
+			"ping": {},
+			"http": {
+				"urls": [
+					"http://qube.example.com:2018/sign.json",
+					"https://whatsup.example.com",
+					"http://mrtg.example.com"
+				],
+				"timeout": "15s"
 			}
 		}
 	},
@@ -145,6 +162,19 @@ Sends ICMP echo requests to check host availability and measure latency.
 | `timeout` | string | `"3s"`  | Ping timeout (Go duration)     |
 | `count`   | number | `1`     | Number of ping packets to send |
 | `enabled` | bool   | `true`  | Set to `false` to disable      |
+
+#### http
+
+Performs HTTP GET requests to a list of URLs and reports per-URL response time. Each URL becomes a separate data source in the RRD, rendered as colored lines on the graph. The check succeeds only if all configured URLs return a response (any HTTP status code counts as reachable). Redirects are not followed.
+
+TLS certificate verification is skipped by default to support locally signed certificates.
+
+| Option        | Type     | Default      | Description                        |
+| ------------- | -------- | ------------ | ---------------------------------- |
+| `urls`        | []string | _(required)_ | List of full URLs to check         |
+| `timeout`     | string   | `"10s"`      | HTTP request timeout (Go duration) |
+| `skip_verify` | bool     | `true`       | Skip TLS certificate verification  |
+| `enabled`     | bool     | `true`       | Set to `false` to disable          |
 
 #### wifi_stations
 
@@ -193,6 +223,13 @@ Returns JSON with the status of all hosts:
 				"alive": true,
 				"metrics": {
 					"latency_us": 12345
+				},
+				"lastupdate": 1700000000
+			},
+			"http": {
+				"alive": true,
+				"metrics": {
+					"https://www.google.com": 45230
 				},
 				"lastupdate": 1700000000
 			}
@@ -248,7 +285,8 @@ data/
 │   ├── router/
 │   │   └── ping.rrd
 │   ├── google/
-│   │   └── ping.rrd
+│   │   ├── ping.rrd
+│   │   └── http.rrd
 │   ├── ap1/
 │   │   ├── ping.rrd
 │   │   └── wifi_stations.rrd
@@ -259,6 +297,10 @@ data/
         │   ├── router_ping_15m.png
         │   ├── router_ping_1h.png
         │   └── ...
+        ├── google/
+        │   ├── google_ping_15m.png
+        │   ├── google_http_15m.png
+        │   └── ...
         ├── ap1/
         │   ├── ap1_ping_15m.png
         │   ├── ap1_ping_1h.png
@@ -268,7 +310,7 @@ data/
         └── ...
 ```
 
-Each check type gets its own RRD file (e.g., `ping.rrd`, `wifi_stations.rrd`). Multi-metric checks store all their data sources in a single RRD file.
+Each check type gets its own RRD file (e.g., `ping.rrd`, `http.rrd`, `wifi_stations.rrd`). Multi-metric checks store all their data sources in a single RRD file.
 
 ## Makefile Targets
 

@@ -5,6 +5,11 @@
       "ping": {},
       "wifi_stations": {
         "radios": ["phy0-ap0", "phy1-ap0"]
+      },
+      "http": {
+        "urls": [
+          "https://ap1.risse.tv"
+        ]
       }
     }
   },
@@ -13,6 +18,11 @@
       "ping": {},
       "wifi_stations": {
         "radios": ["phy0-ap0", "phy1-ap0"]
+      },
+      "http": {
+        "urls": [
+          "https://ap2.risse.tv"
+        ]
       }
     }
   },
@@ -24,15 +34,52 @@
       }
     }
   },
-  "qube": {},
-  "pi3": {},
-  "pi4": {},
+  "qube": {
+    "checks": {
+      "ping": {},
+      "http": {
+        "urls": [
+          "http://qube.risse.tv:2018/sign.json",
+          "http://qube.risse.tv:2017/schedule",
+          "https://whatsup.risse.tv",
+          "https://wasgeht.risse.tv",
+          "https://mrtg.risse.tv"
+        ],
+        "skip_verify": false
+      }
+    }
+  },
+  "pi3": {
+    "checks": {
+      "http": {
+        "urls": [
+          "http://pi3.risse.tv:2017"
+        ]
+      }
+    }
+  },
+  "pi4": {
+    "checks": {
+      "http": {
+        "urls": [
+          "http://pi4.risse.tv:2017"
+        ]
+      }
+    }
+  },
   "watson": {},
   "zugzug": {},
   "google": {
     "address": "8.8.8.8",
     "checks": {
-      "ping": { "timeout": "5s" }
+      "ping": { "timeout": "5s" },
+      "http": {
+        "urls": [
+          "https://www.google.com",
+          "https://www.google.com/maps"
+        ],
+        "skip_verify": false
+      }
     }
   },
   "fake1": {},

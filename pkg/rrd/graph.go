@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
 	"github.com/sirupsen/logrus"
@@ -25,6 +26,8 @@ type graph struct {
 	title                 string            // Title of the graph
 	timeLength            string            // Time length for the graph (e.g., "4h" "1d")
 	metrics               []check.MetricDef // Metrics to draw (one per DS in the RRD)
+	graphStyle            string            // "line" for LINE2, empty/"stack" for AREA+STACK
+	descLabel             string            // descriptor-level label override (may be empty)
 	consolidationFunction string            // Consolidation function (e.g., "AVERAGE" "MAX")
 	logger                *logrus.Logger
 }
@@ -39,12 +42,13 @@ type graph struct {
 //   - consolidationFunction: The RRD consolidation function ("AVERAGE", "MAX", etc.).
 //   - checkType: The check type name, used for graph file naming (e.g., "ping").
 //   - metrics: The metric definitions for data sources in the RRD.
+//   - graphStyle: Graph rendering style ("line" for LINE2, empty/"stack" for AREA+STACK).
 //   - logger: The logger instance.
 //
 // Returns:
 //   - *graph: A pointer to the newly created graph struct.
 //   - error: An error if something went wrong during the initialization.
-func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, metrics []check.MetricDef, logger *logrus.Logger) (*graph, error) {
+func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, metrics []check.MetricDef, graphStyle string, descLabel string, logger *logrus.Logger) (*graph, error) {
 
 	// Define directory and file paths
 	dirPath := fmt.Sprintf("%s/imgs/%s", graphDir, host)
@@ -55,8 +59,11 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 		return nil, fmt.Errorf("failed to create directory %s: %w", dirPath, err)
 	}
 
-	// Build title from the first metric's label (shared unit across all metrics)
-	label := metrics[0].Label
+	// Use the descriptor-level label if set, otherwise fall back to first metric's label
+	label := descLabel
+	if label == "" {
+		label = metrics[0].Label
+	}
 	title := fmt.Sprintf("%s %s over the last %s", host, label, expandTimeLength(timeLength))
 
 	g := &graph{
@@ -65,6 +72,8 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 		title:                 title,
 		timeLength:            timeLength,
 		metrics:               metrics,
+		graphStyle:            graphStyle,
+		descLabel:             descLabel,
 		consolidationFunction: consolidationFunction,
 		logger:                logger,
 	}
@@ -93,15 +102,36 @@ func needsScaling(m check.MetricDef) bool {
 	return m.Scale > 1
 }
 
+// isLineStyle returns true if the graph should render metrics as individual
+// lines rather than stacked areas.
+func (g *graph) isLineStyle() bool {
+	return g.graphStyle == check.GraphStyleLine
+}
+
+// rrdEscape escapes a string for use in rrdtool graph labels and comments.
+// rrdtool uses colons as field delimiters, so literal colons must be escaped
+// as \: in label text. Backslashes must also be escaped.
+func rrdEscape(s string) string {
+	// Escape backslashes first, then colons
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `:`, `\:`)
+	return s
+}
+
 // draw draws a graph based on the current parameters of the graph struct.
 // For single-metric checks, it draws a single AREA.
-// For multi-metric checks, it draws stacked AREAs (first AREA, rest STACK).
+// For multi-metric checks with stack style (default), it draws stacked AREAs.
+// For multi-metric checks with line style, it draws colored LINE2s.
 // It returns an error if the graph generation fails.
 func (g *graph) draw() error {
-	// Shared unit and label come from the first metric (all metrics in a
-	// check share the same unit by convention).
+	// Shared unit comes from the first metric (all metrics in a check share
+	// the same unit by convention). Label for axis/comment uses the
+	// descriptor-level override if set.
 	unit := g.metrics[0].Unit
-	label := g.metrics[0].Label
+	label := g.descLabel
+	if label == "" {
+		label = g.metrics[0].Label
+	}
 
 	var defs []string
 	var cdefs []string
@@ -112,6 +142,7 @@ func (g *graph) draw() error {
 		rawVar := fmt.Sprintf("%s_raw", m.DSName)
 		dispVar := displayVarName(m)
 		color := stackColors[i%len(stackColors)]
+		escapedLabel := rrdEscape(m.Label)
 
 		// DEF: read the raw data source from the RRD file
 		defs = append(defs, fmt.Sprintf("DEF:%s=%s:%s:%s", rawVar, g.rrdPath, m.DSName, g.consolidationFunction))
@@ -121,17 +152,23 @@ func (g *graph) draw() error {
 			cdefs = append(cdefs, fmt.Sprintf("CDEF:%s=%s,%d,/", dispVar, rawVar, m.Scale))
 		}
 
-		// AREA for first metric, STACK for subsequent (creates stacked graph)
-		if i == 0 {
-			lines = append(lines, fmt.Sprintf("AREA:%s#%s:%s", dispVar, color, m.Label))
+		// Draw element depends on graph style
+		if g.isLineStyle() {
+			// Line graph: each metric as a colored LINE2
+			lines = append(lines, fmt.Sprintf("LINE2:%s#%s:%s", dispVar, color, escapedLabel))
 		} else {
-			lines = append(lines, fmt.Sprintf("STACK:%s#%s:%s", dispVar, color, m.Label))
+			// Stack graph: AREA for first metric, STACK for subsequent
+			if i == 0 {
+				lines = append(lines, fmt.Sprintf("AREA:%s#%s:%s", dispVar, color, escapedLabel))
+			} else {
+				lines = append(lines, fmt.Sprintf("STACK:%s#%s:%s", dispVar, color, escapedLabel))
+			}
 		}
 
 		// GPRINT stats for each metric
 		gfmt := "%.2lf"
 		gprints = append(gprints,
-			fmt.Sprintf("GPRINT:%s:LAST:  %s last\\: %s %s", dispVar, m.Label, gfmt, unit),
+			fmt.Sprintf("GPRINT:%s:LAST:  %s last\\: %s %s", dispVar, escapedLabel, gfmt, unit),
 		)
 	}
 
@@ -148,7 +185,7 @@ func (g *graph) draw() error {
 		}
 	}
 
-	comment := fmt.Sprintf("%s %s over last %s", g.consolidationFunction, label, g.timeLength)
+	comment := fmt.Sprintf("%s %s over last %s", g.consolidationFunction, rrdEscape(label), g.timeLength)
 	commentStrings := []string{
 		"COMMENT:\\n",
 		fmt.Sprintf("COMMENT:%s", comment),

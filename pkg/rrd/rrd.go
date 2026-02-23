@@ -17,14 +17,16 @@ import (
 // It contains the file pointer, a mutex for thread safety, metric definitions,
 // and graph instances for visualization.
 type RRD struct {
-	name     string
-	checkTyp string            // check type name, used for file naming
-	metrics  []check.MetricDef // metrics stored as data sources in this RRD
-	file     *os.File          // Pointer to the actual RRD file
-	mutex    *sync.RWMutex     // Wrap file access
-	graphs   []*graph
-	logger   *logrus.Logger
-	graphDir string
+	name       string
+	checkTyp   string            // check type name, used for file naming
+	metrics    []check.MetricDef // metrics stored as data sources in this RRD
+	graphStyle string            // graph rendering style ("line" or "stack"/empty)
+	descLabel  string            // descriptor-level label for graph title/axis (may be empty)
+	file       *os.File          // Pointer to the actual RRD file
+	mutex      *sync.RWMutex     // Wrap file access
+	graphs     []*graph
+	logger     *logrus.Logger
+	graphDir   string
 }
 
 // NewRRD creates and initializes a new RRD struct for the specified name.
@@ -39,12 +41,13 @@ type RRD struct {
 //   - graphDir: The directory where the graphs should be stored.
 //   - checkType: The check type name, used for the RRD filename (e.g. "ping").
 //   - metrics: The metric definitions describing the data sources to create.
+//   - graphStyle: The graph rendering style from the check Descriptor.
 //   - logger: The logger instance.
 //
 // Returns:
 //   - *RRD: A pointer to the newly created RRD struct.
 //   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(name string, rrdDir string, graphDir string, checkType string, metrics []check.MetricDef, logger *logrus.Logger) (*RRD, error) {
+func NewRRD(name string, rrdDir string, graphDir string, checkType string, metrics []check.MetricDef, graphStyle string, descLabel string, logger *logrus.Logger) (*RRD, error) {
 	if len(metrics) == 0 {
 		return nil, fmt.Errorf("at least one metric definition is required")
 	}
@@ -100,14 +103,16 @@ func NewRRD(name string, rrdDir string, graphDir string, checkType string, metri
 
 	// Initialize the RRD struct
 	rrd := &RRD{
-		name:     name,
-		checkTyp: checkType,
-		metrics:  metrics,
-		file:     file,
-		mutex:    &sync.RWMutex{},
-		graphs:   []*graph{},
-		logger:   logger,
-		graphDir: graphDir,
+		name:       name,
+		checkTyp:   checkType,
+		metrics:    metrics,
+		graphStyle: graphStyle,
+		descLabel:  descLabel,
+		file:       file,
+		mutex:      &sync.RWMutex{},
+		graphs:     []*graph{},
+		logger:     logger,
+		graphDir:   graphDir,
 	}
 
 	rrd.initGraphs()
@@ -151,59 +156,44 @@ func (r *RRD) getLastUpdate() (int64, error) {
 	}
 
 	// Check if any value column contains valid data.
-	// With multiple DS, the values portion may look like " val1 val2 val3"
-	// or ":val1:val2:val3" depending on rrdtool version. We split on
-	// whitespace and check each token.
-	valuePortion := strings.TrimSpace(parts[1])
-	if valuePortion == "" {
-		return 0, nil
-	}
-
-	// rrdtool lastupdate separates values with spaces
-	valueTokens := strings.Fields(valuePortion)
-	hasValidValue := false
-	for _, tok := range valueTokens {
-		tok = strings.TrimSpace(tok)
-		if tok == "" || tok == "NaN" || tok == "U" {
-			continue
-		}
-		if _, err := strconv.ParseFloat(tok, 64); err == nil {
-			hasValidValue = true
+	valuePart := strings.TrimSpace(parts[1])
+	values := strings.Fields(valuePart)
+	allUndefined := true
+	for _, v := range values {
+		if v != "U" && v != "-nan" {
+			allUndefined = false
 			break
 		}
 	}
 
-	if !hasValidValue {
-		r.logger.Debugf("Last update values are all invalid or undefined for RRD file %s.", r.file.Name())
+	if allUndefined {
+		r.logger.Debugf("RRD file %s has no defined values yet (all U/-nan), returning 0.", r.file.Name())
 		return 0, nil
 	}
 
+	r.logger.Debugf("Last update time for RRD file %s: %d", r.file.Name(), lastUpdate)
 	return lastUpdate, nil
 }
 
-// SafeUpdate updates the RRD file with the given timestamp and values if the timestamp is newer.
+// SafeUpdate safely updates the RRD file with the specified timestamp and values.
+// It locks the RRD file for thread safety, checks the update timestamp is newer
+// than the last, and then performs the update.
 //
-// This function acquires a write lock to ensure that only one update can be performed at a time.
-// It checks if the given timestamp is newer than the latest existing update.
-//
-// Returns the Unix timestamp of the update on success, or an error if the update was skipped or failed.
+// Returns the Unix timestamp of the update and any error encountered.
 func (r *RRD) SafeUpdate(timestamp time.Time, values []int64) (int64, error) {
-	r.logger.Debugf("Attempting to update RRD file %s at timestamp %d with values %v.", r.file.Name(), timestamp.Unix(), values)
-
-	// Acquire write lock for updating.
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	// Get the last update timestamp.
+	timestampUnix := timestamp.Unix()
+
+	// Check if the timestamp is newer than the last update.
 	lastUpdate, err := r.getLastUpdate()
 	if err != nil {
-		return 0, fmt.Errorf("failed to get last update: %w", err)
+		return 0, fmt.Errorf("failed to get last update for RRD file %s: %w", r.file.Name(), err)
 	}
 
-	// If the given timestamp is not newer, skip the update.
-	timestampUnix := timestamp.Unix()
-	if timestampUnix <= lastUpdate {
-		r.logger.Debugf("Skipping update for RRD file %s: provided timestamp %d is not newer than last update %d.", r.file.Name(), timestamp.Unix(), lastUpdate)
+	if lastUpdate > 0 && timestampUnix <= lastUpdate {
+		r.logger.Debugf("Skipping update for RRD file %s: timestamp %d is not newer than last update %d.", r.file.Name(), timestamp.Unix(), lastUpdate)
 		return 0, fmt.Errorf("skipping update as timestamp %d is not newer than last update %d", timestamp.Unix(), lastUpdate)
 	}
 
@@ -257,7 +247,7 @@ func (r *RRD) initGraphs() {
 
 	// Loop over each time length to create graphs with specified consolidation function.
 	for timeLength, conFunc := range timeLengths {
-		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.metrics, r.logger)
+		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.metrics, r.graphStyle, r.descLabel, r.logger)
 		if err != nil {
 			r.logger.Errorf("Failed to create %s graph for %s with time length %s: %v", conFunc, r.name, timeLength, err)
 			continue

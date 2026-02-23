@@ -3,7 +3,7 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  entrypoint = ["out/wasgehtd", "-log-level=debug"]
+  entrypoint = ["out/wasgehtd"]
   cmd = "make build"
   delay = 1000
   exclude_dir = ["data"]

@@ -9,6 +9,9 @@ func TestDescriptor_ZeroValue(t *testing.T) {
 	if d.Metrics != nil {
 		t.Error("zero Descriptor should have nil Metrics")
 	}
+	if d.GraphStyle != "" {
+		t.Error("zero Descriptor should have empty GraphStyle")
+	}
 }
 
 func TestDescriptor_WithMetrics(t *testing.T) {
@@ -43,5 +46,44 @@ func TestDescriptor_ScaleOneMeansNoScaling(t *testing.T) {
 	d := MetricDef{ResultKey: "rtt_ms", DSName: "rtt", Label: "rtt", Unit: "ms", Scale: 1}
 	if d.Scale != 1 {
 		t.Errorf("expected Scale 1, got %d", d.Scale)
+	}
+}
+
+func TestDescriptor_GraphStyleStack(t *testing.T) {
+	d := Descriptor{
+		GraphStyle: GraphStyleStack,
+		Metrics:    []MetricDef{{ResultKey: "a", DSName: "a", Label: "a", Unit: "x"}},
+	}
+	if d.GraphStyle != "stack" {
+		t.Errorf("expected GraphStyle 'stack', got %q", d.GraphStyle)
+	}
+}
+
+func TestDescriptor_GraphStyleLine(t *testing.T) {
+	d := Descriptor{
+		GraphStyle: GraphStyleLine,
+		Metrics:    []MetricDef{{ResultKey: "a", DSName: "a", Label: "a", Unit: "x"}},
+	}
+	if d.GraphStyle != "line" {
+		t.Errorf("expected GraphStyle 'line', got %q", d.GraphStyle)
+	}
+}
+
+func TestDescriptor_EmptyGraphStyleDefaultsToStack(t *testing.T) {
+	// Empty string should be treated as stack by the graph layer
+	d := Descriptor{
+		Metrics: []MetricDef{{ResultKey: "a", DSName: "a", Label: "a", Unit: "x"}},
+	}
+	if d.GraphStyle != "" {
+		t.Errorf("expected empty GraphStyle, got %q", d.GraphStyle)
+	}
+}
+
+func TestGraphStyleConstants(t *testing.T) {
+	if GraphStyleStack != "stack" {
+		t.Errorf("expected GraphStyleStack='stack', got %q", GraphStyleStack)
+	}
+	if GraphStyleLine != "line" {
+		t.Errorf("expected GraphStyleLine='line', got %q", GraphStyleLine)
 	}
 }
