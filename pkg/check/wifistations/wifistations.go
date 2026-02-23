@@ -1,6 +1,15 @@
 // Package wifistations implements a check that scrapes a Prometheus metrics
 // endpoint for wifi_stations gauge values, reporting connected client counts
-// per radio interface.
+// per radio interface plus a derived total.
+//
+// The check expects the target to expose metrics in Prometheus text format
+// with lines like:
+//
+//	wifi_stations{ifname="phy0-ap0"} 3
+//	wifi_stations{ifname="phy1-ap0"} 7
+//
+// Each radio becomes a separate RRD data source. A "total" data source is
+// also stored, computed as the sum of all configured radios.
 package wifistations
 
 import (
@@ -31,6 +40,12 @@ const (
 
 	// MetricName is the Prometheus metric name to look for.
 	MetricName = "wifi_stations"
+
+	// TotalResultKey is the key used in Result.Metrics for the derived total.
+	TotalResultKey = "total"
+
+	// TotalDSName is the RRD data source name for the derived total.
+	TotalDSName = "total"
 )
 
 // WifiStations implements check.Check by scraping a Prometheus metrics endpoint.
@@ -52,9 +67,10 @@ type radioConfig struct {
 }
 
 // New creates a WifiStations check.
-func New(url string, radios []radioConfig, label string, opts ...Option) (*WifiStations, error) {
-	if url == "" {
-		return nil, fmt.Errorf("wifi_stations: url must not be empty")
+// The descriptor includes one metric per radio plus a derived "total" metric.
+func New(address string, radios []radioConfig, label string, opts ...Option) (*WifiStations, error) {
+	if address == "" {
+		return nil, fmt.Errorf("wifi_stations: address must not be empty")
 	}
 	if len(radios) == 0 {
 		return nil, fmt.Errorf("wifi_stations: at least one radio is required")
@@ -62,6 +78,8 @@ func New(url string, radios []radioConfig, label string, opts ...Option) (*WifiS
 	if label == "" {
 		return nil, fmt.Errorf("wifi_stations: label must not be empty")
 	}
+
+	url := fmt.Sprintf("http://%s:%s%s", address, DefaultPort, DefaultPath)
 
 	w := &WifiStations{
 		url:     url,
@@ -78,16 +96,25 @@ func New(url string, radios []radioConfig, label string, opts ...Option) (*WifiS
 
 	w.client = &http.Client{Timeout: w.timeout}
 
-	metrics := make([]check.MetricDef, len(radios))
+	// Build descriptor: one metric per radio, plus total as the last entry.
+	metrics := make([]check.MetricDef, 0, len(radios)+1)
 	for i, r := range radios {
-		metrics[i] = check.MetricDef{
+		metrics = append(metrics, check.MetricDef{
 			ResultKey: r.resultKey,
-			DSName:    r.dsName,
+			DSName:    fmt.Sprintf("radio%d", i),
 			Label:     r.label,
 			Unit:      "clients",
 			Scale:     0,
-		}
+		})
 	}
+	metrics = append(metrics, check.MetricDef{
+		ResultKey: TotalResultKey,
+		DSName:    TotalDSName,
+		Label:     "total",
+		Unit:      "clients",
+		Scale:     0,
+	})
+
 	w.desc = check.Descriptor{
 		Label:   label,
 		Metrics: metrics,
@@ -121,6 +148,7 @@ func (w *WifiStations) Describe() check.Descriptor {
 }
 
 // Run scrapes the Prometheus endpoint and returns a Result.
+// Metrics include per-radio client counts and a derived "total".
 func (w *WifiStations) Run(ctx context.Context) check.Result {
 	now := time.Now()
 
@@ -143,7 +171,15 @@ func (w *WifiStations) Run(ctx context.Context) check.Result {
 	}
 	defer resp.Body.Close()
 
-	metrics, err := parseMetrics(resp.Body, w.radios)
+	if resp.StatusCode != http.StatusOK {
+		return check.Result{
+			Timestamp: now,
+			Success:   false,
+			Err:       fmt.Errorf("wifi_stations: unexpected status %d", resp.StatusCode),
+		}
+	}
+
+	radioMetrics, err := parseMetrics(resp.Body, w.radios)
 	if err != nil {
 		return check.Result{
 			Timestamp: now,
@@ -152,49 +188,45 @@ func (w *WifiStations) Run(ctx context.Context) check.Result {
 		}
 	}
 
+	// Compute derived total from all found radio values.
+	var total int64
+	for _, v := range radioMetrics {
+		total += v
+	}
+	radioMetrics[TotalResultKey] = total
+
 	return check.Result{
 		Timestamp: now,
 		Success:   true,
-		Metrics:   metrics,
+		Metrics:   radioMetrics,
 	}
 }
 
 // Factory creates a WifiStations check from a config map.
-// Required keys: "target" (string), "radios" (list), "label" (string).
-// Optional keys: "url" (string), "timeout" (string).
+// Required keys: "address" (string), "radios" (list), "label" (string).
+// Optional keys: "timeout" (string).
 func Factory(config map[string]any) (check.Check, error) {
-	// Resolve the scrape URL
-	var url string
-	if v, ok := config["url"]; ok {
-		urlStr, ok := v.(string)
-		if !ok {
-			return nil, fmt.Errorf("wifi_stations: 'url' must be a string, got %T", v)
-		}
-		url = urlStr
-	} else {
-		target, ok := config["target"]
-		if !ok {
-			return nil, fmt.Errorf("wifi_stations: config missing 'target' or 'url'")
-		}
-		targetStr, ok := target.(string)
-		if !ok {
-			return nil, fmt.Errorf("wifi_stations: 'target' must be a string, got %T", target)
-		}
-		url = fmt.Sprintf("http://%s:%s%s", targetStr, DefaultPort, DefaultPath)
+	addressVal, ok := config["address"]
+	if !ok {
+		return nil, fmt.Errorf("wifi_stations: config missing required key 'address'")
+	}
+	addressStr, ok := addressVal.(string)
+	if !ok {
+		return nil, fmt.Errorf("wifi_stations: 'address' must be a string, got %T", addressVal)
+	}
+	if addressStr == "" {
+		return nil, fmt.Errorf("wifi_stations: 'address' must not be empty")
 	}
 
-	// Parse radios config
 	radiosRaw, ok := config["radios"]
 	if !ok {
 		return nil, fmt.Errorf("wifi_stations: config missing required key 'radios'")
 	}
-
 	radios, err := parseRadiosConfig(radiosRaw)
 	if err != nil {
 		return nil, err
 	}
 
-	// Require explicit label
 	labelVal, ok := config["label"]
 	if !ok {
 		return nil, fmt.Errorf("wifi_stations: config missing required key 'label'")
@@ -222,7 +254,7 @@ func Factory(config map[string]any) (check.Check, error) {
 		}
 	}
 
-	return New(url, radios, labelStr, opts...)
+	return New(addressStr, radios, labelStr, opts...)
 }
 
 // parseRadiosConfig converts the raw radios config value into radioConfig slices.

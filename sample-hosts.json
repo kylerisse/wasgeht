@@ -8,6 +8,7 @@
       },
       "wifi_stations": {
         "label": "ap1 wifi stations",
+        "address": "ap1.risse.tv",
         "radios": ["phy0-ap0", "phy1-ap0"]
       },
       "http": {
@@ -24,6 +25,7 @@
       },
       "wifi_stations": {
         "label": "ap2 wifi stations",
+        "address": "ap2.risse.tv",
         "radios": ["phy0-ap0", "phy1-ap0"]
       },
       "http": {
@@ -36,6 +38,7 @@
     "checks": {
       "wifi_stations": {
         "label": "fakeap wifi stations",
+        "address": "fakeap.risse.tv",
         "radios": ["phy0-ap0", "phy1-ap0"]
       }
     }
