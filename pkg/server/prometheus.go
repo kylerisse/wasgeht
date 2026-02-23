@@ -14,7 +14,7 @@ func (s *Server) handlePrometheus(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("# HELP check_metric Check metric value.\n"))
 	w.Write([]byte("# TYPE check_metric gauge\n"))
 
-	for name, h := range s.hosts {
+	for name := range s.hosts {
 		snapshots := s.hostStatuses(name)
 		for checkType, snap := range snapshots {
 			aliveVal := 0
@@ -22,17 +22,15 @@ func (s *Server) handlePrometheus(w http.ResponseWriter, _ *http.Request) {
 				aliveVal = 1
 			}
 			w.Write(fmt.Appendf([]byte{},
-				"check_alive{host=\"%s\", address=\"%s\", check=\"%s\"} %d\n",
+				"check_alive{host=\"%s\", check=\"%s\"} %d\n",
 				name,
-				h.Address,
 				checkType,
 				aliveVal,
 			))
 			for metricKey, metricVal := range snap.Metrics {
 				w.Write(fmt.Appendf([]byte{},
-					"check_metric{host=\"%s\", address=\"%s\", check=\"%s\", metric=\"%s\"} %d\n",
+					"check_metric{host=\"%s\", check=\"%s\", metric=\"%s\"} %d\n",
 					name,
-					h.Address,
 					checkType,
 					metricKey,
 					metricVal,

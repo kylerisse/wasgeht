@@ -7,9 +7,7 @@
         "radios": ["phy0-ap0", "phy1-ap0"]
       },
       "http": {
-        "urls": [
-          "https://ap1.risse.tv"
-        ]
+        "urls": ["https://ap1.risse.tv"]
       }
     }
   },
@@ -20,9 +18,7 @@
         "radios": ["phy0-ap0", "phy1-ap0"]
       },
       "http": {
-        "urls": [
-          "https://ap2.risse.tv"
-        ]
+        "urls": ["https://ap2.risse.tv"]
       }
     }
   },
@@ -52,25 +48,20 @@
   "pi3": {
     "checks": {
       "http": {
-        "urls": [
-          "http://pi3.risse.tv:2017"
-        ]
+        "urls": ["http://pi3.risse.tv:2017"]
       }
     }
   },
   "pi4": {
     "checks": {
       "http": {
-        "urls": [
-          "http://pi4.risse.tv:2017"
-        ]
+        "urls": ["http://pi4.risse.tv:2017"]
       }
     }
   },
   "watson": {},
   "zugzug": {},
   "google": {
-    "address": "8.8.8.8",
     "checks": {
       "ping": { "timeout": "5s" },
       "http": {
@@ -84,26 +75,17 @@
   },
   "fake1": {},
   "fake2": {
-    "address": "8.8.4.4",
     "checks": {
       "ping": { "timeout": "1s" }
     }
   },
-  "fake3": {
-    "address": "1.0.0.1"
-  },
+  "fake3": {},
   "fake4": {
     "checks": {
       "ping": { "enabled": false }
     }
   },
-  "onedotone": {
-    "address": "1.1.1.1"
-  },
-  "localhostv4": {
-    "address": "127.0.0.1"
-  },
-  "localhostv6": {
-    "address": "::1"
-  }
+  "onedotone": {},
+  "localhostv4": {},
+  "localhostv6": {}
 }

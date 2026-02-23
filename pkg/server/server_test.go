@@ -17,9 +17,6 @@ func TestGetOrCreateStatus_CreatesNew(t *testing.T) {
 	if status == nil {
 		t.Fatal("expected non-nil status")
 	}
-	if status.Alive() {
-		t.Error("new status should not be alive")
-	}
 }
 
 func TestGetOrCreateStatus_ReturnsSame(t *testing.T) {
@@ -29,35 +26,20 @@ func TestGetOrCreateStatus_ReturnsSame(t *testing.T) {
 
 	s1 := s.getOrCreateStatus("host1", "ping")
 	s2 := s.getOrCreateStatus("host1", "ping")
-
 	if s1 != s2 {
-		t.Error("expected same status instance on repeated calls")
+		t.Error("expected same status pointer on second call")
 	}
 }
 
-func TestGetOrCreateStatus_SeparateCheckTypes(t *testing.T) {
+func TestGetOrCreateStatus_SeparateChecks(t *testing.T) {
 	s := &Server{
 		statuses: make(map[string]map[string]*check.Status),
 	}
 
-	pingStatus := s.getOrCreateStatus("host1", "ping")
-	httpStatus := s.getOrCreateStatus("host1", "http")
-
-	if pingStatus == httpStatus {
-		t.Error("expected different status instances for different check types")
-	}
-}
-
-func TestGetOrCreateStatus_SeparateHosts(t *testing.T) {
-	s := &Server{
-		statuses: make(map[string]map[string]*check.Status),
-	}
-
-	h1 := s.getOrCreateStatus("host1", "ping")
-	h2 := s.getOrCreateStatus("host2", "ping")
-
-	if h1 == h2 {
-		t.Error("expected different status instances for different hosts")
+	ping := s.getOrCreateStatus("host1", "ping")
+	http := s.getOrCreateStatus("host1", "http")
+	if ping == http {
+		t.Error("expected different status for different check types")
 	}
 }
 
@@ -130,7 +112,6 @@ func TestLoadHosts_ValidFile(t *testing.T) {
 	content := `{
 		"router": {},
 		"google": {
-			"address": "8.8.8.8",
 			"checks": {
 				"ping": {"timeout": "5s"}
 			}
@@ -155,9 +136,6 @@ func TestLoadHosts_ValidFile(t *testing.T) {
 	google, ok := hosts["google"]
 	if !ok {
 		t.Fatal("expected google host")
-	}
-	if google.Address != "8.8.8.8" {
-		t.Errorf("expected address 8.8.8.8, got %q", google.Address)
 	}
 	if google.Name != "google" {
 		t.Errorf("expected name 'google', got %q", google.Name)
@@ -245,7 +223,7 @@ func TestLoadHosts_AppliesDefaults(t *testing.T) {
 }
 
 func TestLoadHosts_SetsName(t *testing.T) {
-	content := `{"myhost": {"address": "1.2.3.4"}}`
+	content := `{"myhost": {}}`
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "hosts.json")

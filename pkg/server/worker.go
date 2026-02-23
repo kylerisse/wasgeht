@@ -33,14 +33,8 @@ func (s *Server) worker(name string, h *host.Host) {
 		return
 	}
 
-	// Resolve target: use explicit address or fall back to hostname
-	target := h.Address
-	if target == "" {
-		target = name
-	}
-
 	// Initialize all enabled checks and their RRD files
-	instances := s.initChecks(name, h, target)
+	instances := s.initChecks(name, h, name)
 	if len(instances) == 0 {
 		s.logger.Warningf("Worker for host %s: no checks to run, exiting", name)
 		return

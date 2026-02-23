@@ -10,9 +10,8 @@ var DefaultChecks = map[string]map[string]any{
 // It holds identity and check configuration only — runtime state
 // (alive, latency, etc.) is tracked per-check in check.Status.
 type Host struct {
-	Name    string                    // Name of the host
-	Address string                    `json:"address,omitempty"` // Optional address
-	Checks  map[string]map[string]any `json:"checks,omitempty"`  // Per-check-type configuration
+	Name   string                    // Name of the host
+	Checks map[string]map[string]any `json:"checks,omitempty"` // Per-check-type configuration
 }
 
 // ApplyDefaults fills in zero-value fields with sensible defaults.
