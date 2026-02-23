@@ -22,7 +22,6 @@ type checkInstance struct {
 func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
-	// Add a random delay of 1-59 seconds before starting to reduce initial filesystem activity
 	startDelay := time.Duration(rand.Intn(59)+1) * time.Second
 	s.logger.Infof("Worker for host %s will start in %v", name, startDelay)
 	select {
@@ -33,14 +32,12 @@ func (s *Server) worker(name string, h *host.Host) {
 		return
 	}
 
-	// Initialize all checks and their RRD files
 	instances := s.initChecks(name, h, name)
 	if len(instances) == 0 {
 		s.logger.Warningf("Worker for host %s: no checks to run, exiting", name)
 		return
 	}
 
-	// Run periodic checks every minute
 	for {
 		select {
 		case <-s.done:
@@ -51,7 +48,6 @@ func (s *Server) worker(name string, h *host.Host) {
 
 			select {
 			case <-time.After(time.Minute):
-				// continue with the next iteration
 			case <-s.done:
 				s.logger.Infof("Worker for host %s received shutdown signal.", name)
 				return
@@ -65,7 +61,6 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 	instances := make([]checkInstance, 0, len(h.Checks))
 
 	for checkType, cfg := range h.Checks {
-		// Build the config for the factory: inject target, copy user config
 		factoryCfg := buildFactoryConfig(cfg, target)
 
 		chk, err := s.registry.Create(checkType, factoryCfg)
@@ -74,7 +69,6 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 			continue
 		}
 
-		// Get the instance-specific descriptor to learn what metrics this check produces
 		desc := chk.Describe()
 
 		if len(desc.Metrics) == 0 {
@@ -82,14 +76,12 @@ func (s *Server) initChecks(name string, h *host.Host, target string) []checkIns
 			continue
 		}
 
-		// Initialize RRD file for this check with all declared metrics as data sources.
-		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, desc.Metrics, desc.GraphStyle, desc.Label, s.logger)
+		rrdFile, err := rrd.NewRRD(name, s.rrdDir, s.graphDir, checkType, desc.Metrics, desc.Label, s.logger)
 		if err != nil {
 			s.logger.Errorf("Worker for host %s: failed to initialize RRD for %s check (%v)", name, checkType, err)
 			continue
 		}
 
-		// Get or create the status tracker for this host/check pair
 		status := s.getOrCreateStatus(name, checkType)
 
 		instances = append(instances, checkInstance{
@@ -110,10 +102,8 @@ func (s *Server) runChecks(name string, instances []checkInstance) {
 		result := inst.check.Run(context.Background())
 		checkType := inst.check.Type()
 
-		// Update the check status
 		inst.status.SetResult(result)
 
-		// Build RRD update from result metrics using the descriptor
 		values := rrdValuesFromResult(result, inst.metricDefs)
 
 		s.logger.Debugf("Worker for host %s [%s]: Updating RRD with values %v.", name, checkType, values)
@@ -145,8 +135,7 @@ func buildFactoryConfig(cfg map[string]any, target string) map[string]any {
 }
 
 // rrdValuesFromResult extracts metric values from a check.Result in the
-// order declared by the metric definitions. Returns an empty slice if the
-// check failed or no declared metrics are present.
+// order declared by the metric definitions.
 func rrdValuesFromResult(result check.Result, metrics []check.MetricDef) []int64 {
 	if !result.Success {
 		return []int64{}

@@ -1,19 +1,5 @@
 package check
 
-// Graph style constants for Descriptor.GraphStyle.
-const (
-	// GraphStyleStack renders multi-metric graphs as stacked areas
-	// (AREA for first metric, STACK for subsequent). This is the default
-	// when GraphStyle is empty.
-	GraphStyleStack = "stack"
-
-	// GraphStyleLine renders multi-metric graphs as colored lines
-	// (LINE2 for each metric). Useful for check types where metrics
-	// are independent measurements (e.g. per-URL response times)
-	// rather than parts of a whole.
-	GraphStyleLine = "line"
-)
-
 // MetricDef describes a single metric produced by a check type.
 type MetricDef struct {
 	// ResultKey is the key used in Result.Metrics (e.g. "latency_us").
@@ -40,11 +26,6 @@ type MetricDef struct {
 // via Check.Describe(), allowing config-dependent metric shapes (e.g.
 // a wifi_stations check with a variable number of radios).
 type Descriptor struct {
-	// GraphStyle controls how multi-metric graphs are rendered.
-	// Empty or "stack" means stacked areas (default). "line" means
-	// colored lines. Single-metric checks ignore this field.
-	GraphStyle string
-
 	// Label is a human-readable label used for graph titles and the
 	// vertical axis. If empty, the first metric's Label is used.
 	// Useful when individual metric labels are long or not suitable

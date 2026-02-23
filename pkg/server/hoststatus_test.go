@@ -118,7 +118,6 @@ func TestComputeHostStatus(t *testing.T) {
 }
 
 func TestHostStatus_StringValues(t *testing.T) {
-	// Verify the string values match what the UI expects
 	tests := []struct {
 		status HostStatus
 		want   string
@@ -136,7 +135,6 @@ func TestHostStatus_StringValues(t *testing.T) {
 }
 
 func TestHostStatus_JSONSerialization(t *testing.T) {
-	// Verify HostStatus serializes correctly in API responses
 	resp := HostAPIResponse{
 		Status: HostStatusUp,
 		Checks: map[string]CheckStatusResponse{

@@ -1,11 +1,3 @@
-// Package http implements an HTTP/HTTPS check for the check framework.
-//
-// It performs an HTTP GET request to each configured URL and reports
-// per-URL response time metrics. TLS certificate verification can be
-// disabled to support locally signed certificates (default: skip verify).
-//
-// Each URL becomes a separate RRD data source, rendered as colored
-// lines on the graph (one line per URL).
 package http
 
 import (
@@ -26,7 +18,7 @@ const (
 	DefaultTimeout = 10 * time.Second
 )
 
-// Check performs HTTP GET requests against a list of URLs.
+// Check implements check.Check using HTTP GET requests to one or more URLs.
 type Check struct {
 	urls       []string
 	timeout    time.Duration
@@ -35,74 +27,73 @@ type Check struct {
 	desc       check.Descriptor
 }
 
-// Option configures a Check.
-type Option func(*Check)
+// Option is a functional option for configuring an HTTP Check.
+type Option func(*Check) error
 
 // WithTimeout sets the HTTP request timeout.
 func WithTimeout(d time.Duration) Option {
-	return func(c *Check) {
+	return func(c *Check) error {
+		if d <= 0 {
+			return fmt.Errorf("timeout must be positive, got %v", d)
+		}
 		c.timeout = d
+		return nil
 	}
 }
 
-// WithSkipVerify controls TLS certificate verification.
+// WithSkipVerify sets whether to skip TLS certificate verification.
 func WithSkipVerify(skip bool) Option {
-	return func(c *Check) {
+	return func(c *Check) error {
 		c.skipVerify = skip
+		return nil
 	}
 }
 
-// New creates an HTTP check for the given URLs.
+// New creates an HTTP Check for the given URLs.
 func New(urls []string, opts ...Option) (*Check, error) {
 	if len(urls) == 0 {
-		return nil, fmt.Errorf("http check requires at least one URL")
+		return nil, fmt.Errorf("http: at least one URL is required")
 	}
 
 	c := &Check{
 		urls:       urls,
 		timeout:    DefaultTimeout,
-		skipVerify: true, // default: ignore cert warnings
+		skipVerify: true,
 	}
 
 	for _, opt := range opts {
-		opt(c)
+		if err := opt(c); err != nil {
+			return nil, fmt.Errorf("http: %w", err)
+		}
 	}
 
-	// Build the HTTP client with the final settings
 	c.client = &http.Client{
 		Timeout: c.timeout,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: c.skipVerify,
-			},
-		},
-		// Don't follow redirects — we check the endpoint itself
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: c.skipVerify},
 		},
 	}
 
-	// Build the descriptor: one metric per URL
+	// Build descriptor: one metric per URL
 	metrics := make([]check.MetricDef, len(urls))
-	for i, u := range urls {
+	for i, url := range urls {
 		metrics[i] = check.MetricDef{
-			ResultKey: u,
+			ResultKey: url,
 			DSName:    fmt.Sprintf("url%d", i),
-			Label:     u,
+			Label:     url,
 			Unit:      "ms",
-			Scale:     1000, // stored as µs, displayed as ms
+			Scale:     1000,
 		}
 	}
 	c.desc = check.Descriptor{
-		GraphStyle: check.GraphStyleLine,
-		Label:      "response time",
-		Metrics:    metrics,
+		Label:   "response time",
+		Metrics: metrics,
 	}
 
 	return c, nil
 }
 
-// Type returns the registered name of this check type.
+// Type returns the check type name.
 func (c *Check) Type() string {
 	return TypeName
 }
@@ -216,7 +207,7 @@ func extractURLs(config map[string]any) ([]string, error) {
 		for _, item := range v {
 			s, ok := item.(string)
 			if !ok {
-				return nil, fmt.Errorf("http: each URL must be a string, got %T", item)
+				return nil, fmt.Errorf("http: 'urls' items must be strings, got %T", item)
 			}
 			urls = append(urls, s)
 		}
@@ -225,6 +216,6 @@ func extractURLs(config map[string]any) ([]string, error) {
 		}
 		return urls, nil
 	default:
-		return nil, fmt.Errorf("http: 'urls' must be a list of strings, got %T", raw)
+		return nil, fmt.Errorf("http: 'urls' must be a list, got %T", raw)
 	}
 }

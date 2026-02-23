@@ -83,18 +83,17 @@ func TestDisplayVarName(t *testing.T) {
 	}
 }
 
-func TestStackColors_HasEntries(t *testing.T) {
-	if len(stackColors) == 0 {
-		t.Error("stackColors should have at least one entry")
+func TestLineColors_HasEntries(t *testing.T) {
+	if len(lineColors) == 0 {
+		t.Error("lineColors should have at least one entry")
 	}
 }
 
-func TestStackColors_CyclesCorrectly(t *testing.T) {
-	// Ensure color indexing wraps around
-	for i := 0; i < len(stackColors)*2; i++ {
-		color := stackColors[i%len(stackColors)]
+func TestLineColors_CyclesCorrectly(t *testing.T) {
+	for i := 0; i < len(lineColors)*2; i++ {
+		color := lineColors[i%len(lineColors)]
 		if color == "" {
-			t.Errorf("stackColors[%d %% %d] is empty", i, len(stackColors))
+			t.Errorf("lineColors[%d %% %d] is empty", i, len(lineColors))
 		}
 	}
 }
