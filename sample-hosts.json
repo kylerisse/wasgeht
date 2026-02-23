@@ -2,22 +2,30 @@
   "router": {},
   "ap1": {
     "checks": {
-      "ping": {},
+      "ping": {
+        "label": "ap1 ping"
+      },
       "wifi_stations": {
+        "label": "ap1 wifi stations",
         "radios": ["phy0-ap0", "phy1-ap0"]
       },
       "http": {
+        "label": "ap1 http",
         "urls": ["https://ap1.risse.tv"]
       }
     }
   },
   "ap2": {
     "checks": {
-      "ping": {},
+      "ping": {
+        "label": "ap2 ping"
+      },
       "wifi_stations": {
+        "label": "ap2 wifi stations",
         "radios": ["phy0-ap0", "phy1-ap0"]
       },
       "http": {
+        "label": "ap2 http",
         "urls": ["https://ap2.risse.tv"]
       }
     }
@@ -25,14 +33,18 @@
   "fakeap": {
     "checks": {
       "wifi_stations": {
+        "label": "fakeap wifi stations",
         "radios": ["phy0-ap0", "phy1-ap0"]
       }
     }
   },
   "qube": {
     "checks": {
-      "ping": {},
+      "ping": {
+        "label": "qube ping"
+      },
       "http": {
+        "label": "qube services",
         "urls": [
           "http://qube.risse.tv:2018/sign.json",
           "http://qube.risse.tv:2017/schedule",
@@ -47,6 +59,7 @@
   "pi3": {
     "checks": {
       "http": {
+        "label": "pi3 http",
         "urls": ["http://pi3.risse.tv:2017"]
       }
     }
@@ -54,6 +67,7 @@
   "pi4": {
     "checks": {
       "http": {
+        "label": "pi4 http",
         "urls": ["http://pi4.risse.tv:2017"]
       }
     }
@@ -62,8 +76,12 @@
   "zugzug": {},
   "google": {
     "checks": {
-      "ping": { "timeout": "5s" },
+      "ping": {
+        "label": "google ping",
+        "timeout": "5s"
+      },
       "http": {
+        "label": "google http",
         "urls": [
           "https://www.google.com",
           "https://www.google.com/maps"
@@ -75,18 +93,25 @@
   "fake1": {},
   "fake2": {
     "checks": {
-      "ping": { "timeout": "1s" }
+      "ping": {
+        "label": "fake2 ping",
+        "timeout": "1s"
+      }
     }
   },
   "fake3": {},
   "localhostv4": {
     "checks": {
-      "ping": {}
+      "ping": {
+        "label": "localhostv4 ping"
+      }
     }
   },
   "localhostv6": {
     "checks": {
-      "ping": {}
+      "ping": {
+        "label": "localhostv6 ping"
+      }
     }
   }
 }

@@ -27,28 +27,26 @@ const (
 	DefaultCount = 1
 )
 
-// Desc describes the metrics produced by a ping check.
-var Desc = check.Descriptor{
-	Metrics: []check.MetricDef{
-		{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
-	},
-}
-
 // Ping implements check.Check using ICMP echo requests.
 type Ping struct {
 	target  string
 	timeout time.Duration
 	count   int
+	label   string
 }
 
-// New creates a Ping check with the given target and options.
-func New(target string, opts ...Option) (*Ping, error) {
+// New creates a Ping check with the given target, label, and options.
+func New(target string, label string, opts ...Option) (*Ping, error) {
 	if target == "" {
 		return nil, fmt.Errorf("ping: target must not be empty")
+	}
+	if label == "" {
+		return nil, fmt.Errorf("ping: label must not be empty")
 	}
 
 	p := &Ping{
 		target:  target,
+		label:   label,
 		timeout: DefaultTimeout,
 		count:   DefaultCount,
 	}
@@ -93,9 +91,13 @@ func (p *Ping) Type() string {
 }
 
 // Describe returns the Descriptor for this ping check instance.
-// Ping always produces the same metrics regardless of configuration.
 func (p *Ping) Describe() check.Descriptor {
-	return Desc
+	return check.Descriptor{
+		Label: p.label,
+		Metrics: []check.MetricDef{
+			{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
+		},
+	}
 }
 
 // Run executes the ping check and returns a Result.
@@ -139,7 +141,7 @@ func (p *Ping) Run(ctx context.Context) check.Result {
 }
 
 // Factory creates a Ping check from a config map.
-// Required key: "target" (string).
+// Required keys: "target" (string), "label" (string).
 // Optional keys: "timeout" (string parseable by time.ParseDuration), "count" (float64).
 func Factory(config map[string]any) (check.Check, error) {
 	target, ok := config["target"]
@@ -149,6 +151,18 @@ func Factory(config map[string]any) (check.Check, error) {
 	targetStr, ok := target.(string)
 	if !ok {
 		return nil, fmt.Errorf("ping: 'target' must be a string, got %T", target)
+	}
+
+	labelVal, ok := config["label"]
+	if !ok {
+		return nil, fmt.Errorf("ping: config missing required key 'label'")
+	}
+	labelStr, ok := labelVal.(string)
+	if !ok {
+		return nil, fmt.Errorf("ping: 'label' must be a string, got %T", labelVal)
+	}
+	if labelStr == "" {
+		return nil, fmt.Errorf("ping: 'label' must not be empty")
 	}
 
 	var opts []Option
@@ -175,42 +189,29 @@ func Factory(config map[string]any) (check.Check, error) {
 		}
 	}
 
-	return New(targetStr, opts...)
+	return New(targetStr, labelStr, opts...)
 }
 
 // parseOutput extracts the round-trip time from ping command output.
 func parseOutput(output string) (time.Duration, error) {
 	for _, line := range strings.Split(output, "\n") {
-		line = strings.TrimSpace(line)
-		if !strings.Contains(line, "time=") {
-			continue
+		if strings.Contains(line, "rtt min/avg/max") || strings.Contains(line, "round-trip min/avg/max") {
+			parts := strings.Split(line, "=")
+			if len(parts) < 2 {
+				continue
+			}
+			stats := strings.TrimSpace(parts[1])
+			fields := strings.Split(stats, "/")
+			if len(fields) < 2 {
+				continue
+			}
+			avgStr := strings.TrimSpace(fields[1])
+			avgMs, err := strconv.ParseFloat(avgStr, 64)
+			if err != nil {
+				continue
+			}
+			return time.Duration(avgMs * float64(time.Millisecond)), nil
 		}
-
-		start := strings.Index(line, "time=") + len("time=")
-		end := strings.IndexAny(line[start:], " ")
-		if end == -1 {
-			end = len(line[start:])
-		}
-		rttStr := line[start : start+end]
-
-		unitStart := start + end
-		unit := strings.TrimSpace(line[unitStart:])
-
-		rtt, err := strconv.ParseFloat(strings.TrimSpace(rttStr), 64)
-		if err != nil {
-			return 0, fmt.Errorf("could not parse RTT %q: %w", rttStr, err)
-		}
-
-		switch {
-		case strings.Contains(unit, "ms"):
-			return time.Duration(rtt * float64(time.Millisecond)), nil
-		case strings.Contains(unit, "us") || strings.Contains(unit, "µs"):
-			return time.Duration(rtt * float64(time.Microsecond)), nil
-		case unit == "s":
-			return time.Duration(rtt * float64(time.Second)), nil
-		}
-
-		return 0, fmt.Errorf("could not determine time unit from %q", unit)
 	}
-	return 0, fmt.Errorf("RTT not found in ping output")
+	return 0, fmt.Errorf("could not parse ping output")
 }
