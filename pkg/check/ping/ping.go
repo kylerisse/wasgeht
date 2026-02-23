@@ -1,7 +1,8 @@
 // Package ping implements a ping (ICMP echo) check for the check framework.
 //
-// It shells out to the system ping command, parses the output for
-// round-trip time, and returns a check.Result with a latency_us metric.
+// It shells out to the system ping command for each configured address,
+// reporting per-address latency as separate metrics. The addresses array
+// is explicit in the check config; the worker-injected "target" key is ignored.
 package ping
 
 import (
@@ -27,28 +28,49 @@ const (
 	DefaultCount = 1
 )
 
-// Ping implements check.Check using ICMP echo requests.
-type Ping struct {
-	target  string
-	timeout time.Duration
-	count   int
-	label   string
+// addressConfig maps a single ping target to its RRD data source.
+type addressConfig struct {
+	address   string // IP or hostname to ping
+	resultKey string // key in Result.Metrics (same as address)
+	dsName    string // RRD DS name (e.g. "addr0")
+	label     string // human-readable label (same as address)
 }
 
-// New creates a Ping check with the given target, label, and options.
-func New(target string, label string, opts ...Option) (*Ping, error) {
-	if target == "" {
-		return nil, fmt.Errorf("ping: target must not be empty")
+// Ping implements check.Check using ICMP echo requests to one or more addresses.
+type Ping struct {
+	addresses []addressConfig
+	timeout   time.Duration
+	count     int
+	label     string
+}
+
+// New creates a Ping check with the given addresses, label, and options.
+func New(addresses []string, label string, opts ...Option) (*Ping, error) {
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("ping: at least one address is required")
 	}
 	if label == "" {
 		return nil, fmt.Errorf("ping: label must not be empty")
 	}
 
+	addrs := make([]addressConfig, len(addresses))
+	for i, a := range addresses {
+		if a == "" {
+			return nil, fmt.Errorf("ping: address at index %d must not be empty", i)
+		}
+		addrs[i] = addressConfig{
+			address:   a,
+			resultKey: a,
+			dsName:    fmt.Sprintf("addr%d", i),
+			label:     a,
+		}
+	}
+
 	p := &Ping{
-		target:  target,
-		label:   label,
-		timeout: DefaultTimeout,
-		count:   DefaultCount,
+		addresses: addrs,
+		label:     label,
+		timeout:   DefaultTimeout,
+		count:     DefaultCount,
 	}
 
 	for _, opt := range opts {
@@ -74,7 +96,7 @@ func WithTimeout(d time.Duration) Option {
 	}
 }
 
-// WithCount sets the number of ping packets to send.
+// WithCount sets the number of ping packets to send per address.
 func WithCount(n int) Option {
 	return func(p *Ping) error {
 		if n < 1 {
@@ -91,66 +113,80 @@ func (p *Ping) Type() string {
 }
 
 // Describe returns the Descriptor for this ping check instance.
+// One metric is produced per configured address.
 func (p *Ping) Describe() check.Descriptor {
+	metrics := make([]check.MetricDef, len(p.addresses))
+	for i, a := range p.addresses {
+		metrics[i] = check.MetricDef{
+			ResultKey: a.resultKey,
+			DSName:    a.dsName,
+			Label:     a.label,
+			Unit:      "ms",
+			Scale:     1000,
+		}
+	}
 	return check.Descriptor{
-		Label: p.label,
-		Metrics: []check.MetricDef{
-			{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
-		},
+		Label:   p.label,
+		Metrics: metrics,
 	}
 }
 
-// Run executes the ping check and returns a Result.
+// Run pings all configured addresses and returns a Result.
+// Success requires all addresses to respond. Each address latency
+// is stored in microseconds keyed by address string.
 func (p *Ping) Run(ctx context.Context) check.Result {
 	now := time.Now()
+	metrics := make(map[string]int64)
+	var lastErr error
 
 	timeoutSec := fmt.Sprintf("%.0f", p.timeout.Seconds())
 	count := strconv.Itoa(p.count)
 
-	cmd := exec.CommandContext(ctx, "ping", "-c", count, "-W", timeoutSec, p.target)
+	for _, a := range p.addresses {
+		cmd := exec.CommandContext(ctx, "ping", "-c", count, "-W", timeoutSec, a.address)
 
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		cmd.Stderr = &out
 
-	err := cmd.Run()
-	if err != nil {
-		return check.Result{
-			Timestamp: now,
-			Success:   false,
-			Err:       fmt.Errorf("ping %s: %w", p.target, err),
+		if err := cmd.Run(); err != nil {
+			lastErr = fmt.Errorf("ping %s: %w", a.address, err)
+			continue
 		}
+
+		latency, err := parseOutput(out.String())
+		if err != nil {
+			lastErr = fmt.Errorf("ping %s: %w", a.address, err)
+			continue
+		}
+
+		metrics[a.resultKey] = int64(latency.Microseconds())
 	}
 
-	latency, err := parseOutput(out.String())
-	if err != nil {
+	if len(metrics) == len(p.addresses) {
 		return check.Result{
 			Timestamp: now,
-			Success:   false,
-			Err:       fmt.Errorf("ping %s: %w", p.target, err),
+			Success:   true,
+			Metrics:   metrics,
 		}
 	}
 
 	return check.Result{
 		Timestamp: now,
-		Success:   true,
-		Metrics: map[string]int64{
-			"latency_us": int64(latency.Microseconds()),
-		},
+		Success:   false,
+		Err:       lastErr,
+		Metrics:   metrics,
 	}
 }
 
 // Factory creates a Ping check from a config map.
-// Required keys: "target" (string), "label" (string).
-// Optional keys: "timeout" (string parseable by time.ParseDuration), "count" (float64).
+// Required keys: "addresses" (list of strings), "label" (string).
+// Optional keys: "timeout" (duration string), "count" (float64).
+// The "target" key injected by the worker is ignored.
 func Factory(config map[string]any) (check.Check, error) {
-	target, ok := config["target"]
-	if !ok {
-		return nil, fmt.Errorf("ping: config missing required key 'target'")
-	}
-	targetStr, ok := target.(string)
-	if !ok {
-		return nil, fmt.Errorf("ping: 'target' must be a string, got %T", target)
+	addresses, err := extractAddresses(config)
+	if err != nil {
+		return nil, err
 	}
 
 	labelVal, ok := config["label"]
@@ -189,7 +225,38 @@ func Factory(config map[string]any) (check.Check, error) {
 		}
 	}
 
-	return New(targetStr, labelStr, opts...)
+	return New(addresses, labelStr, opts...)
+}
+
+// extractAddresses pulls the addresses list from the config map.
+func extractAddresses(config map[string]any) ([]string, error) {
+	raw, ok := config["addresses"]
+	if !ok {
+		return nil, fmt.Errorf("ping: config missing required key 'addresses'")
+	}
+
+	switch v := raw.(type) {
+	case []string:
+		if len(v) == 0 {
+			return nil, fmt.Errorf("ping: 'addresses' must not be empty")
+		}
+		return v, nil
+	case []any:
+		addrs := make([]string, 0, len(v))
+		for _, item := range v {
+			s, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("ping: 'addresses' items must be strings, got %T", item)
+			}
+			addrs = append(addrs, s)
+		}
+		if len(addrs) == 0 {
+			return nil, fmt.Errorf("ping: 'addresses' must not be empty")
+		}
+		return addrs, nil
+	default:
+		return nil, fmt.Errorf("ping: 'addresses' must be a list, got %T", raw)
+	}
 }
 
 // parseOutput extracts the round-trip time from ping command output.

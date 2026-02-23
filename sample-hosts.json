@@ -3,7 +3,8 @@
   "ap1": {
     "checks": {
       "ping": {
-        "label": "ap1 ping"
+        "label": "ap1 ping",
+        "addresses": ["ap1.risse.tv"]
       },
       "wifi_stations": {
         "label": "ap1 wifi stations",
@@ -18,7 +19,8 @@
   "ap2": {
     "checks": {
       "ping": {
-        "label": "ap2 ping"
+        "label": "ap2 ping",
+        "addresses": ["ap2.risse.tv"]
       },
       "wifi_stations": {
         "label": "ap2 wifi stations",
@@ -41,7 +43,8 @@
   "qube": {
     "checks": {
       "ping": {
-        "label": "qube ping"
+        "label": "qube ping",
+        "addresses": ["qube.risse.tv"]
       },
       "http": {
         "label": "qube services",
@@ -72,12 +75,11 @@
       }
     }
   },
-  "watson": {},
-  "zugzug": {},
   "google": {
     "checks": {
       "ping": {
         "label": "google ping",
+        "addresses": ["8.8.8.8", "8.8.4.4"],
         "timeout": "5s"
       },
       "http": {
@@ -95,22 +97,28 @@
     "checks": {
       "ping": {
         "label": "fake2 ping",
+        "addresses": ["192.0.2.1"],
         "timeout": "1s"
       }
     }
   },
-  "fake3": {},
-  "localhostv4": {
+  "fake3": {
     "checks": {
       "ping": {
-        "label": "localhostv4 ping"
+        "label": "fake3 ping",
+        "addresses": ["10.10.10.10"],
+        "timeout": "1s"
       }
     }
   },
-  "localhostv6": {
+  "localhost": {
     "checks": {
       "ping": {
-        "label": "localhostv6 ping"
+        "label": "localhostv4 ping",
+        "addresses": [
+          "127.0.0.1",
+          "::1"
+        ]
       }
     }
   }
