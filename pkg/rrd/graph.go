@@ -17,6 +17,11 @@ var lineColors = []string{
 	ORANGE,
 	VIOLET,
 	TURQUOISE,
+	PINK,
+	LIME,
+	BROWN,
+	TEAL,
+	RED,
 }
 
 // graph represents an RRD graph, including metadata and synchronization tools.
@@ -45,16 +50,13 @@ type graph struct {
 //   - logger: The logger instance.
 func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, metrics []check.MetricDef, descLabel string, logger *logrus.Logger) (*graph, error) {
 
-	// Define directory and file paths
 	dirPath := fmt.Sprintf("%s/imgs/%s", graphDir, host)
 	filePath := fmt.Sprintf("%s/%s_%s_%s.png", dirPath, host, checkType, timeLength)
 
-	// Ensure the directory exists
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create directory %s: %w", dirPath, err)
 	}
 
-	// Use the descriptor-level label if set, otherwise fall back to first metric's label
 	label := descLabel
 	if label == "" {
 		label = metrics[0].Label
@@ -82,8 +84,6 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 }
 
 // displayVarName returns the RRD variable name used for display of a given metric.
-// When scaling is applied, the variable includes the unit suffix (e.g., "latency_ms").
-// When no scaling is needed, it uses the raw variable directly (e.g., "latency_raw").
 func displayVarName(m check.MetricDef) string {
 	if needsScaling(m) {
 		return fmt.Sprintf("%s_%s", m.DSName, m.Unit)
@@ -97,8 +97,6 @@ func needsScaling(m check.MetricDef) bool {
 }
 
 // rrdEscape escapes a string for use in rrdtool graph labels and comments.
-// rrdtool uses colons as field delimiters, so literal colons must be escaped
-// as \: in label text. Backslashes must also be escaped.
 func rrdEscape(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	s = strings.ReplaceAll(s, `:`, `\:`)
@@ -107,11 +105,7 @@ func rrdEscape(s string) string {
 
 // draw draws a graph based on the current parameters of the graph struct.
 // All metrics are rendered as colored LINE2s.
-// It returns an error if the graph generation fails.
 func (g *graph) draw() error {
-	// Shared unit comes from the first metric (all metrics in a check share
-	// the same unit by convention). Label for axis/comment uses the
-	// descriptor-level override if set.
 	unit := g.metrics[0].Unit
 	label := g.descLabel
 	if label == "" {
@@ -129,18 +123,14 @@ func (g *graph) draw() error {
 		color := lineColors[i%len(lineColors)]
 		escapedLabel := rrdEscape(m.Label)
 
-		// DEF: read the raw data source from the RRD file
 		defs = append(defs, fmt.Sprintf("DEF:%s=%s:%s:%s", rawVar, g.rrdPath, m.DSName, g.consolidationFunction))
 
-		// CDEF: apply scaling if needed
 		if needsScaling(m) {
 			cdefs = append(cdefs, fmt.Sprintf("CDEF:%s=%s,%d,/", dispVar, rawVar, m.Scale))
 		}
 
-		// Draw each metric as a colored line
 		lines = append(lines, fmt.Sprintf("LINE2:%s#%s:%s", dispVar, color, escapedLabel))
 
-		// GPRINT stats for each metric
 		gfmt := "%.2lf"
 		gprints = append(gprints,
 			fmt.Sprintf("GPRINT:%s:LAST:  %s last\\: %s %s", dispVar, escapedLabel, gfmt, unit),
@@ -165,10 +155,8 @@ func (g *graph) draw() error {
 		fmt.Sprintf("COMMENT:%s", comment),
 	}
 
-	// Use the shared label for vertical axis
 	verticalLabel := fmt.Sprintf("%s (%s)", label, unit)
 
-	// Prepare the command for generating the graph.
 	args := []string{
 		"graph", g.filePath,
 		"--title", g.title,
