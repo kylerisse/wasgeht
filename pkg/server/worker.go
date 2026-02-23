@@ -33,7 +33,7 @@ func (s *Server) worker(name string, h *host.Host) {
 		return
 	}
 
-	// Initialize all enabled checks and their RRD files
+	// Initialize all checks and their RRD files
 	instances := s.initChecks(name, h, name)
 	if len(instances) == 0 {
 		s.logger.Warningf("Worker for host %s: no checks to run, exiting", name)
@@ -60,12 +60,11 @@ func (s *Server) worker(name string, h *host.Host) {
 	}
 }
 
-// initChecks creates check instances and RRD files for all enabled checks on a host.
+// initChecks creates check instances and RRD files for all checks on a host.
 func (s *Server) initChecks(name string, h *host.Host, target string) []checkInstance {
-	enabledChecks := h.EnabledChecks()
-	instances := make([]checkInstance, 0, len(enabledChecks))
+	instances := make([]checkInstance, 0, len(h.Checks))
 
-	for checkType, cfg := range enabledChecks {
+	for checkType, cfg := range h.Checks {
 		// Build the config for the factory: inject target, copy user config
 		factoryCfg := buildFactoryConfig(cfg, target)
 

@@ -140,14 +140,8 @@ func TestLoadHosts_ValidFile(t *testing.T) {
 	if google.Name != "google" {
 		t.Errorf("expected name 'google', got %q", google.Name)
 	}
-
-	router, ok := hosts["router"]
-	if !ok {
-		t.Fatal("expected router host")
-	}
-	// Router has no explicit checks, so ApplyDefaults should give it ping
-	if _, ok := router.Checks["ping"]; !ok {
-		t.Error("expected default ping check on router")
+	if _, ok := google.Checks["ping"]; !ok {
+		t.Error("expected google to keep ping check")
 	}
 }
 
@@ -187,7 +181,7 @@ func TestLoadHosts_EmptyFile(t *testing.T) {
 	}
 }
 
-func TestLoadHosts_AppliesDefaults(t *testing.T) {
+func TestLoadHosts_BareHostIsInert(t *testing.T) {
 	content := `{
 		"bare": {},
 		"custom": {
@@ -208,17 +202,11 @@ func TestLoadHosts_AppliesDefaults(t *testing.T) {
 		t.Fatalf("loadHosts failed: %v", err)
 	}
 
-	// bare host should get default ping
-	if _, ok := hosts["bare"].Checks["ping"]; !ok {
-		t.Error("bare host should have default ping check")
+	if len(hosts["bare"].Checks) != 0 {
+		t.Error("bare host should have no checks")
 	}
-
-	// custom host should keep its explicit checks and not get ping injected
 	if _, ok := hosts["custom"].Checks["http"]; !ok {
 		t.Error("custom host should keep http check")
-	}
-	if _, ok := hosts["custom"].Checks["ping"]; ok {
-		t.Error("custom host should not get ping injected")
 	}
 }
 

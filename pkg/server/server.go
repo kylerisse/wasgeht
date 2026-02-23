@@ -126,12 +126,10 @@ func loadHosts(filePath string) (map[string]*host.Host, error) {
 		return nil, fmt.Errorf("could not parse JSON: %w", err)
 	}
 
-	// Convert to a map of pointers
 	hostPointers := make(map[string]*host.Host)
 	for name, h := range hosts {
-		newHost := h // Create a new instance for the pointer
+		newHost := h
 		newHost.Name = name
-		newHost.ApplyDefaults()
 		hostPointers[name] = &newHost
 	}
 

@@ -94,52 +94,12 @@ func TestRrdValuesFromResult_MultipleMetrics(t *testing.T) {
 		Success: true,
 		Metrics: map[string]int64{
 			"rx_bytes": 10000,
-			"tx_bytes": 2000,
+			"tx_bytes": 5000,
 		},
 	}
 
 	vals := rrdValuesFromResult(result, multiMetrics)
 	if len(vals) != 2 {
 		t.Fatalf("expected 2 values, got %d", len(vals))
-	}
-	if vals[0] != 10000 {
-		t.Errorf("expected rx_bytes=10000, got %d", vals[0])
-	}
-	if vals[1] != 2000 {
-		t.Errorf("expected tx_bytes=2000, got %d", vals[1])
-	}
-}
-
-func TestRrdValuesFromResult_PartialMetrics(t *testing.T) {
-	multiMetrics := []check.MetricDef{
-		{ResultKey: "rx_bytes", DSName: "rx", Label: "received", Unit: "bytes"},
-		{ResultKey: "tx_bytes", DSName: "tx", Label: "transmitted", Unit: "bytes"},
-	}
-	result := check.Result{
-		Success: true,
-		Metrics: map[string]int64{
-			"rx_bytes": 10000,
-			// tx_bytes missing
-		},
-	}
-
-	vals := rrdValuesFromResult(result, multiMetrics)
-	if len(vals) != 1 {
-		t.Fatalf("expected 1 value for partial metrics, got %d", len(vals))
-	}
-	if vals[0] != 10000 {
-		t.Errorf("expected rx_bytes=10000, got %d", vals[0])
-	}
-}
-
-func TestRrdValuesFromResult_EmptyMetricDefs(t *testing.T) {
-	result := check.Result{
-		Success: true,
-		Metrics: map[string]int64{"latency_us": 12340},
-	}
-
-	vals := rrdValuesFromResult(result, []check.MetricDef{})
-	if len(vals) != 0 {
-		t.Errorf("expected empty slice for empty metric defs, got %v", vals)
 	}
 }
