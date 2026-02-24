@@ -11,44 +11,44 @@ var pingMetrics = []check.MetricDef{
 	{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
 }
 
-func TestBuildFactoryConfig_InjectsTarget(t *testing.T) {
-	cfg := map[string]any{"timeout": "5s"}
-	result := buildFactoryConfig(cfg, "8.8.8.8")
+func TestCopyConfig_CopiesAllKeys(t *testing.T) {
+	cfg := map[string]any{"timeout": "5s", "count": float64(3)}
+	result := copyConfig(cfg)
 
-	if result["target"] != "8.8.8.8" {
-		t.Errorf("expected target '8.8.8.8', got %v", result["target"])
-	}
 	if result["timeout"] != "5s" {
 		t.Errorf("expected timeout '5s', got %v", result["timeout"])
 	}
+	if result["count"] != float64(3) {
+		t.Errorf("expected count 3, got %v", result["count"])
+	}
+	if len(result) != 2 {
+		t.Errorf("expected 2 keys, got %d", len(result))
+	}
 }
 
-func TestBuildFactoryConfig_DoesNotMutateOriginal(t *testing.T) {
+func TestCopyConfig_DoesNotMutateOriginal(t *testing.T) {
 	cfg := map[string]any{"timeout": "5s"}
-	buildFactoryConfig(cfg, "8.8.8.8")
+	result := copyConfig(cfg)
+	result["injected"] = "value"
 
-	if _, ok := cfg["target"]; ok {
-		t.Error("original config should not be mutated")
+	if _, ok := cfg["injected"]; ok {
+		t.Error("original config should not be mutated by changes to copy")
 	}
 }
 
-func TestBuildFactoryConfig_EmptyConfig(t *testing.T) {
-	result := buildFactoryConfig(map[string]any{}, "localhost")
-
-	if result["target"] != "localhost" {
-		t.Errorf("expected target 'localhost', got %v", result["target"])
-	}
-	if len(result) != 1 {
-		t.Errorf("expected 1 key, got %d", len(result))
+func TestCopyConfig_EmptyConfig(t *testing.T) {
+	result := copyConfig(map[string]any{})
+	if len(result) != 0 {
+		t.Errorf("expected empty map, got %d keys", len(result))
 	}
 }
 
-func TestBuildFactoryConfig_OverridesExistingTarget(t *testing.T) {
-	cfg := map[string]any{"target": "should-be-overridden"}
-	result := buildFactoryConfig(cfg, "8.8.8.8")
+func TestCopyConfig_NoTargetInjected(t *testing.T) {
+	cfg := map[string]any{"addresses": []any{"127.0.0.1"}, "label": "test"}
+	result := copyConfig(cfg)
 
-	if result["target"] != "8.8.8.8" {
-		t.Errorf("expected injected target to win, got %v", result["target"])
+	if _, ok := result["target"]; ok {
+		t.Error("copyConfig should not inject a 'target' key")
 	}
 }
 

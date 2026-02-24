@@ -10,13 +10,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Standard colors for graph elements, cycled for multi-metric graphs.
-var stackColors = []string{
-	GREEN,     // first metric
-	BLUE,      // second
-	ORANGE,    // third
-	VIOLET,    // fourth
-	TURQUOISE, // fifth
+// lineColors are cycled for multi-metric line graphs.
+var lineColors = []string{
+	GREEN,
+	BLUE,
+	ORANGE,
+	VIOLET,
+	TURQUOISE,
+	PINK,
+	LIME,
+	BROWN,
+	TEAL,
+	RED,
 }
 
 // graph represents an RRD graph, including metadata and synchronization tools.
@@ -26,7 +31,6 @@ type graph struct {
 	title                 string            // Title of the graph
 	timeLength            string            // Time length for the graph (e.g., "4h" "1d")
 	metrics               []check.MetricDef // Metrics to draw (one per DS in the RRD)
-	graphStyle            string            // "line" for LINE2, empty/"stack" for AREA+STACK
 	descLabel             string            // descriptor-level label override (may be empty)
 	consolidationFunction string            // Consolidation function (e.g., "AVERAGE" "MAX")
 	logger                *logrus.Logger
@@ -42,24 +46,17 @@ type graph struct {
 //   - consolidationFunction: The RRD consolidation function ("AVERAGE", "MAX", etc.).
 //   - checkType: The check type name, used for graph file naming (e.g., "ping").
 //   - metrics: The metric definitions for data sources in the RRD.
-//   - graphStyle: Graph rendering style ("line" for LINE2, empty/"stack" for AREA+STACK).
+//   - descLabel: Descriptor-level label override for graph title/axis (may be empty).
 //   - logger: The logger instance.
-//
-// Returns:
-//   - *graph: A pointer to the newly created graph struct.
-//   - error: An error if something went wrong during the initialization.
-func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, metrics []check.MetricDef, graphStyle string, descLabel string, logger *logrus.Logger) (*graph, error) {
+func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, metrics []check.MetricDef, descLabel string, logger *logrus.Logger) (*graph, error) {
 
-	// Define directory and file paths
 	dirPath := fmt.Sprintf("%s/imgs/%s", graphDir, host)
 	filePath := fmt.Sprintf("%s/%s_%s_%s.png", dirPath, host, checkType, timeLength)
 
-	// Ensure the directory exists
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create directory %s: %w", dirPath, err)
 	}
 
-	// Use the descriptor-level label if set, otherwise fall back to first metric's label
 	label := descLabel
 	if label == "" {
 		label = metrics[0].Label
@@ -72,7 +69,6 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 		title:                 title,
 		timeLength:            timeLength,
 		metrics:               metrics,
-		graphStyle:            graphStyle,
 		descLabel:             descLabel,
 		consolidationFunction: consolidationFunction,
 		logger:                logger,
@@ -88,8 +84,6 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 }
 
 // displayVarName returns the RRD variable name used for display of a given metric.
-// When scaling is applied, the variable includes the unit suffix (e.g., "latency_ms").
-// When no scaling is needed, it uses the raw variable directly (e.g., "latency_raw").
 func displayVarName(m check.MetricDef) string {
 	if needsScaling(m) {
 		return fmt.Sprintf("%s_%s", m.DSName, m.Unit)
@@ -102,31 +96,16 @@ func needsScaling(m check.MetricDef) bool {
 	return m.Scale > 1
 }
 
-// isLineStyle returns true if the graph should render metrics as individual
-// lines rather than stacked areas.
-func (g *graph) isLineStyle() bool {
-	return g.graphStyle == check.GraphStyleLine
-}
-
 // rrdEscape escapes a string for use in rrdtool graph labels and comments.
-// rrdtool uses colons as field delimiters, so literal colons must be escaped
-// as \: in label text. Backslashes must also be escaped.
 func rrdEscape(s string) string {
-	// Escape backslashes first, then colons
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	s = strings.ReplaceAll(s, `:`, `\:`)
 	return s
 }
 
 // draw draws a graph based on the current parameters of the graph struct.
-// For single-metric checks, it draws a single AREA.
-// For multi-metric checks with stack style (default), it draws stacked AREAs.
-// For multi-metric checks with line style, it draws colored LINE2s.
-// It returns an error if the graph generation fails.
+// All metrics are rendered as colored LINE2s.
 func (g *graph) draw() error {
-	// Shared unit comes from the first metric (all metrics in a check share
-	// the same unit by convention). Label for axis/comment uses the
-	// descriptor-level override if set.
 	unit := g.metrics[0].Unit
 	label := g.descLabel
 	if label == "" {
@@ -141,31 +120,17 @@ func (g *graph) draw() error {
 	for i, m := range g.metrics {
 		rawVar := fmt.Sprintf("%s_raw", m.DSName)
 		dispVar := displayVarName(m)
-		color := stackColors[i%len(stackColors)]
+		color := lineColors[i%len(lineColors)]
 		escapedLabel := rrdEscape(m.Label)
 
-		// DEF: read the raw data source from the RRD file
 		defs = append(defs, fmt.Sprintf("DEF:%s=%s:%s:%s", rawVar, g.rrdPath, m.DSName, g.consolidationFunction))
 
-		// CDEF: apply scaling if needed
 		if needsScaling(m) {
 			cdefs = append(cdefs, fmt.Sprintf("CDEF:%s=%s,%d,/", dispVar, rawVar, m.Scale))
 		}
 
-		// Draw element depends on graph style
-		if g.isLineStyle() {
-			// Line graph: each metric as a colored LINE2
-			lines = append(lines, fmt.Sprintf("LINE2:%s#%s:%s", dispVar, color, escapedLabel))
-		} else {
-			// Stack graph: AREA for first metric, STACK for subsequent
-			if i == 0 {
-				lines = append(lines, fmt.Sprintf("AREA:%s#%s:%s", dispVar, color, escapedLabel))
-			} else {
-				lines = append(lines, fmt.Sprintf("STACK:%s#%s:%s", dispVar, color, escapedLabel))
-			}
-		}
+		lines = append(lines, fmt.Sprintf("LINE2:%s#%s:%s", dispVar, color, escapedLabel))
 
-		// GPRINT stats for each metric
 		gfmt := "%.2lf"
 		gprints = append(gprints,
 			fmt.Sprintf("GPRINT:%s:LAST:  %s last\\: %s %s", dispVar, escapedLabel, gfmt, unit),
@@ -176,7 +141,6 @@ func (g *graph) draw() error {
 	if len(g.metrics) == 1 {
 		dispVar := displayVarName(g.metrics[0])
 		gfmt := "%.2lf"
-		// Replace the simple GPRINT with the detailed one
 		gprints = []string{
 			fmt.Sprintf("GPRINT:%s:MIN:Min\\: %s %s", dispVar, gfmt, unit),
 			fmt.Sprintf("GPRINT:%s:MAX:Max\\: %s %s", dispVar, gfmt, unit),
@@ -191,37 +155,30 @@ func (g *graph) draw() error {
 		fmt.Sprintf("COMMENT:%s", comment),
 	}
 
-	// Use the shared label for vertical axis
 	verticalLabel := fmt.Sprintf("%s (%s)", label, unit)
 
-	// Prepare the command for generating the graph.
 	args := []string{
-		g.filePath,
-		"--start", fmt.Sprintf("-%s", g.timeLength),
+		"graph", g.filePath,
 		"--title", g.title,
 		"--vertical-label", verticalLabel,
+		"--start", fmt.Sprintf("now-%s", g.timeLength),
+		"--end", "now",
 		"--width", "800",
 		"--height", "200",
-		"--lower-limit", "0",
 	}
-	if g.consolidationFunction == "MAX" {
-		args = append(args, "--rigid")
-	}
+
 	args = append(args, defs...)
 	args = append(args, cdefs...)
 	args = append(args, lines...)
 	args = append(args, gprints...)
 	args = append(args, commentStrings...)
 
-	g.logger.Debugf("Generating graph with command arguments: %v", args)
-
-	// Execute the "rrdtool graph" command to generate the graph.
-	cmd := exec.Command("rrdtool", append([]string{"graph"}, args...)...)
-	if err := cmd.Run(); err != nil {
-		g.logger.Errorf("Failed to update graph %s: %v", g.filePath, err)
-		return fmt.Errorf("failed to update graph %s: %w", g.filePath, err)
+	cmd := exec.Command("rrdtool", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("rrdtool graph failed for %s: %w\nOutput: %s", g.filePath, err, string(output))
 	}
 
-	g.logger.Debugf("Graph %s generated successfully.", g.filePath)
+	g.logger.Debugf("Graph drawn successfully: %s", g.filePath)
 	return nil
 }

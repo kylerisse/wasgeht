@@ -13,7 +13,7 @@ import (
 func TestHandleAPI_BasicResponse(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{
-			"google": {Name: "google", Address: "8.8.8.8"},
+			"google": {Name: "google"},
 		},
 		statuses: make(map[string]map[string]*check.Status),
 	}
@@ -49,9 +49,6 @@ func TestHandleAPI_BasicResponse(t *testing.T) {
 	if !ok {
 		t.Fatal("expected google in response")
 	}
-	if google.Address != "8.8.8.8" {
-		t.Errorf("expected address 8.8.8.8, got %q", google.Address)
-	}
 
 	pingCheck, ok := google.Checks["ping"]
 	if !ok {
@@ -78,10 +75,6 @@ func TestHandleAPI_IncludesHostStatus(t *testing.T) {
 		statuses: make(map[string]map[string]*check.Status),
 	}
 
-	// uphost has no statuses yet (will be unknown since no snapshots)
-	// We need to actually create a status for it to show up
-	// newhost has no statuses at all
-
 	req := httptest.NewRequest("GET", "/api", nil)
 	w := httptest.NewRecorder()
 
@@ -92,7 +85,6 @@ func TestHandleAPI_IncludesHostStatus(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	// All hosts without statuses should be unknown
 	for name, host := range body {
 		if host.Status != HostStatusUnknown {
 			t.Errorf("host %q: expected status unknown, got %q", name, host.Status)
@@ -118,33 +110,5 @@ func TestHandleAPI_EmptyHosts(t *testing.T) {
 
 	if len(body) != 0 {
 		t.Errorf("expected empty response, got %d hosts", len(body))
-	}
-}
-
-func TestHandleAPI_OmitsEmptyAddress(t *testing.T) {
-	s := &Server{
-		hosts: map[string]*host.Host{
-			"noaddr": {Name: "noaddr"},
-		},
-		statuses: make(map[string]map[string]*check.Status),
-	}
-
-	req := httptest.NewRequest("GET", "/api", nil)
-	w := httptest.NewRecorder()
-
-	s.handleAPI(w, req)
-
-	// Decode as raw JSON to check field presence
-	var body map[string]map[string]any
-	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-
-	noaddr, ok := body["noaddr"]
-	if !ok {
-		t.Fatal("expected noaddr in response")
-	}
-	if _, ok := noaddr["address"]; ok {
-		t.Error("expected address to be omitted when empty")
 	}
 }

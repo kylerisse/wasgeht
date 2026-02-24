@@ -13,7 +13,7 @@ import (
 func TestHandlePrometheus_BasicOutput(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{
-			"google": {Name: "google", Address: "8.8.8.8"},
+			"google": {Name: "google"},
 		},
 		statuses: make(map[string]map[string]*check.Status),
 	}
@@ -53,13 +53,13 @@ func TestHandlePrometheus_BasicOutput(t *testing.T) {
 		t.Error("expected HELP check_metric header")
 	}
 
-	// Check alive metric
-	if !strings.Contains(body, `check_alive{host="google", address="8.8.8.8", check="ping"} 1`) {
+	// Check alive metric (no address label)
+	if !strings.Contains(body, `check_alive{host="google", check="ping"} 1`) {
 		t.Errorf("expected check_alive line for google ping, got:\n%s", body)
 	}
 
-	// Check metric value
-	if !strings.Contains(body, `check_metric{host="google", address="8.8.8.8", check="ping", metric="latency_us"} 12345`) {
+	// Check metric value (no address label)
+	if !strings.Contains(body, `check_metric{host="google", check="ping", metric="latency_us"} 12345`) {
 		t.Errorf("expected check_metric line for latency_us, got:\n%s", body)
 	}
 }
@@ -67,7 +67,7 @@ func TestHandlePrometheus_BasicOutput(t *testing.T) {
 func TestHandlePrometheus_DownHost(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{
-			"badhost": {Name: "badhost", Address: "192.0.2.1"},
+			"badhost": {Name: "badhost"},
 		},
 		statuses: make(map[string]map[string]*check.Status),
 	}
@@ -82,7 +82,7 @@ func TestHandlePrometheus_DownHost(t *testing.T) {
 
 	body := w.Body.String()
 
-	if !strings.Contains(body, `check_alive{host="badhost", address="192.0.2.1", check="ping"} 0`) {
+	if !strings.Contains(body, `check_alive{host="badhost", check="ping"} 0`) {
 		t.Errorf("expected check_alive=0 for down host, got:\n%s", body)
 	}
 }
@@ -115,7 +115,7 @@ func TestHandlePrometheus_NoStatuses(t *testing.T) {
 func TestHandlePrometheus_MultipleChecks(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{
-			"multi": {Name: "multi", Address: "10.0.0.1"},
+			"multi": {Name: "multi"},
 		},
 		statuses: make(map[string]map[string]*check.Status),
 	}

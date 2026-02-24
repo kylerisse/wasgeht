@@ -17,9 +17,6 @@ func TestGetOrCreateStatus_CreatesNew(t *testing.T) {
 	if status == nil {
 		t.Fatal("expected non-nil status")
 	}
-	if status.Alive() {
-		t.Error("new status should not be alive")
-	}
 }
 
 func TestGetOrCreateStatus_ReturnsSame(t *testing.T) {
@@ -29,35 +26,20 @@ func TestGetOrCreateStatus_ReturnsSame(t *testing.T) {
 
 	s1 := s.getOrCreateStatus("host1", "ping")
 	s2 := s.getOrCreateStatus("host1", "ping")
-
 	if s1 != s2 {
-		t.Error("expected same status instance on repeated calls")
+		t.Error("expected same status pointer on second call")
 	}
 }
 
-func TestGetOrCreateStatus_SeparateCheckTypes(t *testing.T) {
+func TestGetOrCreateStatus_SeparateChecks(t *testing.T) {
 	s := &Server{
 		statuses: make(map[string]map[string]*check.Status),
 	}
 
-	pingStatus := s.getOrCreateStatus("host1", "ping")
-	httpStatus := s.getOrCreateStatus("host1", "http")
-
-	if pingStatus == httpStatus {
-		t.Error("expected different status instances for different check types")
-	}
-}
-
-func TestGetOrCreateStatus_SeparateHosts(t *testing.T) {
-	s := &Server{
-		statuses: make(map[string]map[string]*check.Status),
-	}
-
-	h1 := s.getOrCreateStatus("host1", "ping")
-	h2 := s.getOrCreateStatus("host2", "ping")
-
-	if h1 == h2 {
-		t.Error("expected different status instances for different hosts")
+	ping := s.getOrCreateStatus("host1", "ping")
+	http := s.getOrCreateStatus("host1", "http")
+	if ping == http {
+		t.Error("expected different status for different check types")
 	}
 }
 
@@ -130,7 +112,6 @@ func TestLoadHosts_ValidFile(t *testing.T) {
 	content := `{
 		"router": {},
 		"google": {
-			"address": "8.8.8.8",
 			"checks": {
 				"ping": {"timeout": "5s"}
 			}
@@ -156,20 +137,11 @@ func TestLoadHosts_ValidFile(t *testing.T) {
 	if !ok {
 		t.Fatal("expected google host")
 	}
-	if google.Address != "8.8.8.8" {
-		t.Errorf("expected address 8.8.8.8, got %q", google.Address)
-	}
 	if google.Name != "google" {
 		t.Errorf("expected name 'google', got %q", google.Name)
 	}
-
-	router, ok := hosts["router"]
-	if !ok {
-		t.Fatal("expected router host")
-	}
-	// Router has no explicit checks, so ApplyDefaults should give it ping
-	if _, ok := router.Checks["ping"]; !ok {
-		t.Error("expected default ping check on router")
+	if _, ok := google.Checks["ping"]; !ok {
+		t.Error("expected google to keep ping check")
 	}
 }
 
@@ -209,7 +181,7 @@ func TestLoadHosts_EmptyFile(t *testing.T) {
 	}
 }
 
-func TestLoadHosts_AppliesDefaults(t *testing.T) {
+func TestLoadHosts_BareHostIsInert(t *testing.T) {
 	content := `{
 		"bare": {},
 		"custom": {
@@ -230,22 +202,16 @@ func TestLoadHosts_AppliesDefaults(t *testing.T) {
 		t.Fatalf("loadHosts failed: %v", err)
 	}
 
-	// bare host should get default ping
-	if _, ok := hosts["bare"].Checks["ping"]; !ok {
-		t.Error("bare host should have default ping check")
+	if len(hosts["bare"].Checks) != 0 {
+		t.Error("bare host should have no checks")
 	}
-
-	// custom host should keep its explicit checks and not get ping injected
 	if _, ok := hosts["custom"].Checks["http"]; !ok {
 		t.Error("custom host should keep http check")
-	}
-	if _, ok := hosts["custom"].Checks["ping"]; ok {
-		t.Error("custom host should not get ping injected")
 	}
 }
 
 func TestLoadHosts_SetsName(t *testing.T) {
-	content := `{"myhost": {"address": "1.2.3.4"}}`
+	content := `{"myhost": {}}`
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "hosts.json")

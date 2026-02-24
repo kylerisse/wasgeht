@@ -2,11 +2,15 @@ package rrd
 
 // Standard colors for RRD graph elements.
 const RED = "FF0000"
-const GREEN = "00FF00"
-const BLUE = "0000FF"
+const GREEN = "00B050"
+const BLUE = "4472C4"
 const ORANGE = "FF8C00"
 const VIOLET = "9400D3"
 const TURQUOISE = "00CED1"
+const PINK = "FF69B4"
+const LIME = "7FFF00"
+const BROWN = "8B4513"
+const TEAL = "008080"
 
 // expandTimeLength converts a short time duration code (e.g. "15m", "1h", "4d")
 // into a human-readable string for use in graph titles and comments.

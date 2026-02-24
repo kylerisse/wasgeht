@@ -50,13 +50,12 @@ func TestNewRRD_CreatesFile(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD failed: %v", err)
 	}
 	defer r.file.Close()
 
-	// Check the RRD file was created in the right place
 	rrdPath := filepath.Join(rrdDir, "testhost", "ping.rrd")
 	if _, err := os.Stat(rrdPath); os.IsNotExist(err) {
 		t.Errorf("expected RRD file at %s", rrdPath)
@@ -70,13 +69,12 @@ func TestNewRRD_CreatesGraphDir(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD failed: %v", err)
 	}
 	defer r.file.Close()
 
-	// Check the graph directory was created
 	imgDir := filepath.Join(graphDir, "imgs", "testhost")
 	if _, err := os.Stat(imgDir); os.IsNotExist(err) {
 		t.Errorf("expected graph directory at %s", imgDir)
@@ -90,13 +88,12 @@ func TestNewRRD_CreatesGraphFiles(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD failed: %v", err)
 	}
 	defer r.file.Close()
 
-	// Should have created graphs for all time lengths
 	expectedTimeLengths := []string{"15m", "1h", "4h", "8h", "1d", "4d", "1w", "31d", "93d", "1y", "2y", "5y"}
 	for _, tl := range expectedTimeLengths {
 		graphPath := filepath.Join(graphDir, "imgs", "testhost", "testhost_ping_"+tl+".png")
@@ -117,13 +114,13 @@ func TestNewRRD_Idempotent(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r1, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r1, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("first NewRRD failed: %v", err)
 	}
 	r1.file.Close()
 
-	r2, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r2, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("second NewRRD failed: %v", err)
 	}
@@ -132,7 +129,7 @@ func TestNewRRD_Idempotent(t *testing.T) {
 
 func TestNewRRD_BadRrdDir(t *testing.T) {
 	logger := testLogger()
-	_, err := NewRRD("testhost", "/nonexistent/path", "/tmp", "ping", singleMetric, "", "", logger)
+	_, err := NewRRD("testhost", "/nonexistent/path", "/tmp", "ping", singleMetric, "", logger)
 	if err == nil {
 		t.Error("expected error for nonexistent rrdDir")
 	}
@@ -140,7 +137,7 @@ func TestNewRRD_BadRrdDir(t *testing.T) {
 
 func TestNewRRD_EmptyMetrics(t *testing.T) {
 	logger := testLogger()
-	_, err := NewRRD("testhost", t.TempDir(), t.TempDir(), "ping", []check.MetricDef{}, "", "", logger)
+	_, err := NewRRD("testhost", t.TempDir(), t.TempDir(), "ping", []check.MetricDef{}, "", logger)
 	if err == nil {
 		t.Error("expected error for empty metrics")
 	}
@@ -153,13 +150,13 @@ func TestNewRRD_PerHostSubdirectory(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r1, err := NewRRD("host-a", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r1, err := NewRRD("host-a", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD for host-a failed: %v", err)
 	}
 	defer r1.file.Close()
 
-	r2, err := NewRRD("host-b", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r2, err := NewRRD("host-b", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD for host-b failed: %v", err)
 	}
@@ -187,13 +184,13 @@ func TestNewRRD_MultipleCheckTypes(t *testing.T) {
 		{ResultKey: "response_ms", DSName: "response", Label: "response time", Unit: "ms", Scale: 0},
 	}
 
-	r1, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r1, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD for ping failed: %v", err)
 	}
 	defer r1.file.Close()
 
-	r2, err := NewRRD("testhost", rrdDir, graphDir, "http", httpMetrics, "", "", logger)
+	r2, err := NewRRD("testhost", rrdDir, graphDir, "http", httpMetrics, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD for http failed: %v", err)
 	}
@@ -219,7 +216,7 @@ func TestNewRRD_MultiDS_CreatesFile(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("ap1", rrdDir, graphDir, "wifi_stations", multiMetrics, "", "", logger)
+	r, err := NewRRD("ap1", rrdDir, graphDir, "wifi_stations", multiMetrics, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD multi-DS failed: %v", err)
 	}
@@ -238,7 +235,7 @@ func TestNewRRD_MultiDS_CreatesGraphs(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("ap1", rrdDir, graphDir, "wifi_stations", multiMetrics, "", "", logger)
+	r, err := NewRRD("ap1", rrdDir, graphDir, "wifi_stations", multiMetrics, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD multi-DS failed: %v", err)
 	}
@@ -248,7 +245,6 @@ func TestNewRRD_MultiDS_CreatesGraphs(t *testing.T) {
 		t.Error("expected graphs to be initialized for multi-DS RRD")
 	}
 
-	// Check a graph file exists
 	graphPath := filepath.Join(graphDir, "imgs", "ap1", "ap1_wifi_stations_4h.png")
 	if _, err := os.Stat(graphPath); os.IsNotExist(err) {
 		t.Errorf("expected graph file at %s", graphPath)
@@ -262,7 +258,7 @@ func TestSafeUpdate_MultiDS_Success(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("ap1", rrdDir, graphDir, "wifi_stations", multiMetrics, "", "", logger)
+	r, err := NewRRD("ap1", rrdDir, graphDir, "wifi_stations", multiMetrics, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD multi-DS failed: %v", err)
 	}
@@ -285,7 +281,7 @@ func TestSafeUpdate_MultiDS_AcceptsNewer(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("ap1", rrdDir, graphDir, "wifi_stations", multiMetrics, "", "", logger)
+	r, err := NewRRD("ap1", rrdDir, graphDir, "wifi_stations", multiMetrics, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD multi-DS failed: %v", err)
 	}
@@ -307,54 +303,48 @@ func TestSafeUpdate_MultiDS_AcceptsNewer(t *testing.T) {
 	}
 }
 
-// --- Line style graph tests ---
+// --- Multi-metric line graph tests (formerly "line style") ---
 
-func TestNewRRD_LineStyle_CreatesGraphs(t *testing.T) {
+func TestNewRRD_MultiMetric_CreatesGraphs(t *testing.T) {
 	requireRRDTool(t)
 
 	rrdDir := t.TempDir()
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("qube", rrdDir, graphDir, "http", lineMetrics, check.GraphStyleLine, "response time", logger)
+	r, err := NewRRD("qube", rrdDir, graphDir, "http", lineMetrics, "response time", logger)
 	if err != nil {
-		t.Fatalf("NewRRD line-style failed: %v", err)
+		t.Fatalf("NewRRD multi-metric failed: %v", err)
 	}
 	defer r.file.Close()
 
 	if len(r.graphs) == 0 {
-		t.Error("expected graphs to be initialized for line-style RRD")
+		t.Error("expected graphs to be initialized for multi-metric RRD")
 	}
 
-	// Check a graph file exists
 	graphPath := filepath.Join(graphDir, "imgs", "qube", "qube_http_4h.png")
 	if _, err := os.Stat(graphPath); os.IsNotExist(err) {
 		t.Errorf("expected graph file at %s", graphPath)
 	}
-
-	// Verify graphStyle was threaded through
-	if r.graphStyle != check.GraphStyleLine {
-		t.Errorf("expected graphStyle %q, got %q", check.GraphStyleLine, r.graphStyle)
-	}
 }
 
-func TestSafeUpdate_LineStyle_Success(t *testing.T) {
+func TestSafeUpdate_MultiMetric_Success(t *testing.T) {
 	requireRRDTool(t)
 
 	rrdDir := t.TempDir()
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("qube", rrdDir, graphDir, "http", lineMetrics, check.GraphStyleLine, "response time", logger)
+	r, err := NewRRD("qube", rrdDir, graphDir, "http", lineMetrics, "response time", logger)
 	if err != nil {
-		t.Fatalf("NewRRD line-style failed: %v", err)
+		t.Fatalf("NewRRD multi-metric failed: %v", err)
 	}
 	defer r.file.Close()
 
 	ts := time.Now()
 	lastUpdate, err := r.SafeUpdate(ts, []int64{15000, 22000})
 	if err != nil {
-		t.Fatalf("SafeUpdate line-style failed: %v", err)
+		t.Fatalf("SafeUpdate multi-metric failed: %v", err)
 	}
 	if lastUpdate != ts.Unix() {
 		t.Errorf("expected lastUpdate=%d, got %d", ts.Unix(), lastUpdate)
@@ -370,7 +360,7 @@ func TestSafeUpdate_SingleDS(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD failed: %v", err)
 	}
@@ -393,7 +383,7 @@ func TestSafeUpdate_RejectsSameTimestamp(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD failed: %v", err)
 	}
@@ -418,14 +408,13 @@ func TestSafeUpdate_EmptyValues(t *testing.T) {
 	graphDir := t.TempDir()
 	logger := testLogger()
 
-	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", "", logger)
+	r, err := NewRRD("testhost", rrdDir, graphDir, "ping", singleMetric, "", logger)
 	if err != nil {
 		t.Fatalf("NewRRD failed: %v", err)
 	}
 	defer r.file.Close()
 
 	ts := time.Now()
-	// Empty values should not error (just triggers graph redraw)
 	_, err = r.SafeUpdate(ts, []int64{})
 	if err != nil {
 		t.Fatalf("SafeUpdate with empty values failed: %v", err)

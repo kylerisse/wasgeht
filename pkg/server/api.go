@@ -17,16 +17,15 @@ type CheckStatusResponse struct {
 
 // HostAPIResponse represents a host in the API response.
 type HostAPIResponse struct {
-	Address string                         `json:"address,omitempty"`
-	Status  HostStatus                     `json:"status"`
-	Checks  map[string]CheckStatusResponse `json:"checks"`
+	Status HostStatus                     `json:"status"`
+	Checks map[string]CheckStatusResponse `json:"checks"`
 }
 
 // handleAPI writes a JSON response containing the status of all hosts and their checks.
 func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	hosts := make(map[string]HostAPIResponse)
-	for name, h := range s.hosts {
+	for name := range s.hosts {
 		checksResponse := make(map[string]CheckStatusResponse)
 
 		snapshots := s.hostStatuses(name)
@@ -39,9 +38,8 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		}
 
 		hosts[name] = HostAPIResponse{
-			Address: h.Address,
-			Status:  computeHostStatus(snapshots, now),
-			Checks:  checksResponse,
+			Status: computeHostStatus(snapshots, now),
+			Checks: checksResponse,
 		}
 	}
 

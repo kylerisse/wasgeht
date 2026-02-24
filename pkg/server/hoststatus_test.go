@@ -8,131 +8,9 @@ import (
 	"github.com/kylerisse/wasgeht/pkg/check"
 )
 
-func TestComputeHostStatus_NoSnapshots(t *testing.T) {
-	got := computeHostStatus(nil, time.Now())
-	if got != HostStatusUnknown {
-		t.Errorf("expected unknown, got %q", got)
-	}
-
-	got = computeHostStatus(map[string]check.StatusSnapshot{}, time.Now())
-	if got != HostStatusUnknown {
-		t.Errorf("expected unknown for empty map, got %q", got)
-	}
-}
-
-func TestComputeHostStatus_AllUp(t *testing.T) {
+func TestComputeHostStatus(t *testing.T) {
 	now := time.Now()
-	snaps := map[string]check.StatusSnapshot{
-		"ping": {Alive: true, LastUpdate: now.Unix()},
-		"http": {Alive: true, LastUpdate: now.Add(-2 * time.Minute).Unix()},
-	}
-	got := computeHostStatus(snaps, now)
-	if got != HostStatusUp {
-		t.Errorf("expected up, got %q", got)
-	}
-}
-
-func TestComputeHostStatus_AllDown(t *testing.T) {
-	now := time.Now()
-	snaps := map[string]check.StatusSnapshot{
-		"ping": {Alive: false, LastUpdate: now.Unix()},
-	}
-	got := computeHostStatus(snaps, now)
-	if got != HostStatusDown {
-		t.Errorf("expected down, got %q", got)
-	}
-}
-
-func TestComputeHostStatus_Degraded_MixedAlive(t *testing.T) {
-	now := time.Now()
-	snaps := map[string]check.StatusSnapshot{
-		"ping": {Alive: true, LastUpdate: now.Unix()},
-		"http": {Alive: false, LastUpdate: now.Unix()},
-	}
-	got := computeHostStatus(snaps, now)
-	if got != HostStatusDegraded {
-		t.Errorf("expected degraded, got %q", got)
-	}
-}
-
-func TestComputeHostStatus_Degraded_OneStale(t *testing.T) {
-	now := time.Now()
-	snaps := map[string]check.StatusSnapshot{
-		"ping": {Alive: true, LastUpdate: now.Unix()},
-		"http": {Alive: true, LastUpdate: now.Add(-10 * time.Minute).Unix()},
-	}
-	got := computeHostStatus(snaps, now)
-	if got != HostStatusDegraded {
-		t.Errorf("expected degraded when one check is stale, got %q", got)
-	}
-}
-
-func TestComputeHostStatus_Unknown_AllStaleNoResults(t *testing.T) {
-	now := time.Now()
-	snaps := map[string]check.StatusSnapshot{
-		"ping": {Alive: false, LastUpdate: 0},
-	}
-	got := computeHostStatus(snaps, now)
-	if got != HostStatusUnknown {
-		t.Errorf("expected unknown when no results ever recorded, got %q", got)
-	}
-}
-
-func TestComputeHostStatus_Down_StaleButHadResults(t *testing.T) {
-	now := time.Now()
-	snaps := map[string]check.StatusSnapshot{
-		"ping": {Alive: false, LastUpdate: now.Add(-10 * time.Minute).Unix()},
-	}
-	got := computeHostStatus(snaps, now)
-	if got != HostStatusDown {
-		t.Errorf("expected down when stale but had previous results, got %q", got)
-	}
-}
-
-func TestComputeHostStatus_BoundaryFreshness(t *testing.T) {
-	// Use a fixed time to avoid sub-second truncation issues with Unix()
-	now := time.Unix(1700000300, 0) // arbitrary fixed point
-	cutoff := now.Add(-stalenessWindow).Unix()
-
-	// Exactly at the cutoff should be stale (cutoff uses > not >=)
-	snaps := map[string]check.StatusSnapshot{
-		"ping": {Alive: true, LastUpdate: cutoff},
-	}
-	got := computeHostStatus(snaps, now)
-	if got != HostStatusDown {
-		t.Errorf("expected down at exact cutoff (%d), got %q", cutoff, got)
-	}
-
-	// One second after the cutoff should be fresh
-	snaps["ping"] = check.StatusSnapshot{Alive: true, LastUpdate: cutoff + 1}
-	got = computeHostStatus(snaps, now)
-	if got != HostStatusUp {
-		t.Errorf("expected up one second after cutoff (%d), got %q", cutoff+1, got)
-	}
-
-	// One second before the cutoff should be stale
-	snaps["ping"] = check.StatusSnapshot{Alive: true, LastUpdate: cutoff - 1}
-	got = computeHostStatus(snaps, now)
-	if got != HostStatusDown {
-		t.Errorf("expected down one second before cutoff (%d), got %q", cutoff-1, got)
-	}
-}
-
-func TestComputeHostStatus_AliveButZeroLastUpdate(t *testing.T) {
-	now := time.Now()
-	// Alive but no RRD update yet - should be treated as unknown
-	snaps := map[string]check.StatusSnapshot{
-		"ping": {Alive: true, LastUpdate: 0},
-	}
-	got := computeHostStatus(snaps, now)
-	if got != HostStatusUnknown {
-		t.Errorf("expected unknown when alive but no last update, got %q", got)
-	}
-}
-
-func TestComputeHostStatus_TableDriven(t *testing.T) {
-	now := time.Now()
-	fresh := now.Unix()
+	fresh := now.Add(-1 * time.Minute).Unix()
 	stale := now.Add(-10 * time.Minute).Unix()
 
 	tests := []struct {
@@ -240,7 +118,6 @@ func TestComputeHostStatus_TableDriven(t *testing.T) {
 }
 
 func TestHostStatus_StringValues(t *testing.T) {
-	// Verify the string values match what the UI expects
 	tests := []struct {
 		status HostStatus
 		want   string
@@ -258,10 +135,8 @@ func TestHostStatus_StringValues(t *testing.T) {
 }
 
 func TestHostStatus_JSONSerialization(t *testing.T) {
-	// Verify HostStatus serializes correctly in API responses
 	resp := HostAPIResponse{
-		Address: "8.8.8.8",
-		Status:  HostStatusUp,
+		Status: HostStatusUp,
 		Checks: map[string]CheckStatusResponse{
 			"ping": {Alive: true, LastUpdate: 1700000000},
 		},
@@ -304,27 +179,6 @@ func TestHostStatus_JSONRoundTrip(t *testing.T) {
 		if decoded.Status != s {
 			t.Errorf("round-trip: got %q, want %q", decoded.Status, s)
 		}
-	}
-}
-
-func TestHostAPIResponse_OmitsEmptyAddress(t *testing.T) {
-	resp := HostAPIResponse{
-		Status: HostStatusUnknown,
-		Checks: map[string]CheckStatusResponse{},
-	}
-
-	data, err := json.Marshal(resp)
-	if err != nil {
-		t.Fatalf("marshal failed: %v", err)
-	}
-
-	var decoded map[string]any
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		t.Fatalf("unmarshal failed: %v", err)
-	}
-
-	if _, ok := decoded["address"]; ok {
-		t.Error("expected address to be omitted when empty")
 	}
 }
 

@@ -17,16 +17,15 @@ import (
 // It contains the file pointer, a mutex for thread safety, metric definitions,
 // and graph instances for visualization.
 type RRD struct {
-	name       string
-	checkTyp   string            // check type name, used for file naming
-	metrics    []check.MetricDef // metrics stored as data sources in this RRD
-	graphStyle string            // graph rendering style ("line" or "stack"/empty)
-	descLabel  string            // descriptor-level label for graph title/axis (may be empty)
-	file       *os.File          // Pointer to the actual RRD file
-	mutex      *sync.RWMutex     // Wrap file access
-	graphs     []*graph
-	logger     *logrus.Logger
-	graphDir   string
+	name      string
+	checkTyp  string            // check type name, used for file naming
+	metrics   []check.MetricDef // metrics stored as data sources in this RRD
+	descLabel string            // descriptor-level label for graph title/axis (may be empty)
+	file      *os.File          // Pointer to the actual RRD file
+	mutex     *sync.RWMutex     // Wrap file access
+	graphs    []*graph
+	logger    *logrus.Logger
+	graphDir  string
 }
 
 // NewRRD creates and initializes a new RRD struct for the specified name.
@@ -41,13 +40,9 @@ type RRD struct {
 //   - graphDir: The directory where the graphs should be stored.
 //   - checkType: The check type name, used for the RRD filename (e.g. "ping").
 //   - metrics: The metric definitions describing the data sources to create.
-//   - graphStyle: The graph rendering style from the check Descriptor.
+//   - descLabel: Descriptor-level label for graph title/axis (may be empty).
 //   - logger: The logger instance.
-//
-// Returns:
-//   - *RRD: A pointer to the newly created RRD struct.
-//   - error: An error if something went wrong during the initialization or creation of the RRD file.
-func NewRRD(name string, rrdDir string, graphDir string, checkType string, metrics []check.MetricDef, graphStyle string, descLabel string, logger *logrus.Logger) (*RRD, error) {
+func NewRRD(name string, rrdDir string, graphDir string, checkType string, metrics []check.MetricDef, descLabel string, logger *logrus.Logger) (*RRD, error) {
 	if len(metrics) == 0 {
 		return nil, fmt.Errorf("at least one metric definition is required")
 	}
@@ -103,16 +98,15 @@ func NewRRD(name string, rrdDir string, graphDir string, checkType string, metri
 
 	// Initialize the RRD struct
 	rrd := &RRD{
-		name:       name,
-		checkTyp:   checkType,
-		metrics:    metrics,
-		graphStyle: graphStyle,
-		descLabel:  descLabel,
-		file:       file,
-		mutex:      &sync.RWMutex{},
-		graphs:     []*graph{},
-		logger:     logger,
-		graphDir:   graphDir,
+		name:      name,
+		checkTyp:  checkType,
+		metrics:   metrics,
+		descLabel: descLabel,
+		file:      file,
+		mutex:     &sync.RWMutex{},
+		graphs:    []*graph{},
+		logger:    logger,
+		graphDir:  graphDir,
 	}
 
 	rrd.initGraphs()
@@ -127,86 +121,59 @@ func (r *RRD) getLastUpdate() (int64, error) {
 
 	r.logger.Debugf("Getting last update time for RRD file %s.", r.file.Name())
 
-	// Execute the "rrdtool lastupdate" command to get the latest data point info.
 	cmd := exec.Command("rrdtool", "lastupdate", r.file.Name())
 	output, err := cmd.Output()
 	if err != nil {
 		return 0, fmt.Errorf("failed to execute rrdtool lastupdate: %w", err)
 	}
 
-	// Split the output into lines and get the last one.
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(lines) < 2 {
 		return 0, fmt.Errorf("unexpected output format from rrdtool lastupdate")
 	}
 
-	// Extract the last line and parse the timestamp.
-	// Format: "timestamp: val1 val2 val3" or "timestamp:val1:val2:val3"
 	lastLine := lines[len(lines)-1]
 	parts := strings.SplitN(lastLine, ":", 2)
 	if len(parts) < 2 {
 		return 0, fmt.Errorf("unexpected format in the last line: %s", lastLine)
 	}
 
-	// Trim any extra spaces and convert the timestamp to int64.
-	lastUpdateStr := strings.TrimSpace(parts[0])
-	lastUpdate, err := strconv.ParseInt(lastUpdateStr, 10, 64)
+	timestampStr := strings.TrimSpace(parts[0])
+	timestampUnix, err := strconv.ParseInt(timestampStr, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse last update timestamp: %w", err)
+		return 0, fmt.Errorf("failed to parse timestamp %q: %w", timestampStr, err)
 	}
 
-	// Check if any value column contains valid data.
-	valuePart := strings.TrimSpace(parts[1])
-	values := strings.Fields(valuePart)
-	allUndefined := true
-	for _, v := range values {
-		if v != "U" && v != "-nan" {
-			allUndefined = false
-			break
-		}
-	}
-
-	if allUndefined {
-		r.logger.Debugf("RRD file %s has no defined values yet (all U/-nan), returning 0.", r.file.Name())
-		return 0, nil
-	}
-
-	r.logger.Debugf("Last update time for RRD file %s: %d", r.file.Name(), lastUpdate)
-	return lastUpdate, nil
+	return timestampUnix, nil
 }
 
-// SafeUpdate safely updates the RRD file with the specified timestamp and values.
-// It locks the RRD file for thread safety, checks the update timestamp is newer
-// than the last, and then performs the update.
-//
-// Returns the Unix timestamp of the update and any error encountered.
-func (r *RRD) SafeUpdate(timestamp time.Time, values []int64) (int64, error) {
+// SafeUpdate updates the RRD file with the provided values at the given timestamp.
+// It checks if the new timestamp is newer than the last update to avoid duplicates.
+// Returns the Unix timestamp of the update, or an error.
+func (r *RRD) SafeUpdate(t time.Time, values []int64) (int64, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	timestampUnix := timestamp.Unix()
-
-	// Check if the timestamp is newer than the last update.
-	lastUpdate, err := r.getLastUpdate()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get last update for RRD file %s: %w", r.file.Name(), err)
-	}
-
-	if lastUpdate > 0 && timestampUnix <= lastUpdate {
-		r.logger.Debugf("Skipping update for RRD file %s: timestamp %d is not newer than last update %d.", r.file.Name(), timestamp.Unix(), lastUpdate)
-		return 0, fmt.Errorf("skipping update as timestamp %d is not newer than last update %d", timestamp.Unix(), lastUpdate)
-	}
+	timestampUnix := t.Unix()
 
 	if len(values) > 0 {
-		// Prepare the update string: "<timestamp>:<value1>:<value2>:..."
-		updateStr := fmt.Sprintf("%d", timestamp.Unix())
-		for _, value := range values {
-			updateStr += fmt.Sprintf(":%d", value)
+		lastUpdate, err := r.getLastUpdate()
+		if err != nil {
+			return 0, fmt.Errorf("failed to get last update time: %w", err)
 		}
 
-		r.logger.Debugf("Updating RRD file %s with update string: %s", r.file.Name(), updateStr)
+		if timestampUnix <= lastUpdate {
+			return 0, fmt.Errorf("new timestamp %d is not newer than last update %d", timestampUnix, lastUpdate)
+		}
 
-		// Execute the "rrdtool update" command to add the new data point.
+		// Build the update string: timestamp:val1:val2:...
+		parts := make([]string, len(values)+1)
+		parts[0] = strconv.FormatInt(timestampUnix, 10)
+		for i, v := range values {
+			parts[i+1] = strconv.FormatInt(v, 10)
+		}
+		updateStr := strings.Join(parts, ":")
+
 		cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)
 
 		if err := cmd.Run(); err != nil {
@@ -227,9 +194,7 @@ func (r *RRD) SafeUpdate(timestamp time.Time, values []int64) (int64, error) {
 }
 
 // initGraphs initializes a list of graphs for different time lengths and consolidation functions.
-// This method adds multiple graphs (e.g., hourly, daily, weekly, etc.) to the RRD.
 func (r *RRD) initGraphs() {
-	// Define the map of time lengths and consolidation functions for each graph.
 	timeLengths := map[string]string{
 		"15m": "MAX",
 		"1h":  "MAX",
@@ -245,9 +210,8 @@ func (r *RRD) initGraphs() {
 		"5y":  "AVERAGE",
 	}
 
-	// Loop over each time length to create graphs with specified consolidation function.
 	for timeLength, conFunc := range timeLengths {
-		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.metrics, r.graphStyle, r.descLabel, r.logger)
+		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.metrics, r.descLabel, r.logger)
 		if err != nil {
 			r.logger.Errorf("Failed to create %s graph for %s with time length %s: %v", conFunc, r.name, timeLength, err)
 			continue

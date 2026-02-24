@@ -83,18 +83,40 @@ func TestDisplayVarName(t *testing.T) {
 	}
 }
 
-func TestStackColors_HasEntries(t *testing.T) {
-	if len(stackColors) == 0 {
-		t.Error("stackColors should have at least one entry")
+func TestLineColors_HasTenEntries(t *testing.T) {
+	if len(lineColors) != 10 {
+		t.Errorf("expected 10 lineColors, got %d", len(lineColors))
 	}
 }
 
-func TestStackColors_CyclesCorrectly(t *testing.T) {
-	// Ensure color indexing wraps around
-	for i := 0; i < len(stackColors)*2; i++ {
-		color := stackColors[i%len(stackColors)]
+func TestLineColors_NoDuplicates(t *testing.T) {
+	seen := make(map[string]bool)
+	for _, c := range lineColors {
+		if seen[c] {
+			t.Errorf("duplicate color %q in lineColors", c)
+		}
+		seen[c] = true
+	}
+}
+
+func TestLineColors_CyclesCorrectly(t *testing.T) {
+	for i := 0; i < len(lineColors)*2; i++ {
+		color := lineColors[i%len(lineColors)]
 		if color == "" {
-			t.Errorf("stackColors[%d %% %d] is empty", i, len(stackColors))
+			t.Errorf("lineColors[%d %% %d] is empty", i, len(lineColors))
+		}
+	}
+}
+
+func TestLineColors_AllValidHex(t *testing.T) {
+	for _, c := range lineColors {
+		if len(c) != 6 {
+			t.Errorf("color %q is not 6 characters", c)
+		}
+		for _, ch := range c {
+			if !((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f')) {
+				t.Errorf("color %q contains non-hex character %q", c, ch)
+			}
 		}
 	}
 }
