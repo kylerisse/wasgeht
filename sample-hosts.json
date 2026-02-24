@@ -20,7 +20,8 @@
       },
       "http": {
         "label": "ap1 http",
-        "urls": ["https://ap1.risse.tv"]
+        "urls": ["https://ap1.risse.tv"],
+        "skip_verify": true
       }
     }
   },
@@ -37,7 +38,8 @@
       },
       "http": {
         "label": "ap2 http",
-        "urls": ["https://ap2.risse.tv"]
+        "urls": ["https://ap2.risse.tv"],
+        "skip_verify": true
       }
     }
   },
@@ -65,7 +67,7 @@
           "https://wasgeht.risse.tv",
           "https://mrtg.risse.tv"
         ],
-        "skip_verify": false
+        "skip_verify": true
       }
     }
   },
@@ -105,8 +107,7 @@
         "urls": [
           "https://www.google.com",
           "https://www.google.com/maps"
-        ],
-        "skip_verify": false
+        ]
       }
     }
   },

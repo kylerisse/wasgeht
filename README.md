@@ -167,13 +167,13 @@ Sends ICMP echo requests to check host availability and measure latency.
 
 Performs HTTP GET requests to a list of URLs and reports per-URL response time. Each URL becomes a separate data source in the RRD, rendered as colored lines on the graph. The check succeeds only if all configured URLs return a response (any HTTP status code counts as reachable). Redirects are not followed.
 
-TLS certificate verification is skipped by default to support locally signed certificates.
+Set `skip_verify` to `true` to support locally signed certificates.
 
 | Option        | Type     | Default      | Description                        |
 | ------------- | -------- | ------------ | ---------------------------------- |
 | `urls`        | []string | _(required)_ | List of full URLs to check         |
 | `timeout`     | string   | `"10s"`      | HTTP request timeout (Go duration) |
-| `skip_verify` | bool     | `true`       | Skip TLS certificate verification  |
+| `skip_verify` | bool     | `false`      | Skip TLS certificate verification  |
 | `enabled`     | bool     | `true`       | Set to `false` to disable          |
 
 #### wifi_stations

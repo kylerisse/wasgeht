@@ -175,7 +175,7 @@ func TestFactory_WithSkipVerify(t *testing.T) {
 	config := map[string]any{
 		"urls":        []any{"https://localhost"},
 		"label":       "test",
-		"skip_verify": false,
+		"skip_verify": true,
 	}
 
 	chk, err := Factory(config)
@@ -184,8 +184,8 @@ func TestFactory_WithSkipVerify(t *testing.T) {
 	}
 
 	httpChk := chk.(*Check)
-	if httpChk.skipVerify {
-		t.Error("expected skipVerify to be false")
+	if !httpChk.skipVerify {
+		t.Error("expected skipVerify to be true")
 	}
 }
 
@@ -201,8 +201,8 @@ func TestFactory_DefaultSkipVerify(t *testing.T) {
 	}
 
 	httpChk := chk.(*Check)
-	if !httpChk.skipVerify {
-		t.Error("expected skipVerify to default to true")
+	if httpChk.skipVerify {
+		t.Error("expected skipVerify to default to false")
 	}
 }
 

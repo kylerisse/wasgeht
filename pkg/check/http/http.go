@@ -63,7 +63,7 @@ func New(urls []string, label string, opts ...Option) (*Check, error) {
 		urls:       urls,
 		label:      label,
 		timeout:    DefaultTimeout,
-		skipVerify: true,
+		skipVerify: false,
 	}
 
 	for _, opt := range opts {
@@ -152,7 +152,7 @@ func (c *Check) Run(ctx context.Context) check.Result {
 // Required keys: "urls" (list of strings), "label" (string).
 // Optional keys:
 //   - "timeout" (string) — duration string (e.g. "10s")
-//   - "skip_verify" (bool) — skip TLS cert verification (default: true)
+//   - "skip_verify" (bool) — skip TLS cert verification (default: false)
 func Factory(config map[string]any) (check.Check, error) {
 	urls, err := extractURLs(config)
 	if err != nil {
