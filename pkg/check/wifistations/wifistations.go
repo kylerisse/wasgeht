@@ -53,7 +53,6 @@ type WifiStations struct {
 	url     string
 	radios  []radioConfig
 	timeout time.Duration
-	label   string
 	client  *http.Client
 	desc    check.Descriptor
 }
@@ -68,15 +67,12 @@ type radioConfig struct {
 
 // New creates a WifiStations check.
 // The descriptor includes one metric per radio plus a derived "total" metric.
-func New(address string, radios []radioConfig, label string, opts ...Option) (*WifiStations, error) {
+func New(address string, radios []radioConfig, opts ...Option) (*WifiStations, error) {
 	if address == "" {
 		return nil, fmt.Errorf("wifi_stations: address must not be empty")
 	}
 	if len(radios) == 0 {
 		return nil, fmt.Errorf("wifi_stations: at least one radio is required")
-	}
-	if label == "" {
-		return nil, fmt.Errorf("wifi_stations: label must not be empty")
 	}
 
 	url := fmt.Sprintf("http://%s:%s%s", address, DefaultPort, DefaultPath)
@@ -84,7 +80,6 @@ func New(address string, radios []radioConfig, label string, opts ...Option) (*W
 	w := &WifiStations{
 		url:     url,
 		radios:  radios,
-		label:   label,
 		timeout: DefaultTimeout,
 	}
 
@@ -116,7 +111,7 @@ func New(address string, radios []radioConfig, label string, opts ...Option) (*W
 	})
 
 	w.desc = check.Descriptor{
-		Label:   label,
+		Label:   "wifi stations",
 		Metrics: metrics,
 	}
 
@@ -203,7 +198,7 @@ func (w *WifiStations) Run(ctx context.Context) check.Result {
 }
 
 // Factory creates a WifiStations check from a config map.
-// Required keys: "address" (string), "radios" (list), "label" (string).
+// Required keys: "address" (string), "radios" (list).
 // Optional keys: "timeout" (string).
 func Factory(config map[string]any) (check.Check, error) {
 	addressVal, ok := config["address"]
@@ -227,18 +222,6 @@ func Factory(config map[string]any) (check.Check, error) {
 		return nil, err
 	}
 
-	labelVal, ok := config["label"]
-	if !ok {
-		return nil, fmt.Errorf("wifi_stations: config missing required key 'label'")
-	}
-	labelStr, ok := labelVal.(string)
-	if !ok {
-		return nil, fmt.Errorf("wifi_stations: 'label' must be a string, got %T", labelVal)
-	}
-	if labelStr == "" {
-		return nil, fmt.Errorf("wifi_stations: 'label' must not be empty")
-	}
-
 	var opts []Option
 
 	if v, ok := config["timeout"]; ok {
@@ -254,7 +237,7 @@ func Factory(config map[string]any) (check.Check, error) {
 		}
 	}
 
-	return New(addressStr, radios, labelStr, opts...)
+	return New(addressStr, radios, opts...)
 }
 
 // parseRadiosConfig converts the raw radios config value into radioConfig slices.

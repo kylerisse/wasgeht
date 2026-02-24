@@ -23,7 +23,6 @@ type Check struct {
 	urls       []string
 	timeout    time.Duration
 	skipVerify bool
-	label      string
 	client     *http.Client
 	desc       check.Descriptor
 }
@@ -50,18 +49,14 @@ func WithSkipVerify(skip bool) Option {
 	}
 }
 
-// New creates an HTTP Check for the given URLs and label.
-func New(urls []string, label string, opts ...Option) (*Check, error) {
+// New creates an HTTP Check for the given URLs.
+func New(urls []string, opts ...Option) (*Check, error) {
 	if len(urls) == 0 {
 		return nil, fmt.Errorf("http: at least one URL is required")
-	}
-	if label == "" {
-		return nil, fmt.Errorf("http: label must not be empty")
 	}
 
 	c := &Check{
 		urls:       urls,
-		label:      label,
 		timeout:    DefaultTimeout,
 		skipVerify: false,
 	}
@@ -91,7 +86,7 @@ func New(urls []string, label string, opts ...Option) (*Check, error) {
 		}
 	}
 	c.desc = check.Descriptor{
-		Label:   label,
+		Label:   "http",
 		Metrics: metrics,
 	}
 
@@ -149,7 +144,7 @@ func (c *Check) Run(ctx context.Context) check.Result {
 }
 
 // Factory creates an HTTP Check from a config map.
-// Required keys: "urls" (list of strings), "label" (string).
+// Required keys: "urls" (list of strings).
 // Optional keys:
 //   - "timeout" (string) — duration string (e.g. "10s")
 //   - "skip_verify" (bool) — skip TLS cert verification (default: false)
@@ -157,18 +152,6 @@ func Factory(config map[string]any) (check.Check, error) {
 	urls, err := extractURLs(config)
 	if err != nil {
 		return nil, err
-	}
-
-	labelVal, ok := config["label"]
-	if !ok {
-		return nil, fmt.Errorf("http: config missing required key 'label'")
-	}
-	labelStr, ok := labelVal.(string)
-	if !ok {
-		return nil, fmt.Errorf("http: 'label' must be a string, got %T", labelVal)
-	}
-	if labelStr == "" {
-		return nil, fmt.Errorf("http: 'label' must not be empty")
 	}
 
 	var opts []Option
@@ -193,7 +176,7 @@ func Factory(config map[string]any) (check.Check, error) {
 		opts = append(opts, WithSkipVerify(b))
 	}
 
-	return New(urls, labelStr, opts...)
+	return New(urls, opts...)
 }
 
 // extractURLs pulls the URL list from the config map.

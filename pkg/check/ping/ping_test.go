@@ -12,7 +12,7 @@ import (
 // --- New() tests ---
 
 func TestNew_SingleAddress(t *testing.T) {
-	p, err := New([]string{"127.0.0.1"}, "loopback")
+	p, err := New([]string{"127.0.0.1"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -25,9 +25,6 @@ func TestNew_SingleAddress(t *testing.T) {
 	if p.addresses[0].dsName != "addr0" {
 		t.Errorf("expected dsName 'addr0', got %q", p.addresses[0].dsName)
 	}
-	if p.label != "loopback" {
-		t.Errorf("expected label 'loopback', got %q", p.label)
-	}
 	if p.timeout != DefaultTimeout {
 		t.Errorf("expected default timeout, got %v", p.timeout)
 	}
@@ -37,7 +34,7 @@ func TestNew_SingleAddress(t *testing.T) {
 }
 
 func TestNew_MultipleAddresses(t *testing.T) {
-	p, err := New([]string{"1.1.1.1", "8.8.8.8"}, "dns servers")
+	p, err := New([]string{"1.1.1.1", "8.8.8.8"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -53,28 +50,21 @@ func TestNew_MultipleAddresses(t *testing.T) {
 }
 
 func TestNew_EmptyAddresses(t *testing.T) {
-	_, err := New([]string{}, "test")
+	_, err := New([]string{})
 	if err == nil {
 		t.Error("expected error for empty addresses")
 	}
 }
 
 func TestNew_EmptyAddressInList(t *testing.T) {
-	_, err := New([]string{"1.1.1.1", ""}, "test")
+	_, err := New([]string{"1.1.1.1", ""})
 	if err == nil {
 		t.Error("expected error for empty address in list")
 	}
 }
 
-func TestNew_EmptyLabel(t *testing.T) {
-	_, err := New([]string{"127.0.0.1"}, "")
-	if err == nil {
-		t.Error("expected error for empty label")
-	}
-}
-
 func TestNew_WithOptions(t *testing.T) {
-	p, err := New([]string{"127.0.0.1"}, "test",
+	p, err := New([]string{"127.0.0.1"},
 		WithTimeout(5*time.Second),
 		WithCount(3),
 	)
@@ -90,14 +80,14 @@ func TestNew_WithOptions(t *testing.T) {
 }
 
 func TestWithTimeout_Invalid(t *testing.T) {
-	_, err := New([]string{"127.0.0.1"}, "test", WithTimeout(-1*time.Second))
+	_, err := New([]string{"127.0.0.1"}, WithTimeout(-1*time.Second))
 	if err == nil {
 		t.Error("expected error for negative timeout")
 	}
 }
 
 func TestWithCount_Invalid(t *testing.T) {
-	_, err := New([]string{"127.0.0.1"}, "test", WithCount(0))
+	_, err := New([]string{"127.0.0.1"}, WithCount(0))
 	if err == nil {
 		t.Error("expected error for count=0")
 	}
@@ -106,18 +96,18 @@ func TestWithCount_Invalid(t *testing.T) {
 // --- Type / Describe tests ---
 
 func TestType(t *testing.T) {
-	p, _ := New([]string{"127.0.0.1"}, "test")
+	p, _ := New([]string{"127.0.0.1"})
 	if p.Type() != "ping" {
 		t.Errorf("expected type 'ping', got %q", p.Type())
 	}
 }
 
 func TestDescribe_SingleAddress(t *testing.T) {
-	p, _ := New([]string{"127.0.0.1"}, "loopback ping")
+	p, _ := New([]string{"127.0.0.1"})
 	desc := p.Describe()
 
-	if desc.Label != "loopback ping" {
-		t.Errorf("expected Descriptor.Label 'loopback ping', got %q", desc.Label)
+	if desc.Label != "ping" {
+		t.Errorf("expected Descriptor.Label 'ping', got %q", desc.Label)
 	}
 	if len(desc.Metrics) != 1 {
 		t.Fatalf("expected 1 metric, got %d", len(desc.Metrics))
@@ -141,11 +131,11 @@ func TestDescribe_SingleAddress(t *testing.T) {
 }
 
 func TestDescribe_MultipleAddresses(t *testing.T) {
-	p, _ := New([]string{"1.1.1.1", "8.8.8.8", "9.9.9.9"}, "dns")
+	p, _ := New([]string{"1.1.1.1", "8.8.8.8", "9.9.9.9"})
 	desc := p.Describe()
 
-	if desc.Label != "dns" {
-		t.Errorf("expected Descriptor.Label 'dns', got %q", desc.Label)
+	if desc.Label != "ping" {
+		t.Errorf("expected Descriptor.Label 'ping', got %q", desc.Label)
 	}
 	if len(desc.Metrics) != 3 {
 		t.Fatalf("expected 3 metrics, got %d", len(desc.Metrics))
@@ -162,8 +152,8 @@ func TestDescribe_MultipleAddresses(t *testing.T) {
 }
 
 func TestDescribe_IsInstanceSpecific(t *testing.T) {
-	p1, _ := New([]string{"1.1.1.1"}, "one")
-	p2, _ := New([]string{"1.1.1.1", "8.8.8.8"}, "two")
+	p1, _ := New([]string{"1.1.1.1"})
+	p2, _ := New([]string{"1.1.1.1", "8.8.8.8"})
 
 	if len(p1.Describe().Metrics) != 1 {
 		t.Errorf("expected 1 metric for p1, got %d", len(p1.Describe().Metrics))
@@ -178,7 +168,6 @@ func TestDescribe_IsInstanceSpecific(t *testing.T) {
 func TestFactory_MinimalConfig(t *testing.T) {
 	config := map[string]any{
 		"addresses": []any{"127.0.0.1"},
-		"label":     "loopback",
 	}
 	chk, err := Factory(config)
 	if err != nil {
@@ -196,7 +185,6 @@ func TestFactory_MinimalConfig(t *testing.T) {
 func TestFactory_MultipleAddresses(t *testing.T) {
 	config := map[string]any{
 		"addresses": []any{"1.1.1.1", "8.8.8.8"},
-		"label":     "dns",
 	}
 	chk, err := Factory(config)
 	if err != nil {
@@ -211,7 +199,6 @@ func TestFactory_MultipleAddresses(t *testing.T) {
 func TestFactory_FullConfig(t *testing.T) {
 	config := map[string]any{
 		"addresses": []any{"127.0.0.1"},
-		"label":     "loopback",
 		"timeout":   "5s",
 		"count":     float64(3),
 	}
@@ -232,7 +219,6 @@ func TestFactory_IgnoresTargetKey(t *testing.T) {
 	config := map[string]any{
 		"target":    "injected-by-worker",
 		"addresses": []any{"127.0.0.1"},
-		"label":     "test",
 	}
 	chk, err := Factory(config)
 	if err != nil {
@@ -244,10 +230,20 @@ func TestFactory_IgnoresTargetKey(t *testing.T) {
 	}
 }
 
+func TestFactory_IgnoresLabelKey(t *testing.T) {
+	config := map[string]any{
+		"addresses": []any{"127.0.0.1"},
+		"label":     "ignored",
+	}
+	_, err := Factory(config)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestFactory_StringSliceAddresses(t *testing.T) {
 	config := map[string]any{
 		"addresses": []string{"127.0.0.1"},
-		"label":     "test",
 	}
 	_, err := Factory(config)
 	if err != nil {
@@ -256,58 +252,36 @@ func TestFactory_StringSliceAddresses(t *testing.T) {
 }
 
 func TestFactory_MissingAddresses(t *testing.T) {
-	_, err := Factory(map[string]any{"label": "test"})
+	_, err := Factory(map[string]any{})
 	if err == nil {
 		t.Error("expected error for missing addresses")
 	}
 }
 
 func TestFactory_EmptyAddresses(t *testing.T) {
-	_, err := Factory(map[string]any{"addresses": []any{}, "label": "test"})
+	_, err := Factory(map[string]any{"addresses": []any{}})
 	if err == nil {
 		t.Error("expected error for empty addresses")
 	}
 }
 
 func TestFactory_NonStringAddress(t *testing.T) {
-	_, err := Factory(map[string]any{"addresses": []any{123}, "label": "test"})
+	_, err := Factory(map[string]any{"addresses": []any{123}})
 	if err == nil {
 		t.Error("expected error for non-string address")
 	}
 }
 
 func TestFactory_WrongAddressesType(t *testing.T) {
-	_, err := Factory(map[string]any{"addresses": "not-a-list", "label": "test"})
+	_, err := Factory(map[string]any{"addresses": "not-a-list"})
 	if err == nil {
 		t.Error("expected error for non-list addresses")
-	}
-}
-
-func TestFactory_MissingLabel(t *testing.T) {
-	_, err := Factory(map[string]any{"addresses": []any{"127.0.0.1"}})
-	if err == nil {
-		t.Error("expected error for missing label")
-	}
-}
-
-func TestFactory_EmptyLabel(t *testing.T) {
-	_, err := Factory(map[string]any{"addresses": []any{"127.0.0.1"}, "label": ""})
-	if err == nil {
-		t.Error("expected error for empty label")
-	}
-}
-
-func TestFactory_WrongLabelType(t *testing.T) {
-	_, err := Factory(map[string]any{"addresses": []any{"127.0.0.1"}, "label": 42})
-	if err == nil {
-		t.Error("expected error for non-string label")
 	}
 }
 
 func TestFactory_InvalidTimeout(t *testing.T) {
 	_, err := Factory(map[string]any{
 		"addresses": []any{"127.0.0.1"},
-		"label":     "test",
 		"timeout":   "bad",
 	})
 	if err == nil {
@@ -318,7 +292,6 @@ func TestFactory_InvalidTimeout(t *testing.T) {
 func TestFactory_WrongTimeoutType(t *testing.T) {
 	_, err := Factory(map[string]any{
 		"addresses": []any{"127.0.0.1"},
-		"label":     "test",
 		"timeout":   123,
 	})
 	if err == nil {
@@ -329,7 +302,6 @@ func TestFactory_WrongTimeoutType(t *testing.T) {
 func TestFactory_WrongCountType(t *testing.T) {
 	_, err := Factory(map[string]any{
 		"addresses": []any{"127.0.0.1"},
-		"label":     "test",
 		"count":     "three",
 	})
 	if err == nil {
@@ -347,7 +319,6 @@ func TestRegistryIntegration(t *testing.T) {
 
 	chk, err := reg.Create("ping", map[string]any{
 		"addresses": []any{"1.1.1.1", "8.8.8.8"},
-		"label":     "dns servers",
 	})
 	if err != nil {
 		t.Fatalf("failed to create ping check: %v", err)
@@ -357,8 +328,8 @@ func TestRegistryIntegration(t *testing.T) {
 	}
 
 	desc := chk.Describe()
-	if desc.Label != "dns servers" {
-		t.Errorf("expected Descriptor.Label 'dns servers', got %q", desc.Label)
+	if desc.Label != "ping" {
+		t.Errorf("expected Descriptor.Label 'ping', got %q", desc.Label)
 	}
 	if len(desc.Metrics) != 2 {
 		t.Fatalf("expected 2 metrics, got %d", len(desc.Metrics))
@@ -376,7 +347,7 @@ func TestRegistryIntegration(t *testing.T) {
 
 // TestRun_Localhost pings localhost. Requires ping binary on PATH.
 func TestRun_Localhost(t *testing.T) {
-	p, err := New([]string{"127.0.0.1"}, "loopback")
+	p, err := New([]string{"127.0.0.1"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

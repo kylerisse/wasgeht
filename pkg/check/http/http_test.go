@@ -12,34 +12,24 @@ import (
 )
 
 func TestNew_Valid(t *testing.T) {
-	chk, err := New([]string{"http://localhost:8080"}, "test label")
+	chk, err := New([]string{"http://localhost:8080"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if chk.Type() != "http" {
 		t.Errorf("expected type 'http', got %q", chk.Type())
 	}
-	if chk.label != "test label" {
-		t.Errorf("expected label 'test label', got %q", chk.label)
-	}
 }
 
 func TestNew_EmptyURLs(t *testing.T) {
-	_, err := New([]string{}, "test")
+	_, err := New([]string{})
 	if err == nil {
 		t.Error("expected error for empty URLs")
 	}
 }
 
-func TestNew_EmptyLabel(t *testing.T) {
-	_, err := New([]string{"http://localhost"}, "")
-	if err == nil {
-		t.Error("expected error for empty label")
-	}
-}
-
 func TestNew_WithTimeout(t *testing.T) {
-	chk, err := New([]string{"http://localhost"}, "test", WithTimeout(5*time.Second))
+	chk, err := New([]string{"http://localhost"}, WithTimeout(5*time.Second))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -49,7 +39,7 @@ func TestNew_WithTimeout(t *testing.T) {
 }
 
 func TestNew_WithSkipVerify(t *testing.T) {
-	chk, err := New([]string{"https://localhost"}, "test", WithSkipVerify(false))
+	chk, err := New([]string{"https://localhost"}, WithSkipVerify(false))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -59,13 +49,13 @@ func TestNew_WithSkipVerify(t *testing.T) {
 }
 
 func TestDescribe_SingleURL(t *testing.T) {
-	chk, err := New([]string{"http://localhost:8080"}, "my http check")
+	chk, err := New([]string{"http://localhost:8080"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	desc := chk.Describe()
-	if desc.Label != "my http check" {
-		t.Errorf("expected Descriptor.Label 'my http check', got %q", desc.Label)
+	if desc.Label != "http" {
+		t.Errorf("expected Descriptor.Label 'http', got %q", desc.Label)
 	}
 	if len(desc.Metrics) != 1 {
 		t.Fatalf("expected 1 metric, got %d", len(desc.Metrics))
@@ -79,13 +69,13 @@ func TestDescribe_SingleURL(t *testing.T) {
 }
 
 func TestDescribe_MultipleURLs(t *testing.T) {
-	chk, err := New([]string{"http://a.com", "http://b.com"}, "ab check")
+	chk, err := New([]string{"http://a.com", "http://b.com"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	desc := chk.Describe()
-	if desc.Label != "ab check" {
-		t.Errorf("expected Descriptor.Label 'ab check', got %q", desc.Label)
+	if desc.Label != "http" {
+		t.Errorf("expected Descriptor.Label 'http', got %q", desc.Label)
 	}
 	if len(desc.Metrics) != 2 {
 		t.Fatalf("expected 2 metrics, got %d", len(desc.Metrics))
@@ -100,8 +90,7 @@ func TestDescribe_MultipleURLs(t *testing.T) {
 
 func TestFactory_MinimalConfig(t *testing.T) {
 	config := map[string]any{
-		"urls":  []any{"http://localhost:8080"},
-		"label": "test check",
+		"urls": []any{"http://localhost:8080"},
 	}
 
 	chk, err := Factory(config)
@@ -113,50 +102,25 @@ func TestFactory_MinimalConfig(t *testing.T) {
 	if httpChk.timeout != DefaultTimeout {
 		t.Errorf("expected default timeout, got %v", httpChk.timeout)
 	}
-	if !httpChk.skipVerify {
-		t.Error("expected skipVerify to default to true")
-	}
-	if httpChk.label != "test check" {
-		t.Errorf("expected label 'test check', got %q", httpChk.label)
+	if httpChk.skipVerify {
+		t.Error("expected skipVerify to default to false")
 	}
 }
 
-func TestFactory_MissingLabel(t *testing.T) {
-	config := map[string]any{
-		"urls": []any{"http://localhost:8080"},
-	}
-	_, err := Factory(config)
-	if err == nil {
-		t.Error("expected error for missing label")
-	}
-}
-
-func TestFactory_EmptyLabel(t *testing.T) {
+func TestFactory_IgnoresLabelKey(t *testing.T) {
 	config := map[string]any{
 		"urls":  []any{"http://localhost:8080"},
-		"label": "",
+		"label": "ignored",
 	}
 	_, err := Factory(config)
-	if err == nil {
-		t.Error("expected error for empty label")
-	}
-}
-
-func TestFactory_WrongLabelType(t *testing.T) {
-	config := map[string]any{
-		"urls":  []any{"http://localhost:8080"},
-		"label": 42,
-	}
-	_, err := Factory(config)
-	if err == nil {
-		t.Error("expected error for non-string label")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestFactory_WithTimeout(t *testing.T) {
 	config := map[string]any{
 		"urls":    []any{"http://localhost"},
-		"label":   "test",
 		"timeout": "5s",
 	}
 
@@ -174,7 +138,6 @@ func TestFactory_WithTimeout(t *testing.T) {
 func TestFactory_WithSkipVerify(t *testing.T) {
 	config := map[string]any{
 		"urls":        []any{"https://localhost"},
-		"label":       "test",
 		"skip_verify": true,
 	}
 
@@ -191,8 +154,7 @@ func TestFactory_WithSkipVerify(t *testing.T) {
 
 func TestFactory_DefaultSkipVerify(t *testing.T) {
 	config := map[string]any{
-		"urls":  []any{"https://localhost"},
-		"label": "test",
+		"urls": []any{"https://localhost"},
 	}
 
 	chk, err := Factory(config)
@@ -207,7 +169,7 @@ func TestFactory_DefaultSkipVerify(t *testing.T) {
 }
 
 func TestFactory_MissingURLs(t *testing.T) {
-	config := map[string]any{"label": "test"}
+	config := map[string]any{}
 	_, err := Factory(config)
 	if err == nil {
 		t.Error("expected error for missing URLs")
@@ -216,8 +178,7 @@ func TestFactory_MissingURLs(t *testing.T) {
 
 func TestFactory_EmptyURLs(t *testing.T) {
 	config := map[string]any{
-		"urls":  []any{},
-		"label": "test",
+		"urls": []any{},
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -227,8 +188,7 @@ func TestFactory_EmptyURLs(t *testing.T) {
 
 func TestFactory_InvalidURLType(t *testing.T) {
 	config := map[string]any{
-		"urls":  []any{123},
-		"label": "test",
+		"urls": []any{123},
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -239,7 +199,6 @@ func TestFactory_InvalidURLType(t *testing.T) {
 func TestFactory_InvalidTimeout(t *testing.T) {
 	config := map[string]any{
 		"urls":    []any{"http://localhost"},
-		"label":   "test",
 		"timeout": "not-a-duration",
 	}
 	_, err := Factory(config)
@@ -251,7 +210,6 @@ func TestFactory_InvalidTimeout(t *testing.T) {
 func TestFactory_WrongTimeoutType(t *testing.T) {
 	config := map[string]any{
 		"urls":    []any{"http://localhost"},
-		"label":   "test",
 		"timeout": 123,
 	}
 	_, err := Factory(config)
@@ -263,7 +221,6 @@ func TestFactory_WrongTimeoutType(t *testing.T) {
 func TestFactory_WrongSkipVerifyType(t *testing.T) {
 	config := map[string]any{
 		"urls":        []any{"http://localhost"},
-		"label":       "test",
 		"skip_verify": "yes",
 	}
 	_, err := Factory(config)
@@ -274,8 +231,7 @@ func TestFactory_WrongSkipVerifyType(t *testing.T) {
 
 func TestFactory_WrongURLsType(t *testing.T) {
 	config := map[string]any{
-		"urls":  "not-a-list",
-		"label": "test",
+		"urls": "not-a-list",
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -285,8 +241,7 @@ func TestFactory_WrongURLsType(t *testing.T) {
 
 func TestFactory_StringSliceURLs(t *testing.T) {
 	config := map[string]any{
-		"urls":  []string{"http://localhost:8080"},
-		"label": "test",
+		"urls": []string{"http://localhost:8080"},
 	}
 
 	chk, err := Factory(config)
@@ -304,7 +259,6 @@ func TestFactory_IgnoresTargetKey(t *testing.T) {
 	config := map[string]any{
 		"target": "some-host",
 		"urls":   []any{"http://localhost:8080"},
-		"label":  "test",
 	}
 
 	chk, err := Factory(config)
@@ -326,8 +280,7 @@ func TestRegistryIntegration(t *testing.T) {
 	}
 
 	chk, err := reg.Create("http", map[string]any{
-		"urls":  []any{"http://localhost:8080", "https://localhost:8443"},
-		"label": "integration test",
+		"urls": []any{"http://localhost:8080", "https://localhost:8443"},
 	})
 	if err != nil {
 		t.Fatalf("failed to create http check: %v", err)
@@ -338,8 +291,8 @@ func TestRegistryIntegration(t *testing.T) {
 	}
 
 	desc := chk.Describe()
-	if desc.Label != "integration test" {
-		t.Errorf("expected Descriptor.Label 'integration test', got %q", desc.Label)
+	if desc.Label != "http" {
+		t.Errorf("expected Descriptor.Label 'http', got %q", desc.Label)
 	}
 	if len(desc.Metrics) != 2 {
 		t.Fatalf("expected 2 metrics in descriptor, got %d", len(desc.Metrics))
@@ -362,7 +315,7 @@ func TestRun_SingleURL_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := New([]string{srv.URL}, "test server")
+	c, err := New([]string{srv.URL})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -390,7 +343,7 @@ func TestRun_MultipleURLs_AllSuccess(t *testing.T) {
 	}))
 	defer srv2.Close()
 
-	c, err := New([]string{srv1.URL, srv2.URL}, "two servers")
+	c, err := New([]string{srv1.URL, srv2.URL})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -406,7 +359,7 @@ func TestRun_MultipleURLs_AllSuccess(t *testing.T) {
 
 func TestDescribe_SingleURL_MetricFields(t *testing.T) {
 	url := "http://example.com"
-	c, err := New([]string{url}, "example")
+	c, err := New([]string{url})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -432,7 +385,7 @@ func TestDescribe_SingleURL_MetricFields(t *testing.T) {
 
 func TestDescribe_MultipleURLs_AllFields(t *testing.T) {
 	urls := []string{"http://a.com", "http://b.com", "https://c.com"}
-	c, err := New(urls, "multi")
+	c, err := New(urls)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
