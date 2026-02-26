@@ -144,6 +144,120 @@ func TestHandleAPI_Envelope(t *testing.T) {
 	}
 }
 
+func TestHandleAPI_NoTagFilter_ReturnsAll(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1":    {Name: "ap1", Tags: map[string]string{"category": "ap"}},
+			"router": {Name: "router", Tags: map[string]string{"category": "router"}},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 2 {
+		t.Errorf("expected 2 hosts, got %d", len(body.Hosts))
+	}
+}
+
+func TestHandleAPI_TagFilter_SingleMatch(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1":    {Name: "ap1", Tags: map[string]string{"category": "ap"}},
+			"ap2":    {Name: "ap2", Tags: map[string]string{"category": "ap"}},
+			"router": {Name: "router", Tags: map[string]string{"category": "router"}},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?tag=category:ap", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 2 {
+		t.Errorf("expected 2 hosts, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["router"]; ok {
+		t.Error("router should be excluded")
+	}
+}
+
+func TestHandleAPI_TagFilter_MultipleAnded(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1": {Name: "ap1", Tags: map[string]string{"category": "ap", "building": "expo"}},
+			"ap2": {Name: "ap2", Tags: map[string]string{"category": "ap", "building": "conference"}},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?tag=category:ap&tag=building:expo", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 1 {
+		t.Errorf("expected 1 host, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["ap1"]; !ok {
+		t.Error("expected ap1 in results")
+	}
+}
+
+func TestHandleAPI_TagFilter_ExcludesUntaggedHosts(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1":    {Name: "ap1", Tags: map[string]string{"category": "ap"}},
+			"nohost": {Name: "nohost"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?tag=category:ap", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 1 {
+		t.Errorf("expected 1 host, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["nohost"]; ok {
+		t.Error("untagged host should be excluded")
+	}
+}
+
+func TestHandleAPI_TagFilter_MalformedReturns400(t *testing.T) {
+	s := &Server{
+		hosts:    make(map[string]*host.Host),
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	for _, bad := range []string{"nocodon", ":missingkey", "missingval:"} {
+		req := httptest.NewRequest("GET", "/api?tag="+bad, nil)
+		w := httptest.NewRecorder()
+		s.handleAPI(w, req)
+		if w.Result().StatusCode != http.StatusBadRequest {
+			t.Errorf("tag=%q: expected 400, got %d", bad, w.Result().StatusCode)
+		}
+	}
+}
+
 func TestHandleHostAPI_Found(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{

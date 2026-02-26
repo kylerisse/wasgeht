@@ -3,8 +3,10 @@ package server
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -28,11 +30,45 @@ type APIResponse struct {
 	Hosts       map[string]HostAPIResponse `json:"hosts"`
 }
 
+// parseTagFilters parses ?tag=key:value query params into a map.
+// Returns an error if any value is missing a colon, or has an empty key or value.
+func parseTagFilters(r *http.Request) (map[string]string, error) {
+	filters := make(map[string]string)
+	for _, raw := range r.URL.Query()["tag"] {
+		k, v, ok := strings.Cut(raw, ":")
+		if !ok || k == "" || v == "" {
+			return nil, fmt.Errorf("invalid tag filter %q: must be key:value", raw)
+		}
+		filters[k] = v
+	}
+	return filters, nil
+}
+
+// matchesTagFilters reports whether a host's tags contain all key:value pairs in filters.
+func matchesTagFilters(tags map[string]string, filters map[string]string) bool {
+	for k, v := range filters {
+		if tags[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
 // handleAPI writes a JSON response containing the status of all hosts and their checks.
 func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
+
+	tagFilters, err := parseTagFilters(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	hosts := make(map[string]HostAPIResponse)
 	for name := range s.hosts {
+		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
+			continue
+		}
 		checksResponse := make(map[string]CheckStatusResponse)
 
 		snapshots := s.hostStatuses(name)
