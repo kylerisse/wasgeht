@@ -18,6 +18,7 @@ type CheckStatusResponse struct {
 // HostAPIResponse represents a host in the API response.
 type HostAPIResponse struct {
 	Status HostStatus                     `json:"status"`
+	Tags   map[string]string              `json:"tags,omitempty"`
 	Checks map[string]CheckStatusResponse `json:"checks"`
 }
 
@@ -39,6 +40,7 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 
 		hosts[name] = HostAPIResponse{
 			Status: computeHostStatus(snapshots, now),
+			Tags:   s.hosts[name].Tags,
 			Checks: checksResponse,
 		}
 	}
