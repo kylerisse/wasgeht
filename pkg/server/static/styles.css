@@ -27,7 +27,13 @@ tr.status-down {
 tr.status-degraded {
 	background-color: #fff9c4; /* Light yellow */
 }
-tr.status-unknown {
+tr.status-stale {
+	background-color: #ffe0b2; /* Light orange */
+}
+tr.status-pending {
+	background-color: #e1f5fe; /* Light blue */
+}
+tr.status-unconfigured {
 	background-color: #e0e0e0; /* Light gray */
 }
 

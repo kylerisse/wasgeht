@@ -31,7 +31,7 @@ function loadTableData() {
 	fetch('/api')
 		.then((response) => response.json())
 		.then((data) => {
-			updateTable(data);
+			updateTable(data.hosts);
 			countdown = 15; // Reset countdown after loading new data
 
 			// Apply sorting again if a column is already sorted
@@ -50,8 +50,12 @@ function statusRowClass(status) {
 			return 'status-down';
 		case 'degraded':
 			return 'status-degraded';
+		case 'stale':
+			return 'status-stale';
+		case 'pending':
+			return 'status-pending';
 		default:
-			return 'status-unknown';
+			return 'status-unconfigured';
 	}
 }
 
@@ -63,8 +67,12 @@ function statusLabel(status) {
 			return 'DOWN';
 		case 'degraded':
 			return 'DEGRADED';
+		case 'stale':
+			return 'STALE';
+		case 'pending':
+			return 'PENDING';
 		default:
-			return 'UNKNOWN';
+			return 'UNCONFIGURED';
 	}
 }
 

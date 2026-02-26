@@ -49,6 +49,53 @@ func TestJSON_NilChecksIsInert(t *testing.T) {
 	}
 }
 
+func TestJSON_WithTags(t *testing.T) {
+	input := `{
+		"tags": {"category": "ap", "building": "expo"},
+		"checks": {}
+	}`
+
+	var h Host
+	if err := json.Unmarshal([]byte(input), &h); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	if h.Tags["category"] != "ap" {
+		t.Errorf("expected category 'ap', got %q", h.Tags["category"])
+	}
+	if h.Tags["building"] != "expo" {
+		t.Errorf("expected building 'expo', got %q", h.Tags["building"])
+	}
+}
+
+func TestJSON_WithoutTags(t *testing.T) {
+	input := `{"checks": {}}`
+
+	var h Host
+	if err := json.Unmarshal([]byte(input), &h); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	if h.Tags != nil {
+		t.Error("expected nil tags when not in JSON")
+	}
+
+	out, err := json.Marshal(h)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	if string(out) == "" {
+		t.Fatal("expected non-empty output")
+	}
+	var roundtrip map[string]any
+	if err := json.Unmarshal(out, &roundtrip); err != nil {
+		t.Fatalf("roundtrip unmarshal failed: %v", err)
+	}
+	if _, ok := roundtrip["tags"]; ok {
+		t.Error("tags key should be omitted from JSON when nil")
+	}
+}
+
 func TestJSON_MultiHost(t *testing.T) {
 	input := `{
 		"router": {},

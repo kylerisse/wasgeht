@@ -1,3 +1,6 @@
+// Package main implements the wasgehtd daemon, which monitors hosts at
+// regular intervals, records metrics in RRD files, and serves a web
+// interface and REST API for viewing host status and historical graphs.
 package main
 
 import (

@@ -41,16 +41,12 @@ type Ping struct {
 	addresses []addressConfig
 	timeout   time.Duration
 	count     int
-	label     string
 }
 
-// New creates a Ping check with the given addresses, label, and options.
-func New(addresses []string, label string, opts ...Option) (*Ping, error) {
+// New creates a Ping check with the given addresses and options.
+func New(addresses []string, opts ...Option) (*Ping, error) {
 	if len(addresses) == 0 {
 		return nil, fmt.Errorf("ping: at least one address is required")
-	}
-	if label == "" {
-		return nil, fmt.Errorf("ping: label must not be empty")
 	}
 
 	addrs := make([]addressConfig, len(addresses))
@@ -68,7 +64,6 @@ func New(addresses []string, label string, opts ...Option) (*Ping, error) {
 
 	p := &Ping{
 		addresses: addrs,
-		label:     label,
 		timeout:   DefaultTimeout,
 		count:     DefaultCount,
 	}
@@ -126,7 +121,7 @@ func (p *Ping) Describe() check.Descriptor {
 		}
 	}
 	return check.Descriptor{
-		Label:   p.label,
+		Label:   "ping",
 		Metrics: metrics,
 	}
 }
@@ -180,25 +175,13 @@ func (p *Ping) Run(ctx context.Context) check.Result {
 }
 
 // Factory creates a Ping check from a config map.
-// Required keys: "addresses" (list of strings), "label" (string).
+// Required keys: "addresses" (list of strings).
 // Optional keys: "timeout" (duration string), "count" (float64).
 // The "target" key injected by the worker is ignored.
 func Factory(config map[string]any) (check.Check, error) {
 	addresses, err := extractAddresses(config)
 	if err != nil {
 		return nil, err
-	}
-
-	labelVal, ok := config["label"]
-	if !ok {
-		return nil, fmt.Errorf("ping: config missing required key 'label'")
-	}
-	labelStr, ok := labelVal.(string)
-	if !ok {
-		return nil, fmt.Errorf("ping: 'label' must be a string, got %T", labelVal)
-	}
-	if labelStr == "" {
-		return nil, fmt.Errorf("ping: 'label' must not be empty")
 	}
 
 	var opts []Option
@@ -225,7 +208,7 @@ func Factory(config map[string]any) (check.Check, error) {
 		}
 	}
 
-	return New(addresses, labelStr, opts...)
+	return New(addresses, opts...)
 }
 
 // extractAddresses pulls the addresses list from the config map.

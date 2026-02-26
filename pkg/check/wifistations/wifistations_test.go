@@ -31,15 +31,12 @@ func testRadios() []radioConfig {
 // --- New() tests ---
 
 func TestNew_Valid(t *testing.T) {
-	w, err := New("ap1.local", testRadios(), "ap1 wifi")
+	w, err := New("ap1.local", testRadios())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if w.url != "http://ap1.local:9100/metrics" {
 		t.Errorf("expected url 'http://ap1.local:9100/metrics', got %q", w.url)
-	}
-	if w.label != "ap1 wifi" {
-		t.Errorf("expected label 'ap1 wifi', got %q", w.label)
 	}
 	if w.timeout != DefaultTimeout {
 		t.Errorf("expected default timeout, got %v", w.timeout)
@@ -50,7 +47,7 @@ func TestNew_Valid(t *testing.T) {
 }
 
 func TestNew_URLBuiltFromAddress(t *testing.T) {
-	w, err := New("192.168.1.1", testRadios(), "ap")
+	w, err := New("192.168.1.1", testRadios())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -61,28 +58,21 @@ func TestNew_URLBuiltFromAddress(t *testing.T) {
 }
 
 func TestNew_EmptyAddress(t *testing.T) {
-	_, err := New("", testRadios(), "label")
+	_, err := New("", testRadios())
 	if err == nil {
 		t.Error("expected error for empty address")
 	}
 }
 
 func TestNew_EmptyRadios(t *testing.T) {
-	_, err := New("ap1.local", []radioConfig{}, "label")
+	_, err := New("ap1.local", []radioConfig{})
 	if err == nil {
 		t.Error("expected error for empty radios")
 	}
 }
 
-func TestNew_EmptyLabel(t *testing.T) {
-	_, err := New("ap1.local", testRadios(), "")
-	if err == nil {
-		t.Error("expected error for empty label")
-	}
-}
-
 func TestNew_WithTimeout(t *testing.T) {
-	w, err := New("ap1.local", testRadios(), "ap1", WithTimeout(10*time.Second))
+	w, err := New("ap1.local", testRadios(), WithTimeout(10*time.Second))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,7 +82,7 @@ func TestNew_WithTimeout(t *testing.T) {
 }
 
 func TestWithTimeout_Invalid(t *testing.T) {
-	_, err := New("ap1.local", testRadios(), "ap1", WithTimeout(-1*time.Second))
+	_, err := New("ap1.local", testRadios(), WithTimeout(-1*time.Second))
 	if err == nil {
 		t.Error("expected error for negative timeout")
 	}
@@ -101,15 +91,15 @@ func TestWithTimeout_Invalid(t *testing.T) {
 // --- Describe() tests ---
 
 func TestDescribe_Label(t *testing.T) {
-	w, _ := New("ap1.local", testRadios(), "ap1 stations")
+	w, _ := New("ap1.local", testRadios())
 	desc := w.Describe()
-	if desc.Label != "ap1 stations" {
-		t.Errorf("expected Descriptor.Label 'ap1 stations', got %q", desc.Label)
+	if desc.Label != "wifi stations" {
+		t.Errorf("expected Descriptor.Label 'wifi stations', got %q", desc.Label)
 	}
 }
 
 func TestDescribe_IncludesTotal(t *testing.T) {
-	w, _ := New("ap1.local", testRadios(), "ap1")
+	w, _ := New("ap1.local", testRadios())
 	desc := w.Describe()
 	// 2 radios + 1 total = 3 metrics
 	if len(desc.Metrics) != 3 {
@@ -131,7 +121,7 @@ func TestDescribe_IncludesTotal(t *testing.T) {
 }
 
 func TestDescribe_RadioMetrics(t *testing.T) {
-	w, _ := New("ap1.local", testRadios(), "ap1")
+	w, _ := New("ap1.local", testRadios())
 	desc := w.Describe()
 	if desc.Metrics[0].DSName != "radio0" {
 		t.Errorf("expected DSName 'radio0', got %q", desc.Metrics[0].DSName)
@@ -145,7 +135,7 @@ func TestDescribe_SingleRadio_HasTotal(t *testing.T) {
 	radios := []radioConfig{
 		{ifname: "phy0-ap0", resultKey: "phy0-ap0", dsName: "radio0", label: "phy0-ap0"},
 	}
-	w, _ := New("ap1.local", radios, "ap1")
+	w, _ := New("ap1.local", radios)
 	desc := w.Describe()
 	// 1 radio + 1 total = 2 metrics
 	if len(desc.Metrics) != 2 {
@@ -156,12 +146,12 @@ func TestDescribe_SingleRadio_HasTotal(t *testing.T) {
 func TestDescribe_DynamicPerConfig(t *testing.T) {
 	w1, _ := New("a.local", []radioConfig{
 		{ifname: "phy0-ap0", resultKey: "phy0-ap0", dsName: "radio0", label: "phy0-ap0"},
-	}, "ap1")
+	})
 	w2, _ := New("b.local", []radioConfig{
 		{ifname: "phy0-ap0", resultKey: "phy0-ap0", dsName: "radio0", label: "phy0-ap0"},
 		{ifname: "phy1-ap0", resultKey: "phy1-ap0", dsName: "radio1", label: "phy1-ap0"},
 		{ifname: "phy2-ap0", resultKey: "phy2-ap0", dsName: "radio2", label: "phy2-ap0"},
-	}, "ap2")
+	})
 
 	// 1 radio + total = 2
 	if len(w1.Describe().Metrics) != 2 {
@@ -189,7 +179,6 @@ func TestRun_Success(t *testing.T) {
 	w := &WifiStations{
 		url:    server.URL,
 		radios: radios,
-		label:  "test",
 		client: &http.Client{Timeout: 5 * time.Second},
 	}
 
@@ -218,7 +207,6 @@ func TestRun_TotalIsSum(t *testing.T) {
 	w := &WifiStations{
 		url:    server.URL,
 		radios: testRadios(),
-		label:  "test",
 		client: &http.Client{Timeout: 5 * time.Second},
 	}
 
@@ -240,7 +228,6 @@ func TestRun_500Response(t *testing.T) {
 	w := &WifiStations{
 		url:    server.URL,
 		radios: testRadios(),
-		label:  "test",
 		client: &http.Client{Timeout: 5 * time.Second},
 	}
 	result := w.Run(context.Background())
@@ -253,7 +240,6 @@ func TestRun_ConnectionError(t *testing.T) {
 	w := &WifiStations{
 		url:    "http://127.0.0.1:1/metrics",
 		radios: testRadios(),
-		label:  "test",
 		client: &http.Client{Timeout: 1 * time.Second},
 	}
 	result := w.Run(context.Background())
@@ -271,7 +257,6 @@ func TestRun_NoMatchingRadios(t *testing.T) {
 	w := &WifiStations{
 		url:    server.URL,
 		radios: testRadios(),
-		label:  "test",
 		client: &http.Client{Timeout: 5 * time.Second},
 	}
 	result := w.Run(context.Background())
@@ -409,7 +394,6 @@ func TestFactory_WithAddress(t *testing.T) {
 	config := map[string]any{
 		"address": "ap1.local",
 		"radios":  []any{"phy0-ap0", "phy1-ap0"},
-		"label":   "ap1 wifi",
 	}
 
 	chk, err := Factory(config)
@@ -424,8 +408,17 @@ func TestFactory_WithAddress(t *testing.T) {
 	if len(w.radios) != 2 {
 		t.Errorf("expected 2 radios, got %d", len(w.radios))
 	}
-	if w.label != "ap1 wifi" {
-		t.Errorf("expected label 'ap1 wifi', got %q", w.label)
+}
+
+func TestFactory_IgnoresLabelKey(t *testing.T) {
+	config := map[string]any{
+		"address": "ap1.local",
+		"radios":  []any{"phy0-ap0"},
+		"label":   "ignored",
+	}
+	_, err := Factory(config)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -433,7 +426,6 @@ func TestFactory_WithTimeout(t *testing.T) {
 	config := map[string]any{
 		"address": "ap1.local",
 		"radios":  []any{"phy0-ap0"},
-		"label":   "ap1",
 		"timeout": "10s",
 	}
 
@@ -451,7 +443,6 @@ func TestFactory_WithTimeout(t *testing.T) {
 func TestFactory_MissingAddress(t *testing.T) {
 	config := map[string]any{
 		"radios": []any{"phy0-ap0"},
-		"label":  "test",
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -463,7 +454,6 @@ func TestFactory_EmptyAddress(t *testing.T) {
 	config := map[string]any{
 		"address": "",
 		"radios":  []any{"phy0-ap0"},
-		"label":   "test",
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -475,7 +465,6 @@ func TestFactory_WrongAddressType(t *testing.T) {
 	config := map[string]any{
 		"address": 123,
 		"radios":  []any{"phy0-ap0"},
-		"label":   "test",
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -483,33 +472,9 @@ func TestFactory_WrongAddressType(t *testing.T) {
 	}
 }
 
-func TestFactory_MissingLabel(t *testing.T) {
-	config := map[string]any{
-		"address": "ap1.local",
-		"radios":  []any{"phy0-ap0"},
-	}
-	_, err := Factory(config)
-	if err == nil {
-		t.Error("expected error for missing label")
-	}
-}
-
-func TestFactory_EmptyLabel(t *testing.T) {
-	config := map[string]any{
-		"address": "ap1.local",
-		"radios":  []any{"phy0-ap0"},
-		"label":   "",
-	}
-	_, err := Factory(config)
-	if err == nil {
-		t.Error("expected error for empty label")
-	}
-}
-
 func TestFactory_MissingRadios(t *testing.T) {
 	config := map[string]any{
 		"address": "ap1.local",
-		"label":   "test",
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -521,7 +486,6 @@ func TestFactory_EmptyRadios(t *testing.T) {
 	config := map[string]any{
 		"address": "ap1.local",
 		"radios":  []any{},
-		"label":   "test",
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -533,7 +497,6 @@ func TestFactory_InvalidTimeout(t *testing.T) {
 	config := map[string]any{
 		"address": "ap1.local",
 		"radios":  []any{"phy0-ap0"},
-		"label":   "test",
 		"timeout": "nope",
 	}
 	_, err := Factory(config)
@@ -547,7 +510,6 @@ func TestFactory_NoTargetOrURL(t *testing.T) {
 	config := map[string]any{
 		"target": "ap1.local",
 		"radios": []any{"phy0-ap0"},
-		"label":  "test",
 	}
 	_, err := Factory(config)
 	if err == nil {
@@ -573,7 +535,6 @@ func TestRegistryIntegration(t *testing.T) {
 	chk, err := reg.Create("wifi_stations", map[string]any{
 		"address": "ap1.local",
 		"radios":  []any{"phy0-ap0", "phy1-ap0"},
-		"label":   "test ap",
 	})
 	if err != nil {
 		t.Fatalf("failed to create wifi_stations check: %v", err)
@@ -584,8 +545,8 @@ func TestRegistryIntegration(t *testing.T) {
 	}
 
 	desc := chk.Describe()
-	if desc.Label != "test ap" {
-		t.Errorf("expected Descriptor.Label 'test ap', got %q", desc.Label)
+	if desc.Label != "wifi stations" {
+		t.Errorf("expected Descriptor.Label 'wifi stations', got %q", desc.Label)
 	}
 	// 2 radios + total = 3
 	if len(desc.Metrics) != 3 {

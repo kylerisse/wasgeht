@@ -1,63 +1,59 @@
 {
   "router": {
+    "tags": { "category": "router" },
     "checks": {
       "ping": {
-        "label": "router ping",
         "addresses": ["router.risse.tv"]
       }
     }
   },
   "ap1": {
+    "tags": { "category": "ap", "building": "expo" },
     "checks": {
       "ping": {
-        "label": "ap1 ping",
         "addresses": ["ap1.risse.tv"]
       },
       "wifi_stations": {
-        "label": "ap1 wifi stations",
         "address": "ap1.risse.tv",
         "radios": ["phy0-ap0", "phy1-ap0"]
       },
       "http": {
-        "label": "ap1 http",
-        "urls": ["https://ap1.risse.tv"]
+        "urls": ["https://ap1.risse.tv"],
+        "skip_verify": true
       }
     }
   },
   "ap2": {
+    "tags": { "category": "ap", "building": "conference" },
     "checks": {
       "ping": {
-        "label": "ap2 ping",
         "addresses": ["ap2.risse.tv"]
       },
       "wifi_stations": {
-        "label": "ap2 wifi stations",
         "address": "ap2.risse.tv",
         "radios": ["phy0-ap0", "phy1-ap0"]
       },
       "http": {
-        "label": "ap2 http",
-        "urls": ["https://ap2.risse.tv"]
+        "urls": ["https://ap2.risse.tv"],
+        "skip_verify": true
       }
     }
   },
   "fakeap": {
     "checks": {
       "wifi_stations": {
-        "label": "fakeap wifi stations",
         "address": "fakeap.risse.tv",
         "radios": ["phy0-ap0", "phy1-ap0"]
       }
     }
   },
   "qube": {
+    "tags": { "category": "server" },
     "checks": {
       "ping": {
-        "label": "qube ping",
         "addresses": ["qube.risse.tv"]
       },
       "http": {
-        "label": "qube services",
         "urls": [
           "http://qube.risse.tv:2018/sign.json",
           "http://qube.risse.tv:2017/schedule",
@@ -65,30 +61,28 @@
           "https://wasgeht.risse.tv",
           "https://mrtg.risse.tv"
         ],
-        "skip_verify": false
+        "skip_verify": true
       }
     }
   },
   "pi3": {
+    "tags": { "category": "pi" },
     "checks": {
       "ping": {
-        "label": "pi3 ping",
         "addresses": ["pi3.risse.tv"]
       },
       "http": {
-        "label": "pi3 http",
         "urls": ["http://pi3.risse.tv:2017"]
       }
     }
   },
   "pi4": {
+    "tags": { "category": "pi" },
     "checks": {
       "ping": {
-        "label": "pi4 ping",
         "addresses": ["pi4.risse.tv"]
       },
       "http": {
-        "label": "pi4 http",
         "urls": ["http://pi4.risse.tv:2017"]
       }
     }
@@ -96,17 +90,14 @@
   "google": {
     "checks": {
       "ping": {
-        "label": "google ping",
         "addresses": ["8.8.8.8", "8.8.4.4"],
         "timeout": "5s"
       },
       "http": {
-        "label": "google http",
         "urls": [
           "https://www.google.com",
           "https://www.google.com/maps"
-        ],
-        "skip_verify": false
+        ]
       }
     }
   },
@@ -114,7 +105,6 @@
   "fake2": {
     "checks": {
       "ping": {
-        "label": "fake2 ping",
         "addresses": ["192.0.2.1"],
         "timeout": "1s"
       }
@@ -123,7 +113,6 @@
   "fake3": {
     "checks": {
       "ping": {
-        "label": "fake3 ping",
         "addresses": ["10.10.10.10"],
         "timeout": "1s"
       }
@@ -132,7 +121,6 @@
   "localhost": {
     "checks": {
       "ping": {
-        "label": "localhostv4 ping",
         "addresses": [
           "127.0.0.1",
           "::1"

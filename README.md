@@ -14,11 +14,11 @@
   - **http**: HTTP/HTTPS endpoint reachability and per-URL response time.
   - **wifi_stations**: Scrapes a Prometheus metrics endpoint for connected WiFi client counts per radio interface.
 - **Multi-Metric Checks**: Checks can produce multiple metrics stored as separate data sources in a single RRD file. Multi-metric checks render as stacked area graphs or colored line graphs depending on the check type.
-- **Host Status Aggregation**: Each host has an aggregate status (`up`, `down`, `degraded`, `unknown`) computed from all its checks. A check must be alive and have reported within the last 5 minutes to count as healthy.
+- **Host Status Aggregation**: Each host has an aggregate status (`up`, `down`, `degraded`, `stale`, `pending`, `unconfigured`) computed from all its checks. A check must be alive and have reported within the last 5 minutes to count as healthy.
 - **RRD Storage**: Uses Round Robin Databases for time-series data, with configurable archives from 1-minute resolution (1 week) to 8-hour resolution (5 years).
 - **Graph Generation**: Generates historical graphs at multiple time scales (15 minutes through 5 years) for each check type on each host.
 - **Simple Web Interface**: Serves an HTML/JS front-end to display host status and dynamically loaded graphs. Available in table and flame graph formats.
-- **REST API**: Exposes JSON data of all hosts and their status at `GET /api`.
+- **REST API**: Exposes JSON endpoints for all hosts (`GET /api`), individual hosts (`GET /api/hosts/{hostname}`), and status summaries (`GET /api/summary`). Supports tag and status filtering.
 - **Prometheus Support**: Exposes metrics in Prometheus format at `GET /metrics`.
 
 ## Requirements
@@ -75,7 +75,7 @@ Ensure the following are installed:
    make build
    ```
 
-   This will compile the Go code and produce a `wasgehtd` binary in the project root.
+   This will compile the Go code and produce a `wasgehtd` binary in the `out/` directory.
 
 4. **Prepare data directories**:
 
@@ -92,7 +92,7 @@ Ensure the following are installed:
 6. **Run** the application:
 
    ```bash
-   ./wasgehtd --host-file=sample-hosts.json --data-dir=./data --port=1982 --log-level=info
+   ./out/wasgehtd --host-file=sample-hosts.json --data-dir=./data --port=1982 --log-level=info
    ```
 
 7. **Access the web interface**:
@@ -108,41 +108,59 @@ Ensure the following are installed:
 
 ### Host Configuration
 
-Hosts are defined in a JSON file. Each host can specify an address and a set of checks. Hosts without an explicit `checks` block default to a ping check.
+Hosts are defined in a JSON file. Each host can specify optional `tags` for metadata and a `checks` block defining which check types to run. Hosts without a `checks` block will have `unconfigured` status.
 
 ```json
 {
-	"router": {},
-	"google": {
-		"address": "8.8.8.8",
+	"router": {
+		"tags": { "category": "router" },
 		"checks": {
-			"ping": { "timeout": "5s" },
+			"ping": {
+				"addresses": ["router.example.com"]
+			}
+		}
+	},
+	"google": {
+		"checks": {
+			"ping": {
+				"addresses": ["8.8.8.8", "8.8.4.4"],
+				"timeout": "5s"
+			},
 			"http": {
 				"urls": ["https://www.google.com"]
 			}
 		}
 	},
 	"ap1": {
+		"tags": { "category": "ap", "building": "expo" },
 		"checks": {
-			"ping": {},
+			"ping": {
+				"addresses": ["ap1.example.com"]
+			},
 			"wifi_stations": {
+				"address": "ap1.example.com",
 				"radios": ["phy0-ap0", "phy1-ap0"]
 			}
 		}
 	},
 	"qube": {
+		"tags": { "category": "server" },
 		"checks": {
-			"ping": {},
+			"ping": {
+				"addresses": ["qube.example.com"]
+			},
 			"http": {
 				"urls": [
 					"http://qube.example.com:2018/sign.json",
 					"https://whatsup.example.com",
 					"http://mrtg.example.com"
 				],
-				"timeout": "15s"
+				"timeout": "15s",
+				"skip_verify": true
 			}
 		}
 	},
+	"unconfigured-host": {},
 	"disabled-example": {
 		"checks": {
 			"ping": { "enabled": false }
@@ -157,35 +175,36 @@ Hosts are defined in a JSON file. Each host can specify an address and a set of 
 
 Sends ICMP echo requests to check host availability and measure latency.
 
-| Option    | Type   | Default | Description                    |
-| --------- | ------ | ------- | ------------------------------ |
-| `timeout` | string | `"3s"`  | Ping timeout (Go duration)     |
-| `count`   | number | `1`     | Number of ping packets to send |
-| `enabled` | bool   | `true`  | Set to `false` to disable      |
+| Option      | Type     | Default      | Description                         |
+| ----------- | -------- | ------------ | ----------------------------------- |
+| `addresses` | []string | _(required)_ | List of IPs or hostnames to ping    |
+| `timeout`   | string   | `"3s"`       | Ping timeout (Go duration)          |
+| `count`     | number   | `1`          | Number of ping packets to send      |
+| `enabled`   | bool     | `true`       | Set to `false` to disable           |
 
 #### http
 
 Performs HTTP GET requests to a list of URLs and reports per-URL response time. Each URL becomes a separate data source in the RRD, rendered as colored lines on the graph. The check succeeds only if all configured URLs return a response (any HTTP status code counts as reachable). Redirects are not followed.
 
-TLS certificate verification is skipped by default to support locally signed certificates.
+Set `skip_verify` to `true` to support locally signed certificates.
 
 | Option        | Type     | Default      | Description                        |
 | ------------- | -------- | ------------ | ---------------------------------- |
 | `urls`        | []string | _(required)_ | List of full URLs to check         |
 | `timeout`     | string   | `"10s"`      | HTTP request timeout (Go duration) |
-| `skip_verify` | bool     | `true`       | Skip TLS certificate verification  |
+| `skip_verify` | bool     | `false`      | Skip TLS certificate verification  |
 | `enabled`     | bool     | `true`       | Set to `false` to disable          |
 
 #### wifi_stations
 
 Scrapes a Prometheus metrics endpoint for `wifi_stations{ifname="..."}` gauge values, reporting connected client counts per radio interface. Each configured radio becomes a separate data source in the RRD, rendered as a stacked area graph.
 
-| Option    | Type     | Default                      | Description                                |
-| --------- | -------- | ---------------------------- | ------------------------------------------ |
-| `radios`  | []string | _(required)_                 | List of `ifname` label values to monitor   |
-| `url`     | string   | `http://{host}:9100/metrics` | Full URL override for the metrics endpoint |
-| `timeout` | string   | `"5s"`                       | HTTP scrape timeout (Go duration)          |
-| `enabled` | bool     | `true`                       | Set to `false` to disable                  |
+| Option    | Type     | Default      | Description                                              |
+| --------- | -------- | ------------ | -------------------------------------------------------- |
+| `address` | string   | _(required)_ | Hostname or IP of the target (scraped at port 9100)      |
+| `radios`  | []string | _(required)_ | List of `ifname` label values to monitor                 |
+| `timeout` | string   | `"5s"`       | HTTP scrape timeout (Go duration)                        |
+| `enabled` | bool     | `true`       | Set to `false` to disable                                |
 
 The target host expects a Prometheus node exporter (or compatible) exposing metrics like:
 
@@ -198,81 +217,136 @@ wifi_stations{ifname="phy1-ap0"} 7
 
 Each host has an aggregate status derived from all its enabled checks:
 
-| Status       | Color  | Meaning                                                      |
-| ------------ | ------ | ------------------------------------------------------------ |
-| **up**       | Green  | All checks are alive and reported within the last 5 minutes. |
-| **degraded** | Yellow | Some checks are healthy, others are down or stale.           |
-| **down**     | Red    | All checks are down (but at least one has reported before).  |
-| **unknown**  | Gray   | No checks configured, or no check has ever reported.         |
+| Status           | Color  | Meaning                                                                |
+| ---------------- | ------ | ---------------------------------------------------------------------- |
+| **up**           | Green  | All checks are alive and reported within the last 5 minutes.           |
+| **degraded**     | Yellow | Some checks are healthy, others are down, stale, or pending.           |
+| **down**         | Red    | All checks have fresh results and all are down.                        |
+| **stale**        | Gray   | All checks have run before but all results are older than 5 minutes.   |
+| **pending**      | Gray   | Checks are defined but none have run yet.                              |
+| **unconfigured** | Gray   | No checks defined for the host.                                        |
 
-A check result is considered **stale** if its last successful RRD update is older than 5 minutes. Stale checks are treated the same as down checks for the purpose of host status aggregation.
+A check result is considered **stale** if its last successful RRD update is older than 5 minutes.
 
 ## API
 
+All API endpoints return JSON with `Content-Type: application/json`.
+
+### Filtering
+
+The `/api` and `/api/summary` endpoints support query parameter filters:
+
+- **`?tag=key:value`** — Filter hosts by tag. Multiple `tag` params are ANDed together.
+- **`?status=value`** — Filter hosts by status. Multiple `status` params are ORed together. Valid values: `up`, `down`, `degraded`, `stale`, `pending`, `unconfigured`.
+
 ### `GET /api`
 
-Returns JSON with the status of all hosts:
+Returns all hosts wrapped in an envelope:
 
 ```json
 {
-	"google": {
-		"address": "8.8.8.8",
-		"status": "up",
-		"checks": {
-			"ping": {
-				"alive": true,
-				"metrics": {
-					"latency_us": 12345
+	"generated_at": 1700000000,
+	"hosts": {
+		"google": {
+			"status": "up",
+			"checks": {
+				"ping": {
+					"alive": true,
+					"metrics": {
+						"8.8.8.8": 12345,
+						"8.8.4.4": 11200
+					},
+					"lastupdate": 1700000000
 				},
-				"lastupdate": 1700000000
-			},
-			"http": {
-				"alive": true,
-				"metrics": {
-					"https://www.google.com": 45230
-				},
-				"lastupdate": 1700000000
+				"http": {
+					"alive": true,
+					"metrics": {
+						"https://www.google.com": 45230
+					},
+					"lastupdate": 1700000000
+				}
 			}
-		}
-	},
-	"ap1": {
-		"status": "up",
-		"checks": {
-			"ping": {
-				"alive": true,
-				"metrics": {
-					"latency_us": 237
+		},
+		"ap1": {
+			"status": "up",
+			"tags": { "category": "ap", "building": "expo" },
+			"checks": {
+				"ping": {
+					"alive": true,
+					"metrics": {
+						"ap1.example.com": 237
+					},
+					"lastupdate": 1700000000
 				},
-				"lastupdate": 1700000000
-			},
-			"wifi_stations": {
-				"alive": true,
-				"metrics": {
-					"phy0-ap0": 3,
-					"phy1-ap0": 7
-				},
-				"lastupdate": 1700000000
+				"wifi_stations": {
+					"alive": true,
+					"metrics": {
+						"phy0-ap0": 3,
+						"phy1-ap0": 7,
+						"total": 10
+					},
+					"lastupdate": 1700000000
+				}
 			}
+		},
+		"unconfigured-host": {
+			"status": "unconfigured",
+			"checks": {}
 		}
-	},
-	"router": {
-		"status": "unknown",
-		"checks": {}
 	}
 }
 ```
 
-The `status` field is one of `up`, `down`, `degraded`, or `unknown` (see [Host Status](#host-status) above).
+The `status` field is one of `up`, `down`, `degraded`, `stale`, `pending`, or `unconfigured` (see [Host Status](#host-status) above). The `tags` field is omitted when empty.
+
+### `GET /api/hosts/{hostname}`
+
+Returns a single host (bare response, no envelope). Returns 404 if the hostname is not found.
+
+```json
+{
+	"status": "up",
+	"tags": { "category": "ap", "building": "expo" },
+	"checks": {
+		"ping": {
+			"alive": true,
+			"metrics": {
+				"ap1.example.com": 237
+			},
+			"lastupdate": 1700000000
+		}
+	}
+}
+```
+
+### `GET /api/summary`
+
+Returns host counts grouped by status. Supports the same `?tag=` and `?status=` filters.
+
+```json
+{
+	"generated_at": 1700000000,
+	"total": 10,
+	"by_status": {
+		"up": 6,
+		"down": 1,
+		"degraded": 1,
+		"stale": 0,
+		"pending": 1,
+		"unconfigured": 1
+	}
+}
+```
 
 ### `GET /metrics`
 
 Exposes Prometheus-formatted metrics:
 
 ```
-check_alive{host="google", address="8.8.8.8", check="ping"} 1
-check_metric{host="google", address="8.8.8.8", check="ping", metric="latency_us"} 12345
-check_alive{host="ap1", address="", check="ping"} 1
-check_metric{host="ap1", address="", check="ping", metric="latency_us"} 237
+check_alive{host="google", check="ping"} 1
+check_metric{host="google", check="ping", metric="8.8.8.8"} 12345
+check_alive{host="ap1", check="ping"} 1
+check_metric{host="ap1", check="ping", metric="ap1.example.com"} 237
 ```
 
 ## Data Directory Layout
@@ -315,9 +389,9 @@ Each check type gets its own RRD file (e.g., `ping.rrd`, `http.rrd`, `wifi_stati
 ## Makefile Targets
 
 - **test**: Runs staticcheck and `go test` with race detection.
-- **build**: Compiles the Go code and produces `wasgehtd`.
+- **build**: Compiles the Go code and produces `out/wasgehtd`.
 - **deps**: Verifies module dependencies and updates `go.mod` and `go.sum`.
-- **clean**: Removes the `wasgehtd` binary and any generated graphs.
+- **clean**: Removes build output and generated graphs.
 - **mrproper**: Removes all data including RRD files and generated graphs.
 
 ## Contributing

@@ -3,8 +3,10 @@ package server
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -18,17 +20,92 @@ type CheckStatusResponse struct {
 // HostAPIResponse represents a host in the API response.
 type HostAPIResponse struct {
 	Status HostStatus                     `json:"status"`
+	Tags   map[string]string              `json:"tags,omitempty"`
 	Checks map[string]CheckStatusResponse `json:"checks"`
+}
+
+// APIResponse is the top-level envelope for the /api endpoint.
+type APIResponse struct {
+	GeneratedAt int64                      `json:"generated_at"`
+	Hosts       map[string]HostAPIResponse `json:"hosts"`
+}
+
+// parseTagFilters parses ?tag=key:value query params into a map.
+// Returns an error if any value is missing a colon, or has an empty key or value.
+func parseTagFilters(r *http.Request) (map[string]string, error) {
+	filters := make(map[string]string)
+	for _, raw := range r.URL.Query()["tag"] {
+		k, v, ok := strings.Cut(raw, ":")
+		if !ok || k == "" || v == "" {
+			return nil, fmt.Errorf("invalid tag filter %q: must be key:value", raw)
+		}
+		filters[k] = v
+	}
+	return filters, nil
+}
+
+// matchesTagFilters reports whether a host's tags contain all key:value pairs in filters.
+func matchesTagFilters(tags map[string]string, filters map[string]string) bool {
+	for k, v := range filters {
+		if tags[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
+// parseStatusFilters parses ?status=value query params into a set of HostStatus values.
+// Returns an error if any value is not a recognized status.
+func parseStatusFilters(r *http.Request) (map[HostStatus]bool, error) {
+	valid := map[HostStatus]bool{
+		HostStatusUp:           true,
+		HostStatusDown:         true,
+		HostStatusDegraded:     true,
+		HostStatusStale:        true,
+		HostStatusPending:      true,
+		HostStatusUnconfigured: true,
+	}
+	filters := make(map[HostStatus]bool)
+	for _, raw := range r.URL.Query()["status"] {
+		s := HostStatus(raw)
+		if !valid[s] {
+			return nil, fmt.Errorf("invalid status filter %q: must be one of up, down, degraded, stale, pending, unconfigured", raw)
+		}
+		filters[s] = true
+	}
+	return filters, nil
 }
 
 // handleAPI writes a JSON response containing the status of all hosts and their checks.
 func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
+
+	tagFilters, err := parseTagFilters(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	statusFilters, err := parseStatusFilters(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	hosts := make(map[string]HostAPIResponse)
 	for name := range s.hosts {
-		checksResponse := make(map[string]CheckStatusResponse)
+		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
+			continue
+		}
 
 		snapshots := s.hostStatuses(name)
+		status := computeHostStatus(snapshots, now)
+
+		if len(statusFilters) > 0 && !statusFilters[status] {
+			continue
+		}
+
+		checksResponse := make(map[string]CheckStatusResponse)
 		for checkType, snap := range snapshots {
 			checksResponse[checkType] = CheckStatusResponse{
 				Alive:      snap.Alive,
@@ -38,13 +115,107 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		}
 
 		hosts[name] = HostAPIResponse{
-			Status: computeHostStatus(snapshots, now),
+			Status: status,
+			Tags:   s.hosts[name].Tags,
 			Checks: checksResponse,
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(hosts); err != nil {
+	if err := json.NewEncoder(w).Encode(APIResponse{
+		GeneratedAt: now.Unix(),
+		Hosts:       hosts,
+	}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+// SummaryResponse is the response envelope for the /api/summary endpoint.
+type SummaryResponse struct {
+	GeneratedAt int64                 `json:"generated_at"`
+	Total       int                   `json:"total"`
+	ByStatus    map[HostStatus]int    `json:"by_status"`
+}
+
+// handleSummaryAPI writes a JSON response with host counts grouped by status.
+// Supports the same ?tag= and ?status= filters as /api.
+func (s *Server) handleSummaryAPI(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+
+	tagFilters, err := parseTagFilters(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	statusFilters, err := parseStatusFilters(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	byStatus := map[HostStatus]int{
+		HostStatusUp:           0,
+		HostStatusDown:         0,
+		HostStatusDegraded:     0,
+		HostStatusStale:        0,
+		HostStatusPending:      0,
+		HostStatusUnconfigured: 0,
+	}
+
+	total := 0
+	for name := range s.hosts {
+		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
+			continue
+		}
+
+		status := computeHostStatus(s.hostStatuses(name), now)
+
+		if len(statusFilters) > 0 && !statusFilters[status] {
+			continue
+		}
+
+		byStatus[status]++
+		total++
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(SummaryResponse{
+		GeneratedAt: now.Unix(),
+		Total:       total,
+		ByStatus:    byStatus,
+	}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+// handleHostAPI writes a JSON response for a single host looked up by name.
+// Returns 404 if the hostname is not found.
+func (s *Server) handleHostAPI(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+	name := r.PathValue("hostname")
+
+	if _, ok := s.hosts[name]; !ok {
+		http.Error(w, "host not found", http.StatusNotFound)
+		return
+	}
+
+	checksResponse := make(map[string]CheckStatusResponse)
+	snapshots := s.hostStatuses(name)
+	for checkType, snap := range snapshots {
+		checksResponse[checkType] = CheckStatusResponse{
+			Alive:      snap.Alive,
+			Metrics:    snap.Metrics,
+			LastUpdate: snap.LastUpdate,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(HostAPIResponse{
+		Status: computeHostStatus(snapshots, now),
+		Tags:   s.hosts[name].Tags,
+		Checks: checksResponse,
+	}); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
