@@ -144,6 +144,65 @@ func TestHandleAPI_Envelope(t *testing.T) {
 	}
 }
 
+func TestHandleHostAPI_Found(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1": {Name: "ap1", Tags: map[string]string{"category": "ap"}},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	status := s.getOrCreateStatus("ap1", "ping")
+	status.SetResult(check.Result{
+		Success: true,
+		Metrics: map[string]int64{"latency_us": 5000},
+	})
+	status.SetLastUpdate(time.Now().Unix())
+
+	req := httptest.NewRequest("GET", "/api/hosts/ap1", nil)
+	req.SetPathValue("hostname", "ap1")
+	w := httptest.NewRecorder()
+
+	s.handleHostAPI(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+
+	var body HostAPIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if body.Status != HostStatusUp {
+		t.Errorf("expected status up, got %q", body.Status)
+	}
+	if body.Tags["category"] != "ap" {
+		t.Errorf("expected category=ap, got %q", body.Tags["category"])
+	}
+	if _, ok := body.Checks["ping"]; !ok {
+		t.Error("expected ping check in response")
+	}
+}
+
+func TestHandleHostAPI_NotFound(t *testing.T) {
+	s := &Server{
+		hosts:    make(map[string]*host.Host),
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api/hosts/nobody", nil)
+	req.SetPathValue("hostname", "nobody")
+	w := httptest.NewRecorder()
+
+	s.handleHostAPI(w, req)
+
+	if w.Result().StatusCode != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", w.Result().StatusCode)
+	}
+}
+
 func TestHandleAPI_TagsPassthrough(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{

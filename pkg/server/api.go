@@ -60,6 +60,37 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleHostAPI writes a JSON response for a single host looked up by name.
+// Returns 404 if the hostname is not found.
+func (s *Server) handleHostAPI(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+	name := r.PathValue("hostname")
+
+	if _, ok := s.hosts[name]; !ok {
+		http.Error(w, "host not found", http.StatusNotFound)
+		return
+	}
+
+	checksResponse := make(map[string]CheckStatusResponse)
+	snapshots := s.hostStatuses(name)
+	for checkType, snap := range snapshots {
+		checksResponse[checkType] = CheckStatusResponse{
+			Alive:      snap.Alive,
+			Metrics:    snap.Metrics,
+			LastUpdate: snap.LastUpdate,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(HostAPIResponse{
+		Status: computeHostStatus(snapshots, now),
+		Tags:   s.hosts[name].Tags,
+		Checks: checksResponse,
+	}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 // hostDetailHandler returns an http.Handler that renders the host detail page
 // using the hostname query parameter.
 func hostDetailHandler(templateFiles embed.FS) http.Handler {
