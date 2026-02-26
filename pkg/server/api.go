@@ -58,16 +58,18 @@ func matchesTagFilters(tags map[string]string, filters map[string]string) bool {
 // Returns an error if any value is not a recognized status.
 func parseStatusFilters(r *http.Request) (map[HostStatus]bool, error) {
 	valid := map[HostStatus]bool{
-		HostStatusUp:       true,
-		HostStatusDown:     true,
-		HostStatusDegraded: true,
-		HostStatusUnknown:  true,
+		HostStatusUp:           true,
+		HostStatusDown:         true,
+		HostStatusDegraded:     true,
+		HostStatusStale:        true,
+		HostStatusPending:      true,
+		HostStatusUnconfigured: true,
 	}
 	filters := make(map[HostStatus]bool)
 	for _, raw := range r.URL.Query()["status"] {
 		s := HostStatus(raw)
 		if !valid[s] {
-			return nil, fmt.Errorf("invalid status filter %q: must be one of up, down, degraded, unknown", raw)
+			return nil, fmt.Errorf("invalid status filter %q: must be one of up, down, degraded, stale, pending, unconfigured", raw)
 		}
 		filters[s] = true
 	}

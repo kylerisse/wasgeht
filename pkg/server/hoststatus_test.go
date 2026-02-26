@@ -18,33 +18,35 @@ func TestComputeHostStatus(t *testing.T) {
 		snapshots map[string]check.StatusSnapshot
 		want      HostStatus
 	}{
+		// unconfigured
+		{
+			name:      "no checks",
+			snapshots: map[string]check.StatusSnapshot{},
+			want:      HostStatusUnconfigured,
+		},
+		// pending
+		{
+			name:      "single check never run",
+			snapshots: map[string]check.StatusSnapshot{"ping": {Alive: false, LastUpdate: 0}},
+			want:      HostStatusPending,
+		},
+		{
+			name: "all checks never run",
+			snapshots: map[string]check.StatusSnapshot{
+				"ping": {Alive: false, LastUpdate: 0},
+				"http": {Alive: false, LastUpdate: 0},
+				"tcp":  {Alive: false, LastUpdate: 0},
+			},
+			want: HostStatusPending,
+		},
+		// up
 		{
 			name:      "single check fresh and up",
 			snapshots: map[string]check.StatusSnapshot{"ping": {Alive: true, LastUpdate: fresh}},
 			want:      HostStatusUp,
 		},
 		{
-			name:      "single check fresh and down",
-			snapshots: map[string]check.StatusSnapshot{"ping": {Alive: false, LastUpdate: fresh}},
-			want:      HostStatusDown,
-		},
-		{
-			name:      "single check stale and alive",
-			snapshots: map[string]check.StatusSnapshot{"ping": {Alive: true, LastUpdate: stale}},
-			want:      HostStatusDown,
-		},
-		{
-			name:      "single check stale and down",
-			snapshots: map[string]check.StatusSnapshot{"ping": {Alive: false, LastUpdate: stale}},
-			want:      HostStatusDown,
-		},
-		{
-			name:      "single check never reported",
-			snapshots: map[string]check.StatusSnapshot{"ping": {Alive: false, LastUpdate: 0}},
-			want:      HostStatusUnknown,
-		},
-		{
-			name: "three checks all fresh and up",
+			name: "all checks fresh and up",
 			snapshots: map[string]check.StatusSnapshot{
 				"ping": {Alive: true, LastUpdate: fresh},
 				"http": {Alive: true, LastUpdate: fresh},
@@ -52,8 +54,14 @@ func TestComputeHostStatus(t *testing.T) {
 			},
 			want: HostStatusUp,
 		},
+		// down
 		{
-			name: "three checks all fresh and down",
+			name:      "single check fresh and down",
+			snapshots: map[string]check.StatusSnapshot{"ping": {Alive: false, LastUpdate: fresh}},
+			want:      HostStatusDown,
+		},
+		{
+			name: "all checks fresh and down",
 			snapshots: map[string]check.StatusSnapshot{
 				"ping": {Alive: false, LastUpdate: fresh},
 				"http": {Alive: false, LastUpdate: fresh},
@@ -61,8 +69,9 @@ func TestComputeHostStatus(t *testing.T) {
 			},
 			want: HostStatusDown,
 		},
+		// degraded
 		{
-			name: "three checks mixed - one down",
+			name: "mixed fresh up and fresh down",
 			snapshots: map[string]check.StatusSnapshot{
 				"ping": {Alive: true, LastUpdate: fresh},
 				"http": {Alive: false, LastUpdate: fresh},
@@ -71,7 +80,7 @@ func TestComputeHostStatus(t *testing.T) {
 			want: HostStatusDegraded,
 		},
 		{
-			name: "three checks mixed - one stale",
+			name: "fresh up mixed with stale",
 			snapshots: map[string]check.StatusSnapshot{
 				"ping": {Alive: true, LastUpdate: fresh},
 				"http": {Alive: true, LastUpdate: stale},
@@ -80,7 +89,7 @@ func TestComputeHostStatus(t *testing.T) {
 			want: HostStatusDegraded,
 		},
 		{
-			name: "three checks mixed - one never reported",
+			name: "fresh up mixed with never run",
 			snapshots: map[string]check.StatusSnapshot{
 				"ping": {Alive: true, LastUpdate: fresh},
 				"http": {Alive: true, LastUpdate: fresh},
@@ -88,22 +97,35 @@ func TestComputeHostStatus(t *testing.T) {
 			},
 			want: HostStatusDegraded,
 		},
+		// stale
 		{
-			name: "three checks all never reported",
-			snapshots: map[string]check.StatusSnapshot{
-				"ping": {Alive: false, LastUpdate: 0},
-				"http": {Alive: false, LastUpdate: 0},
-				"tcp":  {Alive: false, LastUpdate: 0},
-			},
-			want: HostStatusUnknown,
+			name:      "single check stale",
+			snapshots: map[string]check.StatusSnapshot{"ping": {Alive: true, LastUpdate: stale}},
+			want:      HostStatusStale,
 		},
 		{
-			name: "two checks - one never reported one down with history",
+			name: "all checks stale",
+			snapshots: map[string]check.StatusSnapshot{
+				"ping": {Alive: true, LastUpdate: stale},
+				"http": {Alive: false, LastUpdate: stale},
+			},
+			want: HostStatusStale,
+		},
+		{
+			name: "mix of stale and never run",
 			snapshots: map[string]check.StatusSnapshot{
 				"ping": {Alive: false, LastUpdate: 0},
 				"http": {Alive: false, LastUpdate: stale},
 			},
-			want: HostStatusDown,
+			want: HostStatusStale,
+		},
+		{
+			name: "all fresh down mixed with stale",
+			snapshots: map[string]check.StatusSnapshot{
+				"ping": {Alive: false, LastUpdate: fresh},
+				"http": {Alive: false, LastUpdate: stale},
+			},
+			want: HostStatusStale,
 		},
 	}
 
@@ -122,7 +144,9 @@ func TestHostStatus_StringValues(t *testing.T) {
 		status HostStatus
 		want   string
 	}{
-		{HostStatusUnknown, "unknown"},
+		{HostStatusUnconfigured, "unconfigured"},
+		{HostStatusPending, "pending"},
+		{HostStatusStale, "stale"},
 		{HostStatusUp, "up"},
 		{HostStatusDegraded, "degraded"},
 		{HostStatusDown, "down"},
@@ -162,7 +186,14 @@ func TestHostStatus_JSONSerialization(t *testing.T) {
 }
 
 func TestHostStatus_JSONRoundTrip(t *testing.T) {
-	statuses := []HostStatus{HostStatusUnknown, HostStatusUp, HostStatusDegraded, HostStatusDown}
+	statuses := []HostStatus{
+		HostStatusUnconfigured,
+		HostStatusPending,
+		HostStatusStale,
+		HostStatusUp,
+		HostStatusDegraded,
+		HostStatusDown,
+	}
 
 	for _, s := range statuses {
 		resp := HostAPIResponse{Status: s, Checks: map[string]CheckStatusResponse{}}

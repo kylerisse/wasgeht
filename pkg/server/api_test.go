@@ -87,8 +87,8 @@ func TestHandleAPI_IncludesHostStatus(t *testing.T) {
 	}
 
 	for name, host := range body.Hosts {
-		if host.Status != HostStatusUnknown {
-			t.Errorf("host %q: expected status unknown, got %q", name, host.Status)
+		if host.Status != HostStatusUnconfigured {
+			t.Errorf("host %q: expected status unconfigured, got %q", name, host.Status)
 		}
 	}
 }
