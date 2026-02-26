@@ -1,3 +1,6 @@
+// Package http implements an HTTP GET check that probes one or more URLs
+// and reports per-URL response times. The check succeeds only when every
+// configured URL returns a response; redirects are not followed.
 package http
 
 import (
