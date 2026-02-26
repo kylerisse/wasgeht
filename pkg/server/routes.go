@@ -22,6 +22,10 @@ func (s *Server) startAPI() {
 		s.handleHostAPI(w, r)
 	})
 
+	http.HandleFunc("/api/summary", func(w http.ResponseWriter, r *http.Request) {
+		s.handleSummaryAPI(w, r)
+	})
+
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		s.handlePrometheus(w, r)
 	})

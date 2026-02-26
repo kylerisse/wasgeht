@@ -130,6 +130,65 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SummaryResponse is the response envelope for the /api/summary endpoint.
+type SummaryResponse struct {
+	GeneratedAt int64                 `json:"generated_at"`
+	Total       int                   `json:"total"`
+	ByStatus    map[HostStatus]int    `json:"by_status"`
+}
+
+// handleSummaryAPI writes a JSON response with host counts grouped by status.
+// Supports the same ?tag= and ?status= filters as /api.
+func (s *Server) handleSummaryAPI(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+
+	tagFilters, err := parseTagFilters(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	statusFilters, err := parseStatusFilters(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	byStatus := map[HostStatus]int{
+		HostStatusUp:           0,
+		HostStatusDown:         0,
+		HostStatusDegraded:     0,
+		HostStatusStale:        0,
+		HostStatusPending:      0,
+		HostStatusUnconfigured: 0,
+	}
+
+	total := 0
+	for name := range s.hosts {
+		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
+			continue
+		}
+
+		status := computeHostStatus(s.hostStatuses(name), now)
+
+		if len(statusFilters) > 0 && !statusFilters[status] {
+			continue
+		}
+
+		byStatus[status]++
+		total++
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(SummaryResponse{
+		GeneratedAt: now.Unix(),
+		Total:       total,
+		ByStatus:    byStatus,
+	}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 // handleHostAPI writes a JSON response for a single host looked up by name.
 // Returns 404 if the hostname is not found.
 func (s *Server) handleHostAPI(w http.ResponseWriter, r *http.Request) {

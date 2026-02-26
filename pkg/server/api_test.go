@@ -144,6 +144,149 @@ func TestHandleAPI_Envelope(t *testing.T) {
 	}
 }
 
+func TestHandleSummaryAPI_Empty(t *testing.T) {
+	s := &Server{
+		hosts:    make(map[string]*host.Host),
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api/summary", nil)
+	w := httptest.NewRecorder()
+	s.handleSummaryAPI(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Result().StatusCode)
+	}
+
+	var body SummaryResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if body.Total != 0 {
+		t.Errorf("expected total=0, got %d", body.Total)
+	}
+	if len(body.ByStatus) != 6 {
+		t.Errorf("expected 6 status entries, got %d", len(body.ByStatus))
+	}
+}
+
+func TestHandleSummaryAPI_Counts(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"up1":   {Name: "up1"},
+			"up2":   {Name: "up2"},
+			"down1": {Name: "down1"},
+			"bare":  {Name: "bare"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	for _, name := range []string{"up1", "up2"} {
+		st := s.getOrCreateStatus(name, "ping")
+		st.SetResult(check.Result{Success: true})
+		st.SetLastUpdate(time.Now().Unix())
+	}
+	downSt := s.getOrCreateStatus("down1", "ping")
+	downSt.SetResult(check.Result{Success: false})
+	downSt.SetLastUpdate(time.Now().Unix())
+	// bare has no checks → unconfigured
+
+	req := httptest.NewRequest("GET", "/api/summary", nil)
+	w := httptest.NewRecorder()
+	s.handleSummaryAPI(w, req)
+
+	var body SummaryResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if body.Total != 4 {
+		t.Errorf("expected total=4, got %d", body.Total)
+	}
+	if body.ByStatus[HostStatusUp] != 2 {
+		t.Errorf("expected up=2, got %d", body.ByStatus[HostStatusUp])
+	}
+	if body.ByStatus[HostStatusDown] != 1 {
+		t.Errorf("expected down=1, got %d", body.ByStatus[HostStatusDown])
+	}
+	if body.ByStatus[HostStatusUnconfigured] != 1 {
+		t.Errorf("expected unconfigured=1, got %d", body.ByStatus[HostStatusUnconfigured])
+	}
+}
+
+func TestHandleSummaryAPI_TagFilter(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1":    {Name: "ap1", Tags: map[string]string{"category": "ap"}},
+			"ap2":    {Name: "ap2", Tags: map[string]string{"category": "ap"}},
+			"router": {Name: "router", Tags: map[string]string{"category": "router"}},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api/summary?tag=category:ap", nil)
+	w := httptest.NewRecorder()
+	s.handleSummaryAPI(w, req)
+
+	var body SummaryResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if body.Total != 2 {
+		t.Errorf("expected total=2, got %d", body.Total)
+	}
+}
+
+func TestHandleSummaryAPI_StatusFilter(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"up1":   {Name: "up1"},
+			"down1": {Name: "down1"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	upSt := s.getOrCreateStatus("up1", "ping")
+	upSt.SetResult(check.Result{Success: true})
+	upSt.SetLastUpdate(time.Now().Unix())
+
+	downSt := s.getOrCreateStatus("down1", "ping")
+	downSt.SetResult(check.Result{Success: false})
+	downSt.SetLastUpdate(time.Now().Unix())
+
+	req := httptest.NewRequest("GET", "/api/summary?status=down", nil)
+	w := httptest.NewRecorder()
+	s.handleSummaryAPI(w, req)
+
+	var body SummaryResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if body.Total != 1 {
+		t.Errorf("expected total=1, got %d", body.Total)
+	}
+	if body.ByStatus[HostStatusDown] != 1 {
+		t.Errorf("expected down=1, got %d", body.ByStatus[HostStatusDown])
+	}
+	if body.ByStatus[HostStatusUp] != 0 {
+		t.Errorf("expected up=0, got %d", body.ByStatus[HostStatusUp])
+	}
+}
+
+func TestHandleSummaryAPI_InvalidFilter(t *testing.T) {
+	s := &Server{
+		hosts:    make(map[string]*host.Host),
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api/summary?status=bogus", nil)
+	w := httptest.NewRecorder()
+	s.handleSummaryAPI(w, req)
+
+	if w.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", w.Result().StatusCode)
+	}
+}
+
 func TestHandleAPI_NoTagFilter_ReturnsAll(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{
