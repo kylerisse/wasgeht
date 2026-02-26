@@ -12,9 +12,9 @@ function renderDashboard() {
 	getDashboardData().then((data) => {
 		const $Dashboard = document.querySelector('#dashboard-body');
 		$Dashboard.innerHTML = '';
-		const sortedData = Object.keys(data).map((key) => ({
+		const sortedData = Object.keys(data.hosts).map((key) => ({
 			name: key,
-			...data[key],
+			...data.hosts[key],
 		}));
 
 		sortedData.forEach((item) => {

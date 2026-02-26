@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
 	"github.com/kylerisse/wasgeht/pkg/host"
@@ -40,12 +41,12 @@ func TestHandleAPI_BasicResponse(t *testing.T) {
 		t.Errorf("expected application/json, got %q", contentType)
 	}
 
-	var body map[string]HostAPIResponse
+	var body APIResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	google, ok := body["google"]
+	google, ok := body.Hosts["google"]
 	if !ok {
 		t.Fatal("expected google in response")
 	}
@@ -80,12 +81,12 @@ func TestHandleAPI_IncludesHostStatus(t *testing.T) {
 
 	s.handleAPI(w, req)
 
-	var body map[string]HostAPIResponse
+	var body APIResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	for name, host := range body {
+	for name, host := range body.Hosts {
 		if host.Status != HostStatusUnknown {
 			t.Errorf("host %q: expected status unknown, got %q", name, host.Status)
 		}
@@ -103,12 +104,74 @@ func TestHandleAPI_EmptyHosts(t *testing.T) {
 
 	s.handleAPI(w, req)
 
-	var body map[string]HostAPIResponse
+	var body APIResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if len(body) != 0 {
-		t.Errorf("expected empty response, got %d hosts", len(body))
+	if len(body.Hosts) != 0 {
+		t.Errorf("expected empty hosts, got %d", len(body.Hosts))
+	}
+}
+
+func TestHandleAPI_Envelope(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	before := time.Now().Unix()
+
+	req := httptest.NewRequest("GET", "/api", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	after := time.Now().Unix()
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if body.GeneratedAt < before || body.GeneratedAt > after {
+		t.Errorf("generated_at %d not between %d and %d", body.GeneratedAt, before, after)
+	}
+
+	if _, ok := body.Hosts["router"]; !ok {
+		t.Error("expected router in hosts")
+	}
+}
+
+func TestHandleAPI_TagsPassthrough(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1": {Name: "ap1", Tags: map[string]string{"category": "ap", "building": "expo"}},
+			"router": {Name: "router"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	ap1 := body.Hosts["ap1"]
+	if ap1.Tags["category"] != "ap" {
+		t.Errorf("expected category=ap, got %q", ap1.Tags["category"])
+	}
+	if ap1.Tags["building"] != "expo" {
+		t.Errorf("expected building=expo, got %q", ap1.Tags["building"])
+	}
+
+	router := body.Hosts["router"]
+	if router.Tags != nil {
+		t.Error("expected nil tags for router")
 	}
 }

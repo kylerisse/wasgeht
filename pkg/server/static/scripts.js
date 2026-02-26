@@ -31,7 +31,7 @@ function loadTableData() {
 	fetch('/api')
 		.then((response) => response.json())
 		.then((data) => {
-			updateTable(data);
+			updateTable(data.hosts);
 			countdown = 15; // Reset countdown after loading new data
 
 			// Apply sorting again if a column is already sorted

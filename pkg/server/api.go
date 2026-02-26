@@ -22,6 +22,12 @@ type HostAPIResponse struct {
 	Checks map[string]CheckStatusResponse `json:"checks"`
 }
 
+// APIResponse is the top-level envelope for the /api endpoint.
+type APIResponse struct {
+	GeneratedAt int64                      `json:"generated_at"`
+	Hosts       map[string]HostAPIResponse `json:"hosts"`
+}
+
 // handleAPI writes a JSON response containing the status of all hosts and their checks.
 func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
@@ -46,7 +52,10 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(hosts); err != nil {
+	if err := json.NewEncoder(w).Encode(APIResponse{
+		GeneratedAt: now.Unix(),
+		Hosts:       hosts,
+	}); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
