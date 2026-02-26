@@ -258,6 +258,122 @@ func TestHandleAPI_TagFilter_MalformedReturns400(t *testing.T) {
 	}
 }
 
+func TestHandleAPI_StatusFilter_SingleStatus(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"up1":   {Name: "up1"},
+			"down1": {Name: "down1"},
+			"bare":  {Name: "bare"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	upStatus := s.getOrCreateStatus("up1", "ping")
+	upStatus.SetResult(check.Result{Success: true})
+	upStatus.SetLastUpdate(time.Now().Unix())
+
+	downStatus := s.getOrCreateStatus("down1", "ping")
+	downStatus.SetResult(check.Result{Success: false})
+	downStatus.SetLastUpdate(time.Now().Unix())
+
+	req := httptest.NewRequest("GET", "/api?status=up", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 1 {
+		t.Errorf("expected 1 host, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["up1"]; !ok {
+		t.Error("expected up1 in results")
+	}
+}
+
+func TestHandleAPI_StatusFilter_MultipleOrMatchd(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"up1":   {Name: "up1"},
+			"down1": {Name: "down1"},
+			"bare":  {Name: "bare"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	upStatus := s.getOrCreateStatus("up1", "ping")
+	upStatus.SetResult(check.Result{Success: true})
+	upStatus.SetLastUpdate(time.Now().Unix())
+
+	downStatus := s.getOrCreateStatus("down1", "ping")
+	downStatus.SetResult(check.Result{Success: false})
+	downStatus.SetLastUpdate(time.Now().Unix())
+
+	req := httptest.NewRequest("GET", "/api?status=up&status=down", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 2 {
+		t.Errorf("expected 2 hosts, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["bare"]; ok {
+		t.Error("bare (unknown) should be excluded")
+	}
+}
+
+func TestHandleAPI_StatusAndTagFilters_Combined(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1":    {Name: "ap1", Tags: map[string]string{"category": "ap"}},
+			"ap2":    {Name: "ap2", Tags: map[string]string{"category": "ap"}},
+			"router": {Name: "router", Tags: map[string]string{"category": "router"}},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	for _, name := range []string{"ap1", "router"} {
+		st := s.getOrCreateStatus(name, "ping")
+		st.SetResult(check.Result{Success: true})
+		st.SetLastUpdate(time.Now().Unix())
+	}
+	// ap2 has no status set — will be unknown
+
+	req := httptest.NewRequest("GET", "/api?tag=category:ap&status=up", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 1 {
+		t.Errorf("expected 1 host, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["ap1"]; !ok {
+		t.Error("expected ap1 in results")
+	}
+}
+
+func TestHandleAPI_StatusFilter_InvalidReturns400(t *testing.T) {
+	s := &Server{
+		hosts:    make(map[string]*host.Host),
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?status=sideways", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	if w.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", w.Result().StatusCode)
+	}
+}
+
 func TestHandleHostAPI_Found(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{

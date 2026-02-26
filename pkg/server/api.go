@@ -54,6 +54,26 @@ func matchesTagFilters(tags map[string]string, filters map[string]string) bool {
 	return true
 }
 
+// parseStatusFilters parses ?status=value query params into a set of HostStatus values.
+// Returns an error if any value is not a recognized status.
+func parseStatusFilters(r *http.Request) (map[HostStatus]bool, error) {
+	valid := map[HostStatus]bool{
+		HostStatusUp:       true,
+		HostStatusDown:     true,
+		HostStatusDegraded: true,
+		HostStatusUnknown:  true,
+	}
+	filters := make(map[HostStatus]bool)
+	for _, raw := range r.URL.Query()["status"] {
+		s := HostStatus(raw)
+		if !valid[s] {
+			return nil, fmt.Errorf("invalid status filter %q: must be one of up, down, degraded, unknown", raw)
+		}
+		filters[s] = true
+	}
+	return filters, nil
+}
+
 // handleAPI writes a JSON response containing the status of all hosts and their checks.
 func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
@@ -64,14 +84,26 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	statusFilters, err := parseStatusFilters(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	hosts := make(map[string]HostAPIResponse)
 	for name := range s.hosts {
 		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
 			continue
 		}
-		checksResponse := make(map[string]CheckStatusResponse)
 
 		snapshots := s.hostStatuses(name)
+		status := computeHostStatus(snapshots, now)
+
+		if len(statusFilters) > 0 && !statusFilters[status] {
+			continue
+		}
+
+		checksResponse := make(map[string]CheckStatusResponse)
 		for checkType, snap := range snapshots {
 			checksResponse[checkType] = CheckStatusResponse{
 				Alive:      snap.Alive,
@@ -81,7 +113,7 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		}
 
 		hosts[name] = HostAPIResponse{
-			Status: computeHostStatus(snapshots, now),
+			Status: status,
 			Tags:   s.hosts[name].Tags,
 			Checks: checksResponse,
 		}
