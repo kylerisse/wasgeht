@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // CheckStatusResponse represents the status of a single check in the API response.
@@ -254,6 +256,20 @@ func hostDetailHandler(templateFiles embed.FS) http.Handler {
 			Hostname: hostname,
 		})
 	})
+}
+
+// newRateLimitMiddleware returns a middleware that limits requests using the provided limiter.
+// Requests exceeding the limit receive a 429 Too Many Requests response.
+func newRateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !limiter.Allow() {
+				http.Error(w, "too many requests", http.StatusTooManyRequests)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // noCacheMiddleware wraps an http.Handler and sets headers to prevent caching.

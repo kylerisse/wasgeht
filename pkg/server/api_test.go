@@ -9,6 +9,7 @@ import (
 
 	"github.com/kylerisse/wasgeht/pkg/check"
 	"github.com/kylerisse/wasgeht/pkg/host"
+	"golang.org/x/time/rate"
 )
 
 func TestHandleAPI_BasicResponse(t *testing.T) {
@@ -735,5 +736,47 @@ func TestHandleAPI_TagsPassthrough(t *testing.T) {
 	router := body.Hosts["router"]
 	if router.Tags != nil {
 		t.Error("expected nil tags for router")
+	}
+}
+
+func TestRateLimitMiddleware_AllowsWithinLimit(t *testing.T) {
+	limiter := rate.NewLimiter(rate.Limit(10), 5)
+	rl := newRateLimitMiddleware(limiter)
+
+	handler := rl(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for i := 0; i < 5; i++ {
+		req := httptest.NewRequest("GET", "/api", nil)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		if w.Result().StatusCode != http.StatusOK {
+			t.Errorf("request %d: expected 200, got %d", i+1, w.Result().StatusCode)
+		}
+	}
+}
+
+func TestRateLimitMiddleware_BlocksWhenExceeded(t *testing.T) {
+	// burst of 1 — second request must be denied
+	limiter := rate.NewLimiter(rate.Limit(1), 1)
+	rl := newRateLimitMiddleware(limiter)
+
+	handler := rl(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/api", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("first request: expected 200, got %d", w.Result().StatusCode)
+	}
+
+	req = httptest.NewRequest("GET", "/api", nil)
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Result().StatusCode != http.StatusTooManyRequests {
+		t.Errorf("second request: expected 429, got %d", w.Result().StatusCode)
 	}
 }

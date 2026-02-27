@@ -5,6 +5,8 @@ import (
 	"io/fs"
 	"net/http"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 //go:embed static/*
@@ -17,21 +19,12 @@ var templateFiles embed.FS
 func (s *Server) startAPI() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		s.handleAPI(w, r)
-	})
+	rl := newRateLimitMiddleware(rate.NewLimiter(rate.Limit(200), 500))
 
-	mux.HandleFunc("/api/hosts/{hostname}", func(w http.ResponseWriter, r *http.Request) {
-		s.handleHostAPI(w, r)
-	})
-
-	mux.HandleFunc("/api/summary", func(w http.ResponseWriter, r *http.Request) {
-		s.handleSummaryAPI(w, r)
-	})
-
-	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		s.handlePrometheus(w, r)
-	})
+	mux.Handle("/api", rl(noCacheMiddleware(http.HandlerFunc(s.handleAPI))))
+	mux.Handle("/api/hosts/{hostname}", rl(noCacheMiddleware(http.HandlerFunc(s.handleHostAPI))))
+	mux.Handle("/api/summary", rl(noCacheMiddleware(http.HandlerFunc(s.handleSummaryAPI))))
+	mux.Handle("/metrics", rl(noCacheMiddleware(http.HandlerFunc(s.handlePrometheus))))
 
 	content, err := fs.Sub(staticFiles, "static")
 	if err != nil {
