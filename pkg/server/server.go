@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
+	checkdns "github.com/kylerisse/wasgeht/pkg/check/dns"
 	checkhttp "github.com/kylerisse/wasgeht/pkg/check/http"
 	"github.com/kylerisse/wasgeht/pkg/check/ping"
 	"github.com/kylerisse/wasgeht/pkg/check/wifistations"
@@ -49,6 +50,9 @@ func NewServer(hostFile string, rrdDir string, graphDir string, listenPort strin
 	}
 	if err := registry.Register(checkhttp.TypeName, checkhttp.Factory); err != nil {
 		return nil, fmt.Errorf("failed to register http check: %w", err)
+	}
+	if err := registry.Register(checkdns.TypeName, checkdns.Factory); err != nil {
+		return nil, fmt.Errorf("failed to register dns check: %w", err)
 	}
 
 	// Initialize the statuses map with an empty map per host

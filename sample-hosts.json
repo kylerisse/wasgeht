@@ -4,6 +4,16 @@
     "checks": {
       "ping": {
         "addresses": ["router.risse.tv"]
+      },
+      "dns": {
+        "server": "router.risse.tv:53",
+        "timeout": "1s",
+        "queries": [
+          { "name": "router.risse.tv",           "type": "A",   "expect": "192.168.73.1" },
+          { "name": "1.73.168.192.in-addr.arpa",  "type": "PTR", "expect": "router.risse.tv." },
+          { "name": "k.root-servers.net",         "type": "A",   "expect": "193.0.14.129" },
+          { "name": "129.14.0.193.in-addr.arpa",  "type": "PTR", "expect": "k.root-servers.net." }
+        ]
       }
     }
   },
@@ -97,6 +107,14 @@
         "urls": [
           "https://www.google.com",
           "https://www.google.com/maps"
+        ]
+      },
+      "dns": {
+        "server": "8.8.8.8:53",
+        "timeout": "5s",
+        "queries": [
+          { "name": "k.root-servers.net",         "type": "A",   "expect": "193.0.14.129" },
+          { "name": "129.14.0.193.in-addr.arpa",  "type": "PTR", "expect": "k.root-servers.net." }
         ]
       }
     }
