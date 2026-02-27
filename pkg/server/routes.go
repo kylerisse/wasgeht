@@ -4,6 +4,7 @@ import (
 	"embed"
 	"io/fs"
 	"net/http"
+	"time"
 )
 
 //go:embed static/*
@@ -14,19 +15,21 @@ var templateFiles embed.FS
 
 // startAPI registers all HTTP routes and starts the API server in a goroutine.
 func (s *Server) startAPI() {
-	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		s.handleAPI(w, r)
 	})
 
-	http.HandleFunc("/api/hosts/{hostname}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/hosts/{hostname}", func(w http.ResponseWriter, r *http.Request) {
 		s.handleHostAPI(w, r)
 	})
 
-	http.HandleFunc("/api/summary", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/summary", func(w http.ResponseWriter, r *http.Request) {
 		s.handleSummaryAPI(w, r)
 	})
 
-	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		s.handlePrometheus(w, r)
 	})
 
@@ -37,17 +40,25 @@ func (s *Server) startAPI() {
 
 	// Serve generated graphs from the graphDir
 	imgFS := http.FileServer(http.Dir(s.graphDir))
-	http.Handle("/imgs/", noCacheMiddleware(imgFS))
+	mux.Handle("/imgs/", noCacheMiddleware(imgFS))
 
-	http.Handle("/host-detail", hostDetailHandler(templateFiles))
+	mux.Handle("/host-detail", hostDetailHandler(templateFiles))
 
 	// Serve static content
 	htmlFS := http.FileServer(http.FS(content))
-	http.Handle("/", noCacheMiddleware(http.StripPrefix("/", htmlFS)))
+	mux.Handle("/", noCacheMiddleware(http.StripPrefix("/", htmlFS)))
 
 	go func() {
 		s.logger.Infof("Starting API server on port %v...", s.listenPort)
-		if err := http.ListenAndServe(":"+s.listenPort, nil); err != nil {
+		srv := &http.Server{
+			Addr:              ":" + s.listenPort,
+			Handler:           mux,
+			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
+		}
+		if err := srv.ListenAndServe(); err != nil {
 			s.logger.Fatalf("Failed to start API server: %v", err)
 		}
 	}()
