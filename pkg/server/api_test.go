@@ -9,6 +9,7 @@ import (
 
 	"github.com/kylerisse/wasgeht/pkg/check"
 	"github.com/kylerisse/wasgeht/pkg/host"
+	"golang.org/x/time/rate"
 )
 
 func TestHandleAPI_BasicResponse(t *testing.T) {
@@ -517,6 +518,136 @@ func TestHandleAPI_StatusFilter_InvalidReturns400(t *testing.T) {
 	}
 }
 
+func TestHandleAPI_HostnameFilter_SingleMatch(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+			"ap1":    {Name: "ap1"},
+			"ap2":    {Name: "ap2"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?hostname=ap1", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 1 {
+		t.Errorf("expected 1 host, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["ap1"]; !ok {
+		t.Error("expected ap1 in results")
+	}
+}
+
+func TestHandleAPI_HostnameFilter_MultipleOrMatched(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+			"ap1":    {Name: "ap1"},
+			"ap2":    {Name: "ap2"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?hostname=ap1&hostname=ap2", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 2 {
+		t.Errorf("expected 2 hosts, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["router"]; ok {
+		t.Error("router should be excluded")
+	}
+}
+
+func TestHandleAPI_HostnameFilter_NoMatch(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?hostname=nonexistent", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Result().StatusCode)
+	}
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 0 {
+		t.Errorf("expected 0 hosts, got %d", len(body.Hosts))
+	}
+}
+
+func TestHandleAPI_HostnameAndStatusFilters_Combined(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1": {Name: "ap1"},
+			"ap2": {Name: "ap2"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	st := s.getOrCreateStatus("ap1", "ping")
+	st.SetResult(check.Result{Success: true})
+	st.SetLastUpdate(time.Now().Unix())
+	// ap2 has no checks — unconfigured
+
+	req := httptest.NewRequest("GET", "/api?hostname=ap1&hostname=ap2&status=up", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 1 {
+		t.Errorf("expected 1 host, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["ap1"]; !ok {
+		t.Error("expected ap1 in results")
+	}
+}
+
+func TestHandleSummaryAPI_HostnameFilter(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+			"ap1":    {Name: "ap1"},
+			"ap2":    {Name: "ap2"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api/summary?hostname=ap1&hostname=ap2", nil)
+	w := httptest.NewRecorder()
+	s.handleSummaryAPI(w, req)
+
+	var body SummaryResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if body.Total != 2 {
+		t.Errorf("expected total=2, got %d", body.Total)
+	}
+}
+
 func TestHandleHostAPI_Found(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{
@@ -605,5 +736,47 @@ func TestHandleAPI_TagsPassthrough(t *testing.T) {
 	router := body.Hosts["router"]
 	if router.Tags != nil {
 		t.Error("expected nil tags for router")
+	}
+}
+
+func TestRateLimitMiddleware_AllowsWithinLimit(t *testing.T) {
+	limiter := rate.NewLimiter(rate.Limit(10), 5)
+	rl := newRateLimitMiddleware(limiter)
+
+	handler := rl(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for i := 0; i < 5; i++ {
+		req := httptest.NewRequest("GET", "/api", nil)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		if w.Result().StatusCode != http.StatusOK {
+			t.Errorf("request %d: expected 200, got %d", i+1, w.Result().StatusCode)
+		}
+	}
+}
+
+func TestRateLimitMiddleware_BlocksWhenExceeded(t *testing.T) {
+	// burst of 1 — second request must be denied
+	limiter := rate.NewLimiter(rate.Limit(1), 1)
+	rl := newRateLimitMiddleware(limiter)
+
+	handler := rl(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/api", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("first request: expected 200, got %d", w.Result().StatusCode)
+	}
+
+	req = httptest.NewRequest("GET", "/api", nil)
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Result().StatusCode != http.StatusTooManyRequests {
+		t.Errorf("second request: expected 429, got %d", w.Result().StatusCode)
 	}
 }

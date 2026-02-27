@@ -1,12 +1,17 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
+	checkdns "github.com/kylerisse/wasgeht/pkg/check/dns"
 	checkhttp "github.com/kylerisse/wasgeht/pkg/check/http"
 	"github.com/kylerisse/wasgeht/pkg/check/ping"
 	"github.com/kylerisse/wasgeht/pkg/check/wifistations"
@@ -20,6 +25,7 @@ type Server struct {
 	statuses   map[string]map[string]*check.Status // host -> checkType -> status
 	statusesMu sync.RWMutex                        // protects the statuses map structure
 	registry   *check.Registry
+	httpServer *http.Server
 	done       chan struct{}
 	wg         sync.WaitGroup
 	logger     *logrus.Logger
@@ -44,6 +50,9 @@ func NewServer(hostFile string, rrdDir string, graphDir string, listenPort strin
 	}
 	if err := registry.Register(checkhttp.TypeName, checkhttp.Factory); err != nil {
 		return nil, fmt.Errorf("failed to register http check: %w", err)
+	}
+	if err := registry.Register(checkdns.TypeName, checkdns.Factory); err != nil {
+		return nil, fmt.Errorf("failed to register dns check: %w", err)
 	}
 
 	// Initialize the statuses map with an empty map per host
@@ -76,8 +85,17 @@ func (s *Server) Start() {
 	}
 }
 
-// Stop gracefully shuts down all workers
+// Stop gracefully shuts down the HTTP server and all workers.
 func (s *Server) Stop() {
+	if s.httpServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := s.httpServer.Shutdown(ctx); err != nil {
+			s.logger.Errorf("HTTP server shutdown error: %v", err)
+		} else {
+			s.logger.Info("HTTP server shut down gracefully.")
+		}
+	}
 	close(s.done)
 	s.wg.Wait()
 	s.logger.Info("All workers stopped.")
@@ -128,10 +146,30 @@ func loadHosts(filePath string) (map[string]*host.Host, error) {
 
 	hostPointers := make(map[string]*host.Host)
 	for name, h := range hosts {
+		if err := validateHostname(name); err != nil {
+			return nil, err
+		}
 		newHost := h
 		newHost.Name = name
 		hostPointers[name] = &newHost
 	}
 
 	return hostPointers, nil
+}
+
+// validateHostname rejects hostnames containing path separators or traversal sequences.
+func validateHostname(name string) error {
+	if name == "" {
+		return fmt.Errorf("hostname must not be empty")
+	}
+	if strings.ContainsAny(name, "/\\") {
+		return fmt.Errorf("invalid hostname %q: must not contain path separators", name)
+	}
+	if strings.Contains(name, "..") {
+		return fmt.Errorf("invalid hostname %q: must not contain '..'", name)
+	}
+	if strings.ContainsRune(name, 0) {
+		return fmt.Errorf("invalid hostname %q: must not contain null bytes", name)
+	}
+	return nil
 }

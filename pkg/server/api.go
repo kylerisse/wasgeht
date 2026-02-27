@@ -1,13 +1,14 @@
 package server
 
 import (
-	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // CheckStatusResponse represents the status of a single check in the API response.
@@ -54,6 +55,15 @@ func matchesTagFilters(tags map[string]string, filters map[string]string) bool {
 	return true
 }
 
+// parseHostnameFilters parses ?hostname=value query params into a set of hostnames.
+func parseHostnameFilters(r *http.Request) map[string]bool {
+	filters := make(map[string]bool)
+	for _, name := range r.URL.Query()["hostname"] {
+		filters[name] = true
+	}
+	return filters
+}
+
 // parseStatusFilters parses ?status=value query params into a set of HostStatus values.
 // Returns an error if any value is not a recognized status.
 func parseStatusFilters(r *http.Request) (map[HostStatus]bool, error) {
@@ -92,8 +102,14 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hostnameFilters := parseHostnameFilters(r)
+
 	hosts := make(map[string]HostAPIResponse)
 	for name := range s.hosts {
+		if len(hostnameFilters) > 0 && !hostnameFilters[name] {
+			continue
+		}
+
 		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
 			continue
 		}
@@ -138,7 +154,7 @@ type SummaryResponse struct {
 }
 
 // handleSummaryAPI writes a JSON response with host counts grouped by status.
-// Supports the same ?tag= and ?status= filters as /api.
+// Supports the same ?hostname=, ?tag=, and ?status= filters as /api.
 func (s *Server) handleSummaryAPI(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
@@ -154,6 +170,8 @@ func (s *Server) handleSummaryAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hostnameFilters := parseHostnameFilters(r)
+
 	byStatus := map[HostStatus]int{
 		HostStatusUp:           0,
 		HostStatusDown:         0,
@@ -165,6 +183,10 @@ func (s *Server) handleSummaryAPI(w http.ResponseWriter, r *http.Request) {
 
 	total := 0
 	for name := range s.hosts {
+		if len(hostnameFilters) > 0 && !hostnameFilters[name] {
+			continue
+		}
+
 		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
 			continue
 		}
@@ -220,18 +242,57 @@ func (s *Server) handleHostAPI(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// hostDetailHandler returns an http.Handler that renders the host detail page
-// using the hostname query parameter.
-func hostDetailHandler(templateFiles embed.FS) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var hostPageTemplate = template.Must(template.ParseFS(templateFiles, "templates/host-page.html.tmpl"))
-		var hostname = r.URL.Query().Get("hostname")
+// handleHostDetail renders the host detail page after validating the hostname
+// against the configured hosts map.
+func (s *Server) handleHostDetail(w http.ResponseWriter, r *http.Request) {
+	hostname := r.URL.Query().Get("hostname")
 
-		hostPageTemplate.Execute(w, struct {
-			Hostname string
-		}{
-			Hostname: hostname,
+	if _, ok := s.hosts[hostname]; !ok {
+		http.Error(w, "host not found", http.StatusNotFound)
+		return
+	}
+
+	var hostPageTemplate = template.Must(template.ParseFS(templateFiles, "templates/host-page.html.tmpl"))
+	hostPageTemplate.Execute(w, struct {
+		Hostname string
+	}{
+		Hostname: hostname,
+	})
+}
+
+// newRateLimitMiddleware returns a middleware that limits requests using the provided limiter.
+// Requests exceeding the limit receive a 429 Too Many Requests response.
+func newRateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !limiter.Allow() {
+				http.Error(w, "too many requests", http.StatusTooManyRequests)
+				return
+			}
+			next.ServeHTTP(w, r)
 		})
+	}
+}
+
+// securityHeadersMiddleware sets common security headers on all responses.
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// requireGET rejects non-GET requests with 405 Method Not Allowed.
+// Placed outside the rate limiter so invalid methods don't consume tokens.
+func requireGET(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 

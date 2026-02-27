@@ -12,13 +12,14 @@
 - **Built-in Check Types**:
   - **ping**: ICMP echo requests for host availability and latency.
   - **http**: HTTP/HTTPS endpoint reachability and per-URL response time.
+  - **dns**: DNS query validation against a specific server with expected-answer verification. Supports A, AAAA, and PTR records.
   - **wifi_stations**: Scrapes a Prometheus metrics endpoint for connected WiFi client counts per radio interface.
 - **Multi-Metric Checks**: Checks can produce multiple metrics stored as separate data sources in a single RRD file. Multi-metric checks render as stacked area graphs or colored line graphs depending on the check type.
 - **Host Status Aggregation**: Each host has an aggregate status (`up`, `down`, `degraded`, `stale`, `pending`, `unconfigured`) computed from all its checks. A check must be alive and have reported within the last 5 minutes to count as healthy.
 - **RRD Storage**: Uses Round Robin Databases for time-series data, with configurable archives from 1-minute resolution (1 week) to 8-hour resolution (5 years).
 - **Graph Generation**: Generates historical graphs at multiple time scales (15 minutes through 5 years) for each check type on each host.
 - **Simple Web Interface**: Serves an HTML/JS front-end to display host status and dynamically loaded graphs. Available in table and flame graph formats.
-- **REST API**: Exposes JSON endpoints for all hosts (`GET /api`), individual hosts (`GET /api/hosts/{hostname}`), and status summaries (`GET /api/summary`). Supports tag and status filtering.
+- **REST API**: Exposes JSON endpoints for all hosts (`GET /api`), individual hosts (`GET /api/hosts/{hostname}`), and status summaries (`GET /api/summary`). Supports hostname, tag, and status filtering.
 - **Prometheus Support**: Exposes metrics in Prometheus format at `GET /metrics`.
 
 ## Requirements
@@ -195,6 +196,41 @@ Set `skip_verify` to `true` to support locally signed certificates.
 | `skip_verify` | bool     | `false`      | Skip TLS certificate verification  |
 | `enabled`     | bool     | `true`       | Set to `false` to disable          |
 
+#### dns
+
+Sends DNS queries to a specific server and validates each answer against an expected value. Supports A, AAAA, and PTR record types. Each query produces a separate data source in the RRD, rendered as colored lines on the graph. The check succeeds only if all configured queries resolve and every answer matches its expected value.
+
+PTR query names must be provided in reverse notation (e.g. `1.73.168.192.in-addr.arpa`). Expected PTR values may include or omit the trailing dot — both forms are accepted.
+
+| Option    | Type           | Default      | Description                                          |
+| --------- | -------------- | ------------ | ---------------------------------------------------- |
+| `server`  | string         | _(required)_ | DNS server to query, as `host:port`                  |
+| `queries` | list of objects | _(required)_ | One or more query definitions (see below)            |
+| `timeout` | string         | `"3s"`       | Per-query timeout (Go duration)                      |
+
+Each entry in `queries` requires:
+
+| Field    | Type   | Description                                                                 |
+| -------- | ------ | --------------------------------------------------------------------------- |
+| `name`   | string | DNS name to query (e.g. `router.example.com`, `1.0.168.192.in-addr.arpa`)  |
+| `type`   | string | Record type: `A`, `AAAA`, or `PTR` (case-insensitive)                       |
+| `expect` | string | Expected value in the answer (IP address for A/AAAA, hostname for PTR)      |
+
+Example — testing an internal resolver with forward and reverse lookups:
+
+```json
+"dns": {
+    "server": "router.example.com:53",
+    "timeout": "5s",
+    "queries": [
+        { "name": "router.example.com",         "type": "A",   "expect": "192.168.1.1" },
+        { "name": "1.1.168.192.in-addr.arpa",   "type": "PTR", "expect": "router.example.com." },
+        { "name": "k.root-servers.net",         "type": "A",   "expect": "193.0.14.129" },
+        { "name": "129.14.0.193.in-addr.arpa",  "type": "PTR", "expect": "k.root-servers.net." }
+    ]
+}
+```
+
 #### wifi_stations
 
 Scrapes a Prometheus metrics endpoint for `wifi_stations{ifname="..."}` gauge values, reporting connected client counts per radio interface. Each configured radio becomes a separate data source in the RRD, rendered as a stacked area graph.
@@ -236,6 +272,7 @@ All API endpoints return JSON with `Content-Type: application/json`.
 
 The `/api` and `/api/summary` endpoints support query parameter filters:
 
+- **`?hostname=value`** — Filter to specific hostnames. Multiple `hostname` params are ORed together. Non-matching hostnames return an empty result (no 404).
 - **`?tag=key:value`** — Filter hosts by tag. Multiple `tag` params are ANDed together.
 - **`?status=value`** — Filter hosts by status. Multiple `status` params are ORed together. Valid values: `up`, `down`, `degraded`, `stale`, `pending`, `unconfigured`.
 
@@ -321,7 +358,7 @@ Returns a single host (bare response, no envelope). Returns 404 if the hostname 
 
 ### `GET /api/summary`
 
-Returns host counts grouped by status. Supports the same `?tag=` and `?status=` filters.
+Returns host counts grouped by status. Supports the same `?hostname=`, `?tag=`, and `?status=` filters.
 
 ```json
 {
@@ -357,7 +394,8 @@ RRD files and graph images are organized into per-host subdirectories:
 data/
 ├── rrds/
 │   ├── router/
-│   │   └── ping.rrd
+│   │   ├── ping.rrd
+│   │   └── dns.rrd
 │   ├── google/
 │   │   ├── ping.rrd
 │   │   └── http.rrd
@@ -370,6 +408,8 @@ data/
         ├── router/
         │   ├── router_ping_15m.png
         │   ├── router_ping_1h.png
+        │   ├── router_dns_15m.png
+        │   ├── router_dns_1h.png
         │   └── ...
         ├── google/
         │   ├── google_ping_15m.png

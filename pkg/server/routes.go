@@ -4,6 +4,9 @@ import (
 	"embed"
 	"io/fs"
 	"net/http"
+	"time"
+
+	"golang.org/x/time/rate"
 )
 
 //go:embed static/*
@@ -14,21 +17,14 @@ var templateFiles embed.FS
 
 // startAPI registers all HTTP routes and starts the API server in a goroutine.
 func (s *Server) startAPI() {
-	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		s.handleAPI(w, r)
-	})
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/api/hosts/{hostname}", func(w http.ResponseWriter, r *http.Request) {
-		s.handleHostAPI(w, r)
-	})
+	rl := newRateLimitMiddleware(rate.NewLimiter(rate.Limit(200), 500))
 
-	http.HandleFunc("/api/summary", func(w http.ResponseWriter, r *http.Request) {
-		s.handleSummaryAPI(w, r)
-	})
-
-	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		s.handlePrometheus(w, r)
-	})
+	mux.Handle("/api", http.HandlerFunc(s.handleAPI))
+	mux.Handle("/api/hosts/{hostname}", http.HandlerFunc(s.handleHostAPI))
+	mux.Handle("/api/summary", http.HandlerFunc(s.handleSummaryAPI))
+	mux.Handle("/metrics", http.HandlerFunc(s.handlePrometheus))
 
 	content, err := fs.Sub(staticFiles, "static")
 	if err != nil {
@@ -37,17 +33,27 @@ func (s *Server) startAPI() {
 
 	// Serve generated graphs from the graphDir
 	imgFS := http.FileServer(http.Dir(s.graphDir))
-	http.Handle("/imgs/", noCacheMiddleware(imgFS))
+	mux.Handle("/imgs/", imgFS)
 
-	http.Handle("/host-detail", hostDetailHandler(templateFiles))
+	mux.Handle("/host-detail", http.HandlerFunc(s.handleHostDetail))
 
 	// Serve static content
 	htmlFS := http.FileServer(http.FS(content))
-	http.Handle("/", noCacheMiddleware(http.StripPrefix("/", htmlFS)))
+	mux.Handle("/", http.StripPrefix("/", htmlFS))
+
+	handler := requireGET(rl(noCacheMiddleware(securityHeadersMiddleware(mux))))
+	s.httpServer = &http.Server{
+		Addr:              ":" + s.listenPort,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 
 	go func() {
 		s.logger.Infof("Starting API server on port %v...", s.listenPort)
-		if err := http.ListenAndServe(":"+s.listenPort, nil); err != nil {
+		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.logger.Fatalf("Failed to start API server: %v", err)
 		}
 	}()
