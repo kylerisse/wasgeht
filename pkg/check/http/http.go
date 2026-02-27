@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
@@ -56,6 +57,16 @@ func WithSkipVerify(skip bool) Option {
 func New(urls []string, opts ...Option) (*Check, error) {
 	if len(urls) == 0 {
 		return nil, fmt.Errorf("http: at least one URL is required")
+	}
+
+	for _, u := range urls {
+		parsed, err := url.Parse(u)
+		if err != nil {
+			return nil, fmt.Errorf("http: invalid URL %q: %w", u, err)
+		}
+		if parsed.Scheme != "http" && parsed.Scheme != "https" {
+			return nil, fmt.Errorf("http: URL %q must use http or https scheme", u)
+		}
 	}
 
 	c := &Check{
