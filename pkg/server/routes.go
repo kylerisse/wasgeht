@@ -21,10 +21,10 @@ func (s *Server) startAPI() {
 
 	rl := newRateLimitMiddleware(rate.NewLimiter(rate.Limit(200), 500))
 
-	mux.Handle("/api", requireGET(rl(noCacheMiddleware(http.HandlerFunc(s.handleAPI)))))
-	mux.Handle("/api/hosts/{hostname}", requireGET(rl(noCacheMiddleware(http.HandlerFunc(s.handleHostAPI)))))
-	mux.Handle("/api/summary", requireGET(rl(noCacheMiddleware(http.HandlerFunc(s.handleSummaryAPI)))))
-	mux.Handle("/metrics", requireGET(rl(noCacheMiddleware(http.HandlerFunc(s.handlePrometheus)))))
+	mux.Handle("/api", http.HandlerFunc(s.handleAPI))
+	mux.Handle("/api/hosts/{hostname}", http.HandlerFunc(s.handleHostAPI))
+	mux.Handle("/api/summary", http.HandlerFunc(s.handleSummaryAPI))
+	mux.Handle("/metrics", http.HandlerFunc(s.handlePrometheus))
 
 	content, err := fs.Sub(staticFiles, "static")
 	if err != nil {
@@ -33,17 +33,18 @@ func (s *Server) startAPI() {
 
 	// Serve generated graphs from the graphDir
 	imgFS := http.FileServer(http.Dir(s.graphDir))
-	mux.Handle("/imgs/", requireGET(rl(noCacheMiddleware(imgFS))))
+	mux.Handle("/imgs/", imgFS)
 
-	mux.Handle("/host-detail", requireGET(rl(noCacheMiddleware(http.HandlerFunc(s.handleHostDetail)))))
+	mux.Handle("/host-detail", http.HandlerFunc(s.handleHostDetail))
 
 	// Serve static content
 	htmlFS := http.FileServer(http.FS(content))
-	mux.Handle("/", requireGET(noCacheMiddleware(http.StripPrefix("/", htmlFS))))
+	mux.Handle("/", http.StripPrefix("/", htmlFS))
 
+	handler := requireGET(rl(noCacheMiddleware(securityHeadersMiddleware(mux))))
 	s.httpServer = &http.Server{
 		Addr:              ":" + s.listenPort,
-		Handler:           securityHeadersMiddleware(mux),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      30 * time.Second,
