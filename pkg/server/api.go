@@ -54,6 +54,15 @@ func matchesTagFilters(tags map[string]string, filters map[string]string) bool {
 	return true
 }
 
+// parseHostnameFilters parses ?hostname=value query params into a set of hostnames.
+func parseHostnameFilters(r *http.Request) map[string]bool {
+	filters := make(map[string]bool)
+	for _, name := range r.URL.Query()["hostname"] {
+		filters[name] = true
+	}
+	return filters
+}
+
 // parseStatusFilters parses ?status=value query params into a set of HostStatus values.
 // Returns an error if any value is not a recognized status.
 func parseStatusFilters(r *http.Request) (map[HostStatus]bool, error) {
@@ -92,8 +101,14 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hostnameFilters := parseHostnameFilters(r)
+
 	hosts := make(map[string]HostAPIResponse)
 	for name := range s.hosts {
+		if len(hostnameFilters) > 0 && !hostnameFilters[name] {
+			continue
+		}
+
 		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
 			continue
 		}
@@ -138,7 +153,7 @@ type SummaryResponse struct {
 }
 
 // handleSummaryAPI writes a JSON response with host counts grouped by status.
-// Supports the same ?tag= and ?status= filters as /api.
+// Supports the same ?hostname=, ?tag=, and ?status= filters as /api.
 func (s *Server) handleSummaryAPI(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
@@ -154,6 +169,8 @@ func (s *Server) handleSummaryAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hostnameFilters := parseHostnameFilters(r)
+
 	byStatus := map[HostStatus]int{
 		HostStatusUp:           0,
 		HostStatusDown:         0,
@@ -165,6 +182,10 @@ func (s *Server) handleSummaryAPI(w http.ResponseWriter, r *http.Request) {
 
 	total := 0
 	for name := range s.hosts {
+		if len(hostnameFilters) > 0 && !hostnameFilters[name] {
+			continue
+		}
+
 		if len(tagFilters) > 0 && !matchesTagFilters(s.hosts[name].Tags, tagFilters) {
 			continue
 		}

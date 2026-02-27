@@ -18,7 +18,7 @@
 - **RRD Storage**: Uses Round Robin Databases for time-series data, with configurable archives from 1-minute resolution (1 week) to 8-hour resolution (5 years).
 - **Graph Generation**: Generates historical graphs at multiple time scales (15 minutes through 5 years) for each check type on each host.
 - **Simple Web Interface**: Serves an HTML/JS front-end to display host status and dynamically loaded graphs. Available in table and flame graph formats.
-- **REST API**: Exposes JSON endpoints for all hosts (`GET /api`), individual hosts (`GET /api/hosts/{hostname}`), and status summaries (`GET /api/summary`). Supports tag and status filtering.
+- **REST API**: Exposes JSON endpoints for all hosts (`GET /api`), individual hosts (`GET /api/hosts/{hostname}`), and status summaries (`GET /api/summary`). Supports hostname, tag, and status filtering.
 - **Prometheus Support**: Exposes metrics in Prometheus format at `GET /metrics`.
 
 ## Requirements
@@ -236,6 +236,7 @@ All API endpoints return JSON with `Content-Type: application/json`.
 
 The `/api` and `/api/summary` endpoints support query parameter filters:
 
+- **`?hostname=value`** — Filter to specific hostnames. Multiple `hostname` params are ORed together. Non-matching hostnames return an empty result (no 404).
 - **`?tag=key:value`** — Filter hosts by tag. Multiple `tag` params are ANDed together.
 - **`?status=value`** — Filter hosts by status. Multiple `status` params are ORed together. Valid values: `up`, `down`, `degraded`, `stale`, `pending`, `unconfigured`.
 
@@ -321,7 +322,7 @@ Returns a single host (bare response, no envelope). Returns 404 if the hostname 
 
 ### `GET /api/summary`
 
-Returns host counts grouped by status. Supports the same `?tag=` and `?status=` filters.
+Returns host counts grouped by status. Supports the same `?hostname=`, `?tag=`, and `?status=` filters.
 
 ```json
 {

@@ -517,6 +517,136 @@ func TestHandleAPI_StatusFilter_InvalidReturns400(t *testing.T) {
 	}
 }
 
+func TestHandleAPI_HostnameFilter_SingleMatch(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+			"ap1":    {Name: "ap1"},
+			"ap2":    {Name: "ap2"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?hostname=ap1", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 1 {
+		t.Errorf("expected 1 host, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["ap1"]; !ok {
+		t.Error("expected ap1 in results")
+	}
+}
+
+func TestHandleAPI_HostnameFilter_MultipleOrMatched(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+			"ap1":    {Name: "ap1"},
+			"ap2":    {Name: "ap2"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?hostname=ap1&hostname=ap2", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 2 {
+		t.Errorf("expected 2 hosts, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["router"]; ok {
+		t.Error("router should be excluded")
+	}
+}
+
+func TestHandleAPI_HostnameFilter_NoMatch(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api?hostname=nonexistent", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Result().StatusCode)
+	}
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 0 {
+		t.Errorf("expected 0 hosts, got %d", len(body.Hosts))
+	}
+}
+
+func TestHandleAPI_HostnameAndStatusFilters_Combined(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"ap1": {Name: "ap1"},
+			"ap2": {Name: "ap2"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	st := s.getOrCreateStatus("ap1", "ping")
+	st.SetResult(check.Result{Success: true})
+	st.SetLastUpdate(time.Now().Unix())
+	// ap2 has no checks — unconfigured
+
+	req := httptest.NewRequest("GET", "/api?hostname=ap1&hostname=ap2&status=up", nil)
+	w := httptest.NewRecorder()
+	s.handleAPI(w, req)
+
+	var body APIResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if len(body.Hosts) != 1 {
+		t.Errorf("expected 1 host, got %d", len(body.Hosts))
+	}
+	if _, ok := body.Hosts["ap1"]; !ok {
+		t.Error("expected ap1 in results")
+	}
+}
+
+func TestHandleSummaryAPI_HostnameFilter(t *testing.T) {
+	s := &Server{
+		hosts: map[string]*host.Host{
+			"router": {Name: "router"},
+			"ap1":    {Name: "ap1"},
+			"ap2":    {Name: "ap2"},
+		},
+		statuses: make(map[string]map[string]*check.Status),
+	}
+
+	req := httptest.NewRequest("GET", "/api/summary?hostname=ap1&hostname=ap2", nil)
+	w := httptest.NewRecorder()
+	s.handleSummaryAPI(w, req)
+
+	var body SummaryResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if body.Total != 2 {
+		t.Errorf("expected total=2, got %d", body.Total)
+	}
+}
+
 func TestHandleHostAPI_Found(t *testing.T) {
 	s := &Server{
 		hosts: map[string]*host.Host{
