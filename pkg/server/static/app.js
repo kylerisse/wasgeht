@@ -516,6 +516,7 @@ document.addEventListener('alpine:init', function () {
             omitted: [],
             checkTypes: [],
             visibleChecks: [],
+            activeChecks: [],
             allTimes: ALL_TIMES,
             loading: true,
             graphTimestamp: Date.now(),
@@ -555,10 +556,6 @@ document.addEventListener('alpine:init', function () {
                     .then(function (data) {
                         self.host = data;
                         self.checkTypes = Object.keys(data.checks || {}).sort();
-                        var hidden = filterState.getHiddenChecks(self.hostname);
-                        self.visibleChecks = self.checkTypes.filter(function (ct) {
-                            return hidden.indexOf(ct) === -1;
-                        });
                         self.loading = false;
                     })
                     .catch(function () {
@@ -625,24 +622,31 @@ document.addEventListener('alpine:init', function () {
             },
 
             toggleCheck: function (checkType) {
-                var idx = this.visibleChecks.indexOf(checkType);
+                var idx = this.activeChecks.indexOf(checkType);
                 if (idx === -1) {
-                    this.visibleChecks.push(checkType);
+                    this.activeChecks.push(checkType);
                 } else {
-                    this.visibleChecks.splice(idx, 1);
+                    this.activeChecks.splice(idx, 1);
                 }
-                var hidden = this.checkTypes.filter(function (ct) {
-                    return this.visibleChecks.indexOf(ct) === -1;
-                }, this);
-                filterState.setHiddenChecks(this.hostname, hidden);
+                if (this.activeChecks.length === this.checkTypes.length) {
+                    this.activeChecks = [];
+                }
             },
 
             isCheckVisible: function (checkType) {
-                return this.visibleChecks.indexOf(checkType) !== -1;
+                return this.activeChecks.length === 0 || this.activeChecks.indexOf(checkType) !== -1;
+            },
+
+            hasActiveCheck: function () {
+                return this.activeChecks.length > 0;
+            },
+
+            clearChecks: function () {
+                this.activeChecks = [];
             },
 
             showAllChecks: function () {
-                this.visibleChecks = this.checkTypes.slice();
+                this.activeChecks = [];
             },
 
             imgSrc: function (checkType, timeKey) {
