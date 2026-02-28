@@ -9,7 +9,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-//go:embed static/*
+//go:embed all:static
 var staticFiles embed.FS
 
 //go:embed templates/*
