@@ -1,33 +1,76 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 	<head>
 		<meta charset="UTF-8" />
 		<title>Was Geht: Host Status</title>
-		<link
-			rel="stylesheet"
-			href="/styles.css"
-		/>
-		<meta
-			name="viewport"
-			content="width=device-width, initial-scale=1"
-		/>
+		<link rel="stylesheet" href="/vendor/pico-2.1.1.classless.min.css" />
+		<link rel="stylesheet" href="/app.css" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
-	<body>
-		<nav>
-			<a href="/">Home</a>
-			<a href="/flamegraph.html">Hosts</a>
-			<div id="countdown">Next refresh in: 5s</div>
-		</nav>
-		<script src="/scripts.js"></script>
-		<h1>Was Geht: Host Status</h1>
-		<table id="hostTable">
-			<thead>
-				<tr>
-					<th onclick="handleSort(0)">Host</th>
-					<th onclick="handleSort(1)">Status</th>
-				</tr>
-			</thead>
-			<tbody> </tbody>
-		</table>
+	<body x-data="dashboard">
+		<main>
+			<!-- Top bar: nav + summary badges (clickable to filter) + search -->
+			<div class="summary-bar">
+				<a href="/">Dashboard</a>
+				<a href="/flamegraph.html">Grid View</a>
+				<template x-for="entry in summaryEntries()">
+					<span x-bind:class="summaryBadgeClickClass(entry)"
+						x-on:click="toggleStatus(entry.status)"
+						role="button">
+						<span x-text="entry.status"></span>
+						<span x-text="entry.count"></span>
+					</span>
+				</template>
+				<span class="summary-bar-spacer"></span>
+				<button class="clear-omitted-btn" x-show="hasOmitted()" x-on:click="clearOmitted()" x-text="omittedText()"></button>
+				<input type="search" placeholder="Search hosts..."
+					x-bind:value="search"
+					x-on:input="updateSearch($event.target.value)" />
+			</div>
+
+			<!-- Host table -->
+			<table class="host-table">
+				<thead>
+					<tr>
+						<th x-on:click="sortBy('name')">
+							Host<span class="sort-arrow" x-text="sortArrow('name')"></span>
+						</th>
+						<th x-on:click="sortBy('status')">
+							Status<span class="sort-arrow" x-text="sortArrow('status')"></span>
+						</th>
+						<th>Checks</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					<template x-for="entry in filteredHosts()">
+						<tr>
+							<td>
+								<a class="hostname-link"
+									x-bind:href="hostDetailHref(entry)"
+									x-text="hostName(entry)"></a>
+							</td>
+							<td>
+								<span x-bind:class="hostStatusBadgeClass(entry)"
+									x-text="hostStatusText(entry)"></span>
+							</td>
+							<td>
+								<template x-for="chk in hostCheckEntries(entry)">
+									<span x-bind:class="checkBadgeClass(chk)"
+										x-text="checkBadgeText(chk)">
+									</span>
+								</template>
+							</td>
+							<td>
+								<span class="host-actions" x-on:click="omitHostEntry(entry)" title="Omit this host">&#x2715;</span>
+							</td>
+						</tr>
+					</template>
+				</tbody>
+			</table>
+		</main>
+
+		<script src="/vendor/alpine-csp-3.15.8.min.js" defer></script>
+		<script src="/app.js"></script>
 	</body>
 </html>
