@@ -70,6 +70,19 @@ function sortCompare(a, b, dir) {
 
 var STATUS_PRIORITY = { up: 0, degraded: 1, stale: 2, pending: 3, down: 4, unconfigured: 5 };
 
+function checkSummaryMetric(checkType, data) {
+    if (!data || !data.alive || !data.metrics) return '';
+    var metrics = data.metrics;
+    if (checkType === 'wifi_stations') {
+        var total = metrics['total'];
+        return total !== undefined ? ' ' + total : '';
+    }
+    var vals = Object.values(metrics);
+    if (vals.length === 0) return '';
+    var avg = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+    return ' ' + (avg / 1000).toFixed(1) + 'ms';
+}
+
 /* ── Dashboard component ──────────────────────────────────── */
 
 document.addEventListener('alpine:init', function () {
@@ -261,7 +274,9 @@ document.addEventListener('alpine:init', function () {
             },
 
             checkBadgeText: function (chk) {
-                return chk[0] + (chk[1].alive ? ' \u2713' : ' \u2717');
+                var symbol = chk[1].alive ? ' \u2713' : ' \u2717';
+                var metric = checkSummaryMetric(chk[0], chk[1]);
+                return chk[0] + symbol + metric;
             },
 
             statusToggleClass: function (s) {
@@ -612,8 +627,10 @@ document.addEventListener('alpine:init', function () {
             },
 
             checkToggleText: function (checkType) {
-                var symbol = this.checkAlive(checkType) ? ' \u2713' : ' \u2717';
-                return this.checkLabel(checkType) + symbol;
+                var alive = this.checkAlive(checkType);
+                var symbol = alive ? ' \u2713' : ' \u2717';
+                var metric = checkSummaryMetric(checkType, this.host && this.host.checks && this.host.checks[checkType]);
+                return this.checkLabel(checkType) + symbol + metric;
             },
 
             hostStatusBadgeClass: function () {

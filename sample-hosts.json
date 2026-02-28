@@ -356,7 +356,12 @@
   "monitor1": {
     "tags": { "category": "server", "role": "monitoring" },
     "checks": {
-      "ping": { "addresses": ["monitor1.risse.tv"] },
+      "ping": { 
+	"addresses": [
+	      "monitor1.risse.tv",
+	      "192.168.73.1"
+      	] 
+      },
       "http": {
         "urls": [
           "https://wasgeht.risse.tv",
