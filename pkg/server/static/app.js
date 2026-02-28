@@ -54,6 +54,7 @@ var filterState = {
 /* ── Utility helpers ──────────────────────────────────────── */
 
 var ALL_STATUSES = ['up', 'down', 'degraded', 'stale', 'pending', 'unconfigured'];
+var ALWAYS_SHOWN_STATUSES = ['up', 'down', 'degraded'];
 
 var ALL_TIMES = [
     { key: '15m', label: '15m' },
@@ -256,9 +257,9 @@ document.addEventListener('alpine:init', function () {
                     counts[s] = (counts[s] || 0) + 1;
                 });
                 return ALL_STATUSES.filter(function (s) {
-                    return (counts[s] || 0) > 0;
+                    return ALWAYS_SHOWN_STATUSES.indexOf(s) !== -1 || (counts[s] || 0) > 0;
                 }).map(function (s) {
-                    return { status: s, count: counts[s] };
+                    return { status: s, count: counts[s] || 0 };
                 });
             },
 
@@ -452,9 +453,9 @@ document.addEventListener('alpine:init', function () {
                     counts[s] = (counts[s] || 0) + 1;
                 });
                 return ALL_STATUSES.filter(function (s) {
-                    return (counts[s] || 0) > 0;
+                    return ALWAYS_SHOWN_STATUSES.indexOf(s) !== -1 || (counts[s] || 0) > 0;
                 }).map(function (s) {
-                    return { status: s, count: counts[s] };
+                    return { status: s, count: counts[s] || 0 };
                 });
             },
 
@@ -581,9 +582,9 @@ document.addEventListener('alpine:init', function () {
                     counts[s] = (counts[s] || 0) + 1;
                 });
                 return ALL_STATUSES.filter(function (s) {
-                    return (counts[s] || 0) > 0;
+                    return ALWAYS_SHOWN_STATUSES.indexOf(s) !== -1 || (counts[s] || 0) > 0;
                 }).map(function (s) {
-                    return { status: s, count: counts[s] };
+                    return { status: s, count: counts[s] || 0 };
                 });
             },
 
