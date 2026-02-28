@@ -294,15 +294,12 @@
     border-radius: 0.25rem;
     border: 1px solid rgba(0, 0, 0, 0.1);
     transition: transform 0.1s;
+    position: relative;
 }
 
 .grid-item:hover {
     transform: scale(1.05);
     z-index: 1;
-}
-
-.grid-item {
-    position: relative;
 }
 
 .grid-item-omit {
