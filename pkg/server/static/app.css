@@ -212,7 +212,7 @@
 
 /* ── Dashboard table ──────────────────────────────────────── */
 
-.dashboard-main {
+.full-width-main {
     max-width: none !important;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
@@ -278,9 +278,6 @@
 /* ── Grid view (flamegraph) ───────────────────────────────── */
 
 .grid-main {
-    max-width: none !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
     padding-bottom: 0 !important;
 }
 
@@ -347,12 +344,6 @@
 }
 
 /* ── Host detail ──────────────────────────────────────────── */
-
-.host-detail-main {
-    max-width: none !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-}
 
 .host-header {
     display: flex;
