@@ -398,7 +398,7 @@ document.addEventListener('alpine:init', function () {
                 var gridTop = grid ? grid.getBoundingClientRect().top : 60;
                 var availH = this.winH - gridTop;
                 var availW = this.winW - 32;
-                var ratio = availW / availH;
+                var ratio = availW / Math.max(availH, 1);
                 var cols = Math.max(1, Math.round(Math.sqrt(n * ratio)));
                 var rows = Math.ceil(n / cols);
                 return {

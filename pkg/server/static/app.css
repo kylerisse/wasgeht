@@ -281,10 +281,15 @@
     padding-bottom: 0 !important;
 }
 
+body:has(.grid-main) {
+    overflow: hidden;
+}
+
 .grid-view {
     display: grid;
     gap: 4px;
     padding-top: 0.5rem;
+    overflow: hidden;
 }
 
 .grid-item {
@@ -295,6 +300,8 @@
     border: 1px solid rgba(0, 0, 0, 0.1);
     transition: transform 0.1s;
     position: relative;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .grid-item:hover {
@@ -336,7 +343,7 @@
     font-weight: 500;
     text-align: center;
     overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-all;
     padding: 0.15rem;
 }
 
