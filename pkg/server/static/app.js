@@ -450,11 +450,16 @@ document.addEventListener('alpine:init', function () {
             modalOpen: false,
 
             init: function () {
+                var self = this;
                 var params = new URLSearchParams(window.location.search);
                 this.hostname = params.get('hostname') || '';
                 if (this.hostname) {
                     this.fetchHost();
                     this.fetchAllHosts();
+                    this._interval = setInterval(function () {
+                        self.fetchHost();
+                        self.fetchAllHosts();
+                    }, 60000);
                 }
             },
 
