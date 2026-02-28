@@ -2,67 +2,172 @@
   "router": {
     "tags": { "category": "router" },
     "checks": {
-      "ping": {
-        "addresses": ["router.risse.tv"]
-      },
+      "ping": { "addresses": ["router.risse.tv"] },
       "dns": {
         "server": "router.risse.tv:53",
         "timeout": "1s",
         "queries": [
-          { "name": "router.risse.tv",           "type": "A",   "expect": "192.168.73.1" },
-          { "name": "1.73.168.192.in-addr.arpa",  "type": "PTR", "expect": "router.risse.tv." },
-          { "name": "k.root-servers.net",         "type": "A",   "expect": "193.0.14.129" },
-          { "name": "129.14.0.193.in-addr.arpa",  "type": "PTR", "expect": "k.root-servers.net." }
+          { "name": "router.risse.tv",          "type": "A",   "expect": "192.168.73.1" },
+          { "name": "1.73.168.192.in-addr.arpa", "type": "PTR", "expect": "router.risse.tv." },
+          { "name": "k.root-servers.net",        "type": "A",   "expect": "193.0.14.129" },
+          { "name": "129.14.0.193.in-addr.arpa", "type": "PTR", "expect": "k.root-servers.net." }
         ]
       }
+    }
+  },
+  "router-backup": {
+    "tags": { "category": "router", "role": "backup" },
+    "checks": {
+      "ping": { "addresses": ["192.168.73.2"] }
+    }
+  },
+  "core-sw1": {
+    "tags": { "category": "switch", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["core-sw1.risse.tv"] },
+      "http": { "urls": ["https://core-sw1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "core-sw2": {
+    "tags": { "category": "switch", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["core-sw2.risse.tv"] },
+      "http": { "urls": ["https://core-sw2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "dist-sw1": {
+    "tags": { "category": "switch", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["dist-sw1.risse.tv"] },
+      "http": { "urls": ["https://dist-sw1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "dist-sw2": {
+    "tags": { "category": "switch", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["dist-sw2.risse.tv"] },
+      "http": { "urls": ["https://dist-sw2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "dist-sw3": {
+    "tags": { "category": "switch", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["dist-sw3.risse.tv"] },
+      "http": { "urls": ["https://dist-sw3.risse.tv"], "skip_verify": true }
+    }
+  },
+  "dist-sw4": {
+    "tags": { "category": "switch", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["dist-sw4.risse.tv"] },
+      "http": { "urls": ["https://dist-sw4.risse.tv"], "skip_verify": true }
     }
   },
   "ap1": {
     "tags": { "category": "ap", "building": "expo" },
     "checks": {
-      "ping": {
-        "addresses": ["ap1.risse.tv"]
-      },
-      "wifi_stations": {
-        "address": "ap1.risse.tv",
-        "radios": ["phy0-ap0", "phy1-ap0"]
-      },
-      "http": {
-        "urls": ["https://ap1.risse.tv"],
-        "skip_verify": true
-      }
+      "ping": { "addresses": ["ap1.risse.tv"] },
+      "wifi_stations": { "address": "ap1.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap1.risse.tv"], "skip_verify": true }
     }
   },
   "ap2": {
     "tags": { "category": "ap", "building": "conference" },
     "checks": {
-      "ping": {
-        "addresses": ["ap2.risse.tv"]
-      },
-      "wifi_stations": {
-        "address": "ap2.risse.tv",
-        "radios": ["phy0-ap0", "phy1-ap0"]
-      },
-      "http": {
-        "urls": ["https://ap2.risse.tv"],
-        "skip_verify": true
-      }
+      "ping": { "addresses": ["ap2.risse.tv"] },
+      "wifi_stations": { "address": "ap2.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap3": {
+    "tags": { "category": "ap", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["ap3.risse.tv"] },
+      "wifi_stations": { "address": "ap3.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap3.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap4": {
+    "tags": { "category": "ap", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["ap4.risse.tv"] },
+      "wifi_stations": { "address": "ap4.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap4.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap5": {
+    "tags": { "category": "ap", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["ap5.risse.tv"] },
+      "wifi_stations": { "address": "ap5.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap5.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap6": {
+    "tags": { "category": "ap", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["ap6.risse.tv"] },
+      "wifi_stations": { "address": "ap6.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap6.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap7": {
+    "tags": { "category": "ap", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["ap7.risse.tv"] },
+      "wifi_stations": { "address": "ap7.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap7.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap8": {
+    "tags": { "category": "ap", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["ap8.risse.tv"] },
+      "wifi_stations": { "address": "ap8.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap8.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap9": {
+    "tags": { "category": "ap", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["ap9.risse.tv"] },
+      "wifi_stations": { "address": "ap9.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap9.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap10": {
+    "tags": { "category": "ap", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["ap10.risse.tv"] },
+      "wifi_stations": { "address": "ap10.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap10.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap11": {
+    "tags": { "category": "ap", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["ap11.risse.tv"] },
+      "wifi_stations": { "address": "ap11.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap11.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap12": {
+    "tags": { "category": "ap", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["ap12.risse.tv"] },
+      "wifi_stations": { "address": "ap12.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap12.risse.tv"], "skip_verify": true }
     }
   },
   "fakeap": {
     "checks": {
-      "wifi_stations": {
-        "address": "fakeap.risse.tv",
-        "radios": ["phy0-ap0", "phy1-ap0"]
-      }
+      "wifi_stations": { "address": "fakeap.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] }
     }
   },
   "qube": {
     "tags": { "category": "server" },
     "checks": {
-      "ping": {
-        "addresses": ["qube.risse.tv"]
-      },
+      "ping": { "addresses": ["qube.risse.tv"] },
       "http": {
         "urls": [
           "http://qube.risse.tv:2018/sign.json",
@@ -78,72 +183,1498 @@
   "pi3": {
     "tags": { "category": "pi" },
     "checks": {
-      "ping": {
-        "addresses": ["pi3.risse.tv"]
-      },
-      "http": {
-        "urls": ["http://pi3.risse.tv:2017"]
-      }
+      "ping": { "addresses": ["pi3.risse.tv"] },
+      "http": { "urls": ["http://pi3.risse.tv:2017"] }
     }
   },
   "pi4": {
     "tags": { "category": "pi" },
     "checks": {
-      "ping": {
-        "addresses": ["pi4.risse.tv"]
-      },
+      "ping": { "addresses": ["pi4.risse.tv"] },
+      "http": { "urls": ["http://pi4.risse.tv:2017"] }
+    }
+  },
+  "pi5": {
+    "tags": { "category": "pi", "role": "sensor" },
+    "checks": {
+      "ping": { "addresses": ["pi5.risse.tv"] },
+      "http": { "urls": ["http://pi5.risse.tv:2017"] }
+    }
+  },
+  "pi6": {
+    "tags": { "category": "pi", "role": "sensor" },
+    "checks": {
+      "ping": { "addresses": ["pi6.risse.tv"] },
+      "http": { "urls": ["http://pi6.risse.tv:2017"] }
+    }
+  },
+  "pi7": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi7.risse.tv"] }
+    }
+  },
+  "pi8": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi8.risse.tv"] }
+    }
+  },
+  "pi9": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi9.risse.tv"] }
+    }
+  },
+  "pi10": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi10.risse.tv"] }
+    }
+  },
+  "noc-ws1": {
+    "tags": { "category": "workstation", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["noc-ws1.risse.tv"] }
+    }
+  },
+  "noc-ws2": {
+    "tags": { "category": "workstation", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["noc-ws2.risse.tv"] }
+    }
+  },
+  "noc-ws3": {
+    "tags": { "category": "workstation", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["noc-ws3.risse.tv"] }
+    }
+  },
+  "noc-printer": {
+    "tags": { "category": "printer", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["noc-printer.risse.tv"] }
+    }
+  },
+  "reg-ws1": {
+    "tags": { "category": "workstation", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-ws1.risse.tv"] },
+      "http": { "urls": ["http://reg-ws1.risse.tv:8080/status"] }
+    }
+  },
+  "reg-ws2": {
+    "tags": { "category": "workstation", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-ws2.risse.tv"] },
+      "http": { "urls": ["http://reg-ws2.risse.tv:8080/status"] }
+    }
+  },
+  "reg-ws3": {
+    "tags": { "category": "workstation", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-ws3.risse.tv"] },
+      "http": { "urls": ["http://reg-ws3.risse.tv:8080/status"] }
+    }
+  },
+  "reg-printer": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-printer.risse.tv"] }
+    }
+  },
+  "reg-printer2": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-printer2.risse.tv"] }
+    }
+  },
+  "badge-server": {
+    "tags": { "category": "server", "role": "badge" },
+    "checks": {
+      "ping": { "addresses": ["badge-server.risse.tv"] },
+      "http": { "urls": ["http://badge-server.risse.tv:8080/health"] }
+    }
+  },
+  "schedule-server": {
+    "tags": { "category": "server", "role": "schedule" },
+    "checks": {
+      "ping": { "addresses": ["schedule-server.risse.tv"] },
       "http": {
-        "urls": ["http://pi4.risse.tv:2017"]
+        "urls": [
+          "http://schedule-server.risse.tv:2017/schedule",
+          "http://schedule-server.risse.tv:2017/health"
+        ]
       }
+    }
+  },
+  "sign-server": {
+    "tags": { "category": "server", "role": "signage" },
+    "checks": {
+      "ping": { "addresses": ["sign-server.risse.tv"] },
+      "http": {
+        "urls": [
+          "http://sign-server.risse.tv:2018/sign.json",
+          "http://sign-server.risse.tv:2018/health"
+        ]
+      }
+    }
+  },
+  "chat-server": {
+    "tags": { "category": "server", "role": "chat" },
+    "checks": {
+      "ping": { "addresses": ["chat-server.risse.tv"] },
+      "http": {
+        "urls": [
+          "https://chat.risse.tv",
+          "https://chat.risse.tv/health"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "git-server": {
+    "tags": { "category": "server", "role": "vcs" },
+    "checks": {
+      "ping": { "addresses": ["git.risse.tv"] },
+      "http": {
+        "urls": ["https://git.risse.tv"],
+        "skip_verify": true
+      }
+    }
+  },
+  "wiki-server": {
+    "tags": { "category": "server", "role": "wiki" },
+    "checks": {
+      "ping": { "addresses": ["wiki.risse.tv"] },
+      "http": {
+        "urls": ["https://wiki.risse.tv"],
+        "skip_verify": true
+      }
+    }
+  },
+  "monitor1": {
+    "tags": { "category": "server", "role": "monitoring" },
+    "checks": {
+      "ping": { "addresses": ["monitor1.risse.tv"] },
+      "http": {
+        "urls": [
+          "https://wasgeht.risse.tv",
+          "https://mrtg.risse.tv"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "nas1": {
+    "tags": { "category": "storage", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["nas1.risse.tv"] },
+      "http": { "urls": ["https://nas1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "nas2": {
+    "tags": { "category": "storage", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["nas2.risse.tv"] },
+      "http": { "urls": ["https://nas2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "backup1": {
+    "tags": { "category": "storage", "role": "backup" },
+    "checks": {
+      "ping": { "addresses": ["backup1.risse.tv"] }
+    }
+  },
+  "pdu-noc": {
+    "tags": { "category": "pdu", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["pdu-noc.risse.tv"] },
+      "http": { "urls": ["https://pdu-noc.risse.tv"], "skip_verify": true }
+    }
+  },
+  "pdu-expo1": {
+    "tags": { "category": "pdu", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pdu-expo1.risse.tv"] },
+      "http": { "urls": ["https://pdu-expo1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "pdu-expo2": {
+    "tags": { "category": "pdu", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pdu-expo2.risse.tv"] },
+      "http": { "urls": ["https://pdu-expo2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "pdu-conf1": {
+    "tags": { "category": "pdu", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["pdu-conf1.risse.tv"] },
+      "http": { "urls": ["https://pdu-conf1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "pdu-workshop": {
+    "tags": { "category": "pdu", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["pdu-workshop.risse.tv"] },
+      "http": { "urls": ["https://pdu-workshop.risse.tv"], "skip_verify": true }
+    }
+  },
+  "kvm1": {
+    "tags": { "category": "kvm", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["kvm1.risse.tv"] },
+      "http": { "urls": ["https://kvm1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "kvm2": {
+    "tags": { "category": "kvm", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["kvm2.risse.tv"] },
+      "http": { "urls": ["https://kvm2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "uplink1": {
+    "tags": { "category": "uplink", "isp": "isp-a" },
+    "checks": {
+      "ping": { "addresses": ["203.0.113.1"], "timeout": "3s" },
+      "http": { "urls": ["http://203.0.113.1/status"] }
+    }
+  },
+  "uplink2": {
+    "tags": { "category": "uplink", "isp": "isp-b" },
+    "checks": {
+      "ping": { "addresses": ["198.51.100.1"], "timeout": "3s" },
+      "http": { "urls": ["http://198.51.100.1/status"] }
     }
   },
   "google": {
     "checks": {
-      "ping": {
-        "addresses": ["8.8.8.8", "8.8.4.4"],
-        "timeout": "5s"
-      },
+      "ping": { "addresses": ["8.8.8.8", "8.8.4.4"], "timeout": "5s" },
       "http": {
-        "urls": [
-          "https://www.google.com",
-          "https://www.google.com/maps"
-        ]
+        "urls": ["https://www.google.com", "https://www.google.com/maps"]
       },
       "dns": {
         "server": "8.8.8.8:53",
         "timeout": "5s",
         "queries": [
-          { "name": "k.root-servers.net",         "type": "A",   "expect": "193.0.14.129" },
-          { "name": "129.14.0.193.in-addr.arpa",  "type": "PTR", "expect": "k.root-servers.net." }
+          { "name": "k.root-servers.net",        "type": "A",   "expect": "193.0.14.129" },
+          { "name": "129.14.0.193.in-addr.arpa", "type": "PTR", "expect": "k.root-servers.net." }
         ]
       }
+    }
+  },
+  "cloudflare": {
+    "checks": {
+      "ping": { "addresses": ["1.1.1.1", "1.0.0.1"], "timeout": "5s" },
+      "dns": {
+        "server": "1.1.1.1:53",
+        "timeout": "5s",
+        "queries": [
+          { "name": "k.root-servers.net", "type": "A", "expect": "193.0.14.129" }
+        ]
+      }
+    }
+  },
+  "vm-host1": {
+    "tags": { "category": "hypervisor", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["vm-host1.risse.tv"] },
+      "http": { "urls": ["https://vm-host1.risse.tv:8006"], "skip_verify": true }
+    }
+  },
+  "vm-host2": {
+    "tags": { "category": "hypervisor", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["vm-host2.risse.tv"] },
+      "http": { "urls": ["https://vm-host2.risse.tv:8006"], "skip_verify": true }
+    }
+  },
+  "vm-dns1": {
+    "tags": { "category": "vm", "role": "dns" },
+    "checks": {
+      "ping": { "addresses": ["vm-dns1.risse.tv"] },
+      "dns": {
+        "server": "vm-dns1.risse.tv:53",
+        "timeout": "2s",
+        "queries": [
+          { "name": "router.risse.tv", "type": "A", "expect": "192.168.73.1" }
+        ]
+      }
+    }
+  },
+  "vm-dns2": {
+    "tags": { "category": "vm", "role": "dns" },
+    "checks": {
+      "ping": { "addresses": ["vm-dns2.risse.tv"] },
+      "dns": {
+        "server": "vm-dns2.risse.tv:53",
+        "timeout": "2s",
+        "queries": [
+          { "name": "router.risse.tv", "type": "A", "expect": "192.168.73.1" }
+        ]
+      }
+    }
+  },
+  "vm-dhcp1": {
+    "tags": { "category": "vm", "role": "dhcp" },
+    "checks": {
+      "ping": { "addresses": ["vm-dhcp1.risse.tv"] }
+    }
+  },
+  "vm-proxy": {
+    "tags": { "category": "vm", "role": "proxy" },
+    "checks": {
+      "ping": { "addresses": ["vm-proxy.risse.tv"] },
+      "http": { "urls": ["https://vm-proxy.risse.tv/health"], "skip_verify": true }
+    }
+  },
+  "vm-ntp": {
+    "tags": { "category": "vm", "role": "ntp" },
+    "checks": {
+      "ping": { "addresses": ["vm-ntp.risse.tv"] }
+    }
+  },
+  "vm-syslog": {
+    "tags": { "category": "vm", "role": "logging" },
+    "checks": {
+      "ping": { "addresses": ["vm-syslog.risse.tv"] },
+      "http": { "urls": ["http://vm-syslog.risse.tv:9000"], "skip_verify": false }
+    }
+  },
+  "vm-metrics": {
+    "tags": { "category": "vm", "role": "metrics" },
+    "checks": {
+      "ping": { "addresses": ["vm-metrics.risse.tv"] },
+      "http": {
+        "urls": [
+          "http://vm-metrics.risse.tv:9090",
+          "http://vm-metrics.risse.tv:3000"
+        ]
+      }
+    }
+  },
+  "vm-vpn": {
+    "tags": { "category": "vm", "role": "vpn" },
+    "checks": {
+      "ping": { "addresses": ["vm-vpn.risse.tv"] }
+    }
+  },
+  "vm-mail": {
+    "tags": { "category": "vm", "role": "mail" },
+    "checks": {
+      "ping": { "addresses": ["vm-mail.risse.tv"] },
+      "http": { "urls": ["https://mail.risse.tv"], "skip_verify": true }
+    }
+  },
+  "expo-sign1": {
+    "tags": { "category": "signage", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["expo-sign1.risse.tv"] },
+      "http": { "urls": ["http://expo-sign1.risse.tv:8080"] }
+    }
+  },
+  "expo-sign2": {
+    "tags": { "category": "signage", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["expo-sign2.risse.tv"] },
+      "http": { "urls": ["http://expo-sign2.risse.tv:8080"] }
+    }
+  },
+  "expo-sign3": {
+    "tags": { "category": "signage", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["expo-sign3.risse.tv"] },
+      "http": { "urls": ["http://expo-sign3.risse.tv:8080"] }
+    }
+  },
+  "expo-sign4": {
+    "tags": { "category": "signage", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["expo-sign4.risse.tv"] },
+      "http": { "urls": ["http://expo-sign4.risse.tv:8080"] }
+    }
+  },
+  "conf-sign1": {
+    "tags": { "category": "signage", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["conf-sign1.risse.tv"] },
+      "http": { "urls": ["http://conf-sign1.risse.tv:8080"] }
+    }
+  },
+  "conf-sign2": {
+    "tags": { "category": "signage", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["conf-sign2.risse.tv"] },
+      "http": { "urls": ["http://conf-sign2.risse.tv:8080"] }
+    }
+  },
+  "conf-sign3": {
+    "tags": { "category": "signage", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["conf-sign3.risse.tv"] },
+      "http": { "urls": ["http://conf-sign3.risse.tv:8080"] }
+    }
+  },
+  "workshop-sign1": {
+    "tags": { "category": "signage", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-sign1.risse.tv"] },
+      "http": { "urls": ["http://workshop-sign1.risse.tv:8080"] }
+    }
+  },
+  "workshop-sign2": {
+    "tags": { "category": "signage", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-sign2.risse.tv"] },
+      "http": { "urls": ["http://workshop-sign2.risse.tv:8080"] }
+    }
+  },
+  "dining-sign1": {
+    "tags": { "category": "signage", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["dining-sign1.risse.tv"] },
+      "http": { "urls": ["http://dining-sign1.risse.tv:8080"] }
+    }
+  },
+  "cam-expo1": {
+    "tags": { "category": "camera", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["cam-expo1.risse.tv"] },
+      "http": { "urls": ["http://cam-expo1.risse.tv/status"] }
+    }
+  },
+  "cam-expo2": {
+    "tags": { "category": "camera", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["cam-expo2.risse.tv"] },
+      "http": { "urls": ["http://cam-expo2.risse.tv/status"] }
+    }
+  },
+  "cam-expo3": {
+    "tags": { "category": "camera", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["cam-expo3.risse.tv"] },
+      "http": { "urls": ["http://cam-expo3.risse.tv/status"] }
+    }
+  },
+  "cam-entrance1": {
+    "tags": { "category": "camera", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["cam-entrance1.risse.tv"] },
+      "http": { "urls": ["http://cam-entrance1.risse.tv/status"] }
+    }
+  },
+  "cam-entrance2": {
+    "tags": { "category": "camera", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["cam-entrance2.risse.tv"] },
+      "http": { "urls": ["http://cam-entrance2.risse.tv/status"] }
+    }
+  },
+  "cam-parking1": {
+    "tags": { "category": "camera", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["cam-parking1.risse.tv"] },
+      "http": { "urls": ["http://cam-parking1.risse.tv/status"] }
+    }
+  },
+  "cam-parking2": {
+    "tags": { "category": "camera", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["cam-parking2.risse.tv"] },
+      "http": { "urls": ["http://cam-parking2.risse.tv/status"] }
+    }
+  },
+  "cam-noc": {
+    "tags": { "category": "camera", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["cam-noc.risse.tv"] },
+      "http": { "urls": ["http://cam-noc.risse.tv/status"] }
+    }
+  },
+  "voip-gw1": {
+    "tags": { "category": "voip", "role": "gateway" },
+    "checks": {
+      "ping": { "addresses": ["voip-gw1.risse.tv"] },
+      "http": { "urls": ["https://voip-gw1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "voip-pbx": {
+    "tags": { "category": "voip", "role": "pbx" },
+    "checks": {
+      "ping": { "addresses": ["voip-pbx.risse.tv"] },
+      "http": { "urls": ["https://voip-pbx.risse.tv/admin"], "skip_verify": true }
+    }
+  },
+  "phone-noc1": {
+    "tags": { "category": "phone", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["phone-noc1.risse.tv"] }
+    }
+  },
+  "phone-noc2": {
+    "tags": { "category": "phone", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["phone-noc2.risse.tv"] }
+    }
+  },
+  "phone-reg1": {
+    "tags": { "category": "phone", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["phone-reg1.risse.tv"] }
+    }
+  },
+  "phone-info1": {
+    "tags": { "category": "phone", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["phone-info1.risse.tv"] }
+    }
+  },
+  "laptop-noc1": {
+    "tags": { "category": "laptop", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["laptop-noc1.risse.tv"] }
+    }
+  },
+  "laptop-noc2": {
+    "tags": { "category": "laptop", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["laptop-noc2.risse.tv"] }
+    }
+  },
+  "laptop-av1": {
+    "tags": { "category": "laptop", "building": "conference", "role": "av" },
+    "checks": {
+      "ping": { "addresses": ["laptop-av1.risse.tv"] }
+    }
+  },
+  "laptop-av2": {
+    "tags": { "category": "laptop", "building": "conference", "role": "av" },
+    "checks": {
+      "ping": { "addresses": ["laptop-av2.risse.tv"] }
+    }
+  },
+  "av-mixer1": {
+    "tags": { "category": "av", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["av-mixer1.risse.tv"] },
+      "http": { "urls": ["http://av-mixer1.risse.tv/api/status"] }
+    }
+  },
+  "av-mixer2": {
+    "tags": { "category": "av", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["av-mixer2.risse.tv"] },
+      "http": { "urls": ["http://av-mixer2.risse.tv/api/status"] }
+    }
+  },
+  "av-stream1": {
+    "tags": { "category": "av", "building": "conference", "role": "stream" },
+    "checks": {
+      "ping": { "addresses": ["av-stream1.risse.tv"] },
+      "http": { "urls": ["http://av-stream1.risse.tv:1935/health"] }
+    }
+  },
+  "av-stream2": {
+    "tags": { "category": "av", "building": "workshop", "role": "stream" },
+    "checks": {
+      "ping": { "addresses": ["av-stream2.risse.tv"] },
+      "http": { "urls": ["http://av-stream2.risse.tv:1935/health"] }
+    }
+  },
+  "3dp1": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp1.risse.tv"] },
+      "http": { "urls": ["http://3dp1.risse.tv"] }
+    }
+  },
+  "3dp2": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp2.risse.tv"] },
+      "http": { "urls": ["http://3dp2.risse.tv"] }
+    }
+  },
+  "3dp3": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp3.risse.tv"] },
+      "http": { "urls": ["http://3dp3.risse.tv"] }
+    }
+  },
+  "3dp4": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp4.risse.tv"] },
+      "http": { "urls": ["http://3dp4.risse.tv"] }
+    }
+  },
+  "laser1": {
+    "tags": { "category": "laser", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["laser1.risse.tv"] },
+      "http": { "urls": ["http://laser1.risse.tv"] }
+    }
+  },
+  "laser2": {
+    "tags": { "category": "laser", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["laser2.risse.tv"] },
+      "http": { "urls": ["http://laser2.risse.tv"] }
+    }
+  },
+  "cnc1": {
+    "tags": { "category": "cnc", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["cnc1.risse.tv"] },
+      "http": { "urls": ["http://cnc1.risse.tv"] }
+    }
+  },
+  "pos-dining1": {
+    "tags": { "category": "pos", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["pos-dining1.risse.tv"] },
+      "http": { "urls": ["http://pos-dining1.risse.tv:8080/health"] }
+    }
+  },
+  "pos-dining2": {
+    "tags": { "category": "pos", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["pos-dining2.risse.tv"] },
+      "http": { "urls": ["http://pos-dining2.risse.tv:8080/health"] }
+    }
+  },
+  "pos-dining3": {
+    "tags": { "category": "pos", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["pos-dining3.risse.tv"] },
+      "http": { "urls": ["http://pos-dining3.risse.tv:8080/health"] }
+    }
+  },
+  "pos-merch1": {
+    "tags": { "category": "pos", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pos-merch1.risse.tv"] },
+      "http": { "urls": ["http://pos-merch1.risse.tv:8080/health"] }
+    }
+  },
+  "pos-merch2": {
+    "tags": { "category": "pos", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pos-merch2.risse.tv"] },
+      "http": { "urls": ["http://pos-merch2.risse.tv:8080/health"] }
+    }
+  },
+  "pos-merch3": {
+    "tags": { "category": "pos", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pos-merch3.risse.tv"] },
+      "http": { "urls": ["http://pos-merch3.risse.tv:8080/health"] }
+    }
+  },
+  "pos-server": {
+    "tags": { "category": "server", "role": "pos-backend" },
+    "checks": {
+      "ping": { "addresses": ["pos-server.risse.tv"] },
+      "http": { "urls": ["http://pos-server.risse.tv:8080/health"] }
+    }
+  },
+  "badge-printer1": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer1.risse.tv"] }
+    }
+  },
+  "badge-printer2": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer2.risse.tv"] }
+    }
+  },
+  "badge-printer3": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer3.risse.tv"] }
+    }
+  },
+  "badge-printer4": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer4.risse.tv"] }
+    }
+  },
+  "access-ctrl1": {
+    "tags": { "category": "access-control", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["access-ctrl1.risse.tv"] },
+      "http": { "urls": ["http://access-ctrl1.risse.tv/api/status"] }
+    }
+  },
+  "access-ctrl2": {
+    "tags": { "category": "access-control", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["access-ctrl2.risse.tv"] },
+      "http": { "urls": ["http://access-ctrl2.risse.tv/api/status"] }
+    }
+  },
+  "env-sensor1": {
+    "tags": { "category": "sensor", "building": "noc", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor1.risse.tv"] },
+      "http": { "urls": ["http://env-sensor1.risse.tv/metrics"] }
+    }
+  },
+  "env-sensor2": {
+    "tags": { "category": "sensor", "building": "expo", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor2.risse.tv"] },
+      "http": { "urls": ["http://env-sensor2.risse.tv/metrics"] }
+    }
+  },
+  "env-sensor3": {
+    "tags": { "category": "sensor", "building": "conference", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor3.risse.tv"] },
+      "http": { "urls": ["http://env-sensor3.risse.tv/metrics"] }
+    }
+  },
+  "localhost": {
+    "checks": {
+      "ping": { "addresses": ["127.0.0.1", "::1"] }
     }
   },
   "fake1": {},
   "fake2": {
     "checks": {
-      "ping": {
-        "addresses": ["192.0.2.1"],
-        "timeout": "1s"
-      }
+      "ping": { "addresses": ["192.0.2.1"], "timeout": "1s" }
     }
   },
   "fake3": {
     "checks": {
-      "ping": {
-        "addresses": ["10.10.10.10"],
-        "timeout": "1s"
+      "ping": { "addresses": ["10.10.10.10"], "timeout": "1s" }
+    }
+  },
+  "fake4": {
+    "checks": {
+      "ping": { "addresses": ["192.0.2.2"], "timeout": "1s" }
+    }
+  },
+  "fake5": {
+    "checks": {
+      "ping": { "addresses": ["192.0.2.3"], "timeout": "1s" }
+    }
+  },
+  "sw-expo-a": {
+    "tags": { "category": "switch", "building": "expo", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-expo-a.risse.tv"] },
+      "http": { "urls": ["https://sw-expo-a.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-expo-b": {
+    "tags": { "category": "switch", "building": "expo", "rack": "b" },
+    "checks": {
+      "ping": { "addresses": ["sw-expo-b.risse.tv"] },
+      "http": { "urls": ["https://sw-expo-b.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-expo-c": {
+    "tags": { "category": "switch", "building": "expo", "rack": "c" },
+    "checks": {
+      "ping": { "addresses": ["sw-expo-c.risse.tv"] },
+      "http": { "urls": ["https://sw-expo-c.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-conf-a": {
+    "tags": { "category": "switch", "building": "conference", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-conf-a.risse.tv"] },
+      "http": { "urls": ["https://sw-conf-a.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-conf-b": {
+    "tags": { "category": "switch", "building": "conference", "rack": "b" },
+    "checks": {
+      "ping": { "addresses": ["sw-conf-b.risse.tv"] },
+      "http": { "urls": ["https://sw-conf-b.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-workshop-a": {
+    "tags": { "category": "switch", "building": "workshop", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-workshop-a.risse.tv"] },
+      "http": { "urls": ["https://sw-workshop-a.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-dining-a": {
+    "tags": { "category": "switch", "building": "dining", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-dining-a.risse.tv"] },
+      "http": { "urls": ["https://sw-dining-a.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-outdoor-a": {
+    "tags": { "category": "switch", "building": "outdoor", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-outdoor-a.risse.tv"] },
+      "http": { "urls": ["https://sw-outdoor-a.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-reg-a": {
+    "tags": { "category": "switch", "building": "registration", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-reg-a.risse.tv"] },
+      "http": { "urls": ["https://sw-reg-a.risse.tv"], "skip_verify": true }
+    }
+  },
+  "inet-test": {
+    "tags": { "category": "probe", "role": "internet" },
+    "checks": {
+      "ping": { "addresses": ["8.8.8.8", "1.1.1.1", "9.9.9.9"], "timeout": "5s" },
+      "http": {
+        "urls": [
+          "https://www.google.com",
+          "https://www.cloudflare.com",
+          "https://www.github.com"
+        ]
       }
     }
   },
-  "localhost": {
+  "ntp-pool": {
+    "tags": { "category": "probe", "role": "ntp" },
     "checks": {
-      "ping": {
-        "addresses": [
-          "127.0.0.1",
-          "::1"
-        ]
+      "ping": { "addresses": ["0.pool.ntp.org", "1.pool.ntp.org"], "timeout": "5s" }
+    }
+  },
+  "expo-ap-mesh1": {
+    "tags": { "category": "ap", "building": "expo", "role": "mesh" },
+    "checks": {
+      "ping": { "addresses": ["expo-ap-mesh1.risse.tv"] },
+      "wifi_stations": { "address": "expo-ap-mesh1.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://expo-ap-mesh1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "expo-ap-mesh2": {
+    "tags": { "category": "ap", "building": "expo", "role": "mesh" },
+    "checks": {
+      "ping": { "addresses": ["expo-ap-mesh2.risse.tv"] },
+      "wifi_stations": { "address": "expo-ap-mesh2.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://expo-ap-mesh2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "conf-ap-mesh1": {
+    "tags": { "category": "ap", "building": "conference", "role": "mesh" },
+    "checks": {
+      "ping": { "addresses": ["conf-ap-mesh1.risse.tv"] },
+      "wifi_stations": { "address": "conf-ap-mesh1.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://conf-ap-mesh1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "workshop-ap1": {
+    "tags": { "category": "ap", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-ap1.risse.tv"] },
+      "wifi_stations": { "address": "workshop-ap1.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://workshop-ap1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "workshop-ap2": {
+    "tags": { "category": "ap", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-ap2.risse.tv"] },
+      "wifi_stations": { "address": "workshop-ap2.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://workshop-ap2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "dining-ap1": {
+    "tags": { "category": "ap", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["dining-ap1.risse.tv"] },
+      "wifi_stations": { "address": "dining-ap1.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://dining-ap1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "outdoor-ap1": {
+    "tags": { "category": "ap", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["outdoor-ap1.risse.tv"] },
+      "wifi_stations": { "address": "outdoor-ap1.risse.tv", "radios": ["phy0-ap0"] },
+      "http": { "urls": ["https://outdoor-ap1.risse.tv"], "skip_verify": true }
+    }
+  },
+  "outdoor-ap2": {
+    "tags": { "category": "ap", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["outdoor-ap2.risse.tv"] },
+      "wifi_stations": { "address": "outdoor-ap2.risse.tv", "radios": ["phy0-ap0"] },
+      "http": { "urls": ["https://outdoor-ap2.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-ctfd": {
+    "tags": { "category": "vm", "role": "ctf" },
+    "checks": {
+      "ping": { "addresses": ["vm-ctfd.risse.tv"] },
+      "http": {
+        "urls": ["https://ctf.risse.tv", "https://ctf.risse.tv/api/v1/statistics"],
+        "skip_verify": true
       }
+    }
+  },
+  "vm-scoreboard": {
+    "tags": { "category": "vm", "role": "ctf" },
+    "checks": {
+      "ping": { "addresses": ["vm-scoreboard.risse.tv"] },
+      "http": { "urls": ["https://scoreboard.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-challenges": {
+    "tags": { "category": "vm", "role": "ctf" },
+    "checks": {
+      "ping": { "addresses": ["vm-challenges.risse.tv"] },
+      "http": { "urls": ["http://vm-challenges.risse.tv:8888/health"] }
+    }
+  },
+  "vm-radio": {
+    "tags": { "category": "vm", "role": "radio" },
+    "checks": {
+      "ping": { "addresses": ["vm-radio.risse.tv"] },
+      "http": {
+        "urls": [
+          "https://radio.risse.tv",
+          "http://vm-radio.risse.tv:8000/status-json.xsl"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "vm-volunteer": {
+    "tags": { "category": "vm", "role": "volunteer" },
+    "checks": {
+      "ping": { "addresses": ["vm-volunteer.risse.tv"] },
+      "http": { "urls": ["https://volunteer.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-matrix": {
+    "tags": { "category": "vm", "role": "matrix" },
+    "checks": {
+      "ping": { "addresses": ["vm-matrix.risse.tv"] },
+      "http": {
+        "urls": [
+          "https://matrix.risse.tv/_matrix/client/versions",
+          "https://element.risse.tv"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "vm-mastodon": {
+    "tags": { "category": "vm", "role": "social" },
+    "checks": {
+      "ping": { "addresses": ["vm-mastodon.risse.tv"] },
+      "http": {
+        "urls": [
+          "https://social.risse.tv/api/v2/instance",
+          "https://social.risse.tv"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "vm-pastebin": {
+    "tags": { "category": "vm", "role": "paste" },
+    "checks": {
+      "ping": { "addresses": ["vm-pastebin.risse.tv"] },
+      "http": { "urls": ["https://paste.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-etherpad": {
+    "tags": { "category": "vm", "role": "collaboration" },
+    "checks": {
+      "ping": { "addresses": ["vm-etherpad.risse.tv"] },
+      "http": { "urls": ["https://pad.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-hedgedoc": {
+    "tags": { "category": "vm", "role": "collaboration" },
+    "checks": {
+      "ping": { "addresses": ["vm-hedgedoc.risse.tv"] },
+      "http": { "urls": ["https://doc.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-netbox": {
+    "tags": { "category": "vm", "role": "ipam" },
+    "checks": {
+      "ping": { "addresses": ["vm-netbox.risse.tv"] },
+      "http": { "urls": ["https://netbox.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-oxidized": {
+    "tags": { "category": "vm", "role": "config-backup" },
+    "checks": {
+      "ping": { "addresses": ["vm-oxidized.risse.tv"] },
+      "http": { "urls": ["http://vm-oxidized.risse.tv:8888/nodes"] }
+    }
+  },
+  "vm-smokeping": {
+    "tags": { "category": "vm", "role": "latency" },
+    "checks": {
+      "ping": { "addresses": ["vm-smokeping.risse.tv"] },
+      "http": { "urls": ["https://smokeping.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-ticket": {
+    "tags": { "category": "vm", "role": "ticketing" },
+    "checks": {
+      "ping": { "addresses": ["vm-ticket.risse.tv"] },
+      "http": { "urls": ["https://ticket.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-inventory": {
+    "tags": { "category": "vm", "role": "inventory" },
+    "checks": {
+      "ping": { "addresses": ["vm-inventory.risse.tv"] },
+      "http": { "urls": ["https://inventory.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-feedback": {
+    "tags": { "category": "vm", "role": "feedback" },
+    "checks": {
+      "ping": { "addresses": ["vm-feedback.risse.tv"] },
+      "http": { "urls": ["https://feedback.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-pretalx": {
+    "tags": { "category": "vm", "role": "cfp" },
+    "checks": {
+      "ping": { "addresses": ["vm-pretalx.risse.tv"] },
+      "http": {
+        "urls": [
+          "https://cfp.risse.tv",
+          "https://cfp.risse.tv/api/events/"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "vm-attendeebadge": {
+    "tags": { "category": "vm", "role": "badge" },
+    "checks": {
+      "ping": { "addresses": ["vm-attendeebadge.risse.tv"] },
+      "http": { "urls": ["https://badge.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-sponsors": {
+    "tags": { "category": "vm", "role": "sponsors" },
+    "checks": {
+      "ping": { "addresses": ["vm-sponsors.risse.tv"] },
+      "http": { "urls": ["https://sponsors.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-merch": {
+    "tags": { "category": "vm", "role": "merch" },
+    "checks": {
+      "ping": { "addresses": ["vm-merch.risse.tv"] },
+      "http": { "urls": ["https://merch.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-photo": {
+    "tags": { "category": "vm", "role": "photo" },
+    "checks": {
+      "ping": { "addresses": ["vm-photo.risse.tv"] },
+      "http": { "urls": ["https://photos.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-archive": {
+    "tags": { "category": "vm", "role": "archive" },
+    "checks": {
+      "ping": { "addresses": ["vm-archive.risse.tv"] },
+      "http": { "urls": ["https://archive.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-map": {
+    "tags": { "category": "vm", "role": "map" },
+    "checks": {
+      "ping": { "addresses": ["vm-map.risse.tv"] },
+      "http": { "urls": ["https://map.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-announce": {
+    "tags": { "category": "vm", "role": "announce" },
+    "checks": {
+      "ping": { "addresses": ["vm-announce.risse.tv"] },
+      "http": { "urls": ["https://announce.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-cdn": {
+    "tags": { "category": "vm", "role": "cdn" },
+    "checks": {
+      "ping": { "addresses": ["vm-cdn.risse.tv"] },
+      "http": { "urls": ["https://cdn.risse.tv/health"], "skip_verify": true }
+    }
+  },
+  "vm-lb1": {
+    "tags": { "category": "vm", "role": "loadbalancer" },
+    "checks": {
+      "ping": { "addresses": ["vm-lb1.risse.tv"] },
+      "http": { "urls": ["http://vm-lb1.risse.tv:8080/health"] }
+    }
+  },
+  "vm-lb2": {
+    "tags": { "category": "vm", "role": "loadbalancer" },
+    "checks": {
+      "ping": { "addresses": ["vm-lb2.risse.tv"] },
+      "http": { "urls": ["http://vm-lb2.risse.tv:8080/health"] }
+    }
+  },
+  "vm-certbot": {
+    "tags": { "category": "vm", "role": "pki" },
+    "checks": {
+      "ping": { "addresses": ["vm-certbot.risse.tv"] },
+      "http": { "urls": ["https://pki.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-firewall": {
+    "tags": { "category": "vm", "role": "firewall" },
+    "checks": {
+      "ping": { "addresses": ["vm-firewall.risse.tv"] },
+      "http": { "urls": ["https://vm-firewall.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-ids": {
+    "tags": { "category": "vm", "role": "ids" },
+    "checks": {
+      "ping": { "addresses": ["vm-ids.risse.tv"] },
+      "http": { "urls": ["http://vm-ids.risse.tv:3000/health"] }
+    }
+  },
+  "vm-wazuh": {
+    "tags": { "category": "vm", "role": "siem" },
+    "checks": {
+      "ping": { "addresses": ["vm-wazuh.risse.tv"] },
+      "http": { "urls": ["https://vm-wazuh.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-ansible": {
+    "tags": { "category": "vm", "role": "automation" },
+    "checks": {
+      "ping": { "addresses": ["vm-ansible.risse.tv"] },
+      "http": { "urls": ["https://vm-ansible.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-terraform": {
+    "tags": { "category": "vm", "role": "automation" },
+    "checks": {
+      "ping": { "addresses": ["vm-terraform.risse.tv"] }
+    }
+  },
+  "vm-registry": {
+    "tags": { "category": "vm", "role": "registry" },
+    "checks": {
+      "ping": { "addresses": ["vm-registry.risse.tv"] },
+      "http": { "urls": ["https://registry.risse.tv/v2/"], "skip_verify": true }
+    }
+  },
+  "vm-ci": {
+    "tags": { "category": "vm", "role": "ci" },
+    "checks": {
+      "ping": { "addresses": ["vm-ci.risse.tv"] },
+      "http": { "urls": ["https://ci.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-s3": {
+    "tags": { "category": "vm", "role": "objectstore" },
+    "checks": {
+      "ping": { "addresses": ["vm-s3.risse.tv"] },
+      "http": { "urls": ["https://s3.risse.tv/minio/health/live"], "skip_verify": true }
+    }
+  },
+  "ap13": {
+    "tags": { "category": "ap", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["ap13.risse.tv"] },
+      "wifi_stations": { "address": "ap13.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap13.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap14": {
+    "tags": { "category": "ap", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["ap14.risse.tv"] },
+      "wifi_stations": { "address": "ap14.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap14.risse.tv"], "skip_verify": true }
+    }
+  },
+  "ap15": {
+    "tags": { "category": "ap", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["ap15.risse.tv"] },
+      "wifi_stations": { "address": "ap15.risse.tv", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap15.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-noc-a": {
+    "tags": { "category": "switch", "building": "noc", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-noc-a.risse.tv"] },
+      "http": { "urls": ["https://sw-noc-a.risse.tv"], "skip_verify": true }
+    }
+  },
+  "sw-noc-b": {
+    "tags": { "category": "switch", "building": "noc", "rack": "b" },
+    "checks": {
+      "ping": { "addresses": ["sw-noc-b.risse.tv"] },
+      "http": { "urls": ["https://sw-noc-b.risse.tv"], "skip_verify": true }
+    }
+  },
+  "pi11": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi11.risse.tv"] }
+    }
+  },
+  "pi12": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi12.risse.tv"] }
+    }
+  },
+  "pi13": {
+    "tags": { "category": "pi", "role": "sensor" },
+    "checks": {
+      "ping": { "addresses": ["pi13.risse.tv"] },
+      "http": { "urls": ["http://pi13.risse.tv:2017"] }
+    }
+  },
+  "pi14": {
+    "tags": { "category": "pi", "role": "sensor" },
+    "checks": {
+      "ping": { "addresses": ["pi14.risse.tv"] },
+      "http": { "urls": ["http://pi14.risse.tv:2017"] }
+    }
+  },
+  "cam-conf1": {
+    "tags": { "category": "camera", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["cam-conf1.risse.tv"] },
+      "http": { "urls": ["http://cam-conf1.risse.tv/status"] }
+    }
+  },
+  "cam-conf2": {
+    "tags": { "category": "camera", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["cam-conf2.risse.tv"] },
+      "http": { "urls": ["http://cam-conf2.risse.tv/status"] }
+    }
+  },
+  "cam-workshop1": {
+    "tags": { "category": "camera", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["cam-workshop1.risse.tv"] },
+      "http": { "urls": ["http://cam-workshop1.risse.tv/status"] }
+    }
+  },
+  "cam-dining1": {
+    "tags": { "category": "camera", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["cam-dining1.risse.tv"] },
+      "http": { "urls": ["http://cam-dining1.risse.tv/status"] }
+    }
+  },
+  "pos-dining4": {
+    "tags": { "category": "pos", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["pos-dining4.risse.tv"] },
+      "http": { "urls": ["http://pos-dining4.risse.tv:8080/health"] }
+    }
+  },
+  "conf-sign4": {
+    "tags": { "category": "signage", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["conf-sign4.risse.tv"] },
+      "http": { "urls": ["http://conf-sign4.risse.tv:8080"] }
+    }
+  },
+  "workshop-sign3": {
+    "tags": { "category": "signage", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-sign3.risse.tv"] },
+      "http": { "urls": ["http://workshop-sign3.risse.tv:8080"] }
+    }
+  },
+  "dining-sign2": {
+    "tags": { "category": "signage", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["dining-sign2.risse.tv"] },
+      "http": { "urls": ["http://dining-sign2.risse.tv:8080"] }
+    }
+  },
+  "outdoor-sign1": {
+    "tags": { "category": "signage", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["outdoor-sign1.risse.tv"] },
+      "http": { "urls": ["http://outdoor-sign1.risse.tv:8080"] }
+    }
+  },
+  "vm-jumpbox": {
+    "tags": { "category": "vm", "role": "jumpbox" },
+    "checks": {
+      "ping": { "addresses": ["vm-jumpbox.risse.tv"] }
+    }
+  },
+  "vm-vault": {
+    "tags": { "category": "vm", "role": "secrets" },
+    "checks": {
+      "ping": { "addresses": ["vm-vault.risse.tv"] },
+      "http": { "urls": ["https://vault.risse.tv/v1/sys/health"], "skip_verify": true }
+    }
+  },
+  "vm-netflow": {
+    "tags": { "category": "vm", "role": "netflow" },
+    "checks": {
+      "ping": { "addresses": ["vm-netflow.risse.tv"] },
+      "http": { "urls": ["http://vm-netflow.risse.tv:3000"] }
+    }
+  },
+  "vm-portal": {
+    "tags": { "category": "vm", "role": "captive-portal" },
+    "checks": {
+      "ping": { "addresses": ["vm-portal.risse.tv"] },
+      "http": { "urls": ["https://portal.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-attendee-api": {
+    "tags": { "category": "vm", "role": "api" },
+    "checks": {
+      "ping": { "addresses": ["vm-attendee-api.risse.tv"] },
+      "http": { "urls": ["https://api.risse.tv/health"], "skip_verify": true }
+    }
+  },
+  "vm-whatsup": {
+    "tags": { "category": "vm", "role": "schedule" },
+    "checks": {
+      "ping": { "addresses": ["vm-whatsup.risse.tv"] },
+      "http": { "urls": ["https://whatsup.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-mrtg": {
+    "tags": { "category": "vm", "role": "graphs" },
+    "checks": {
+      "ping": { "addresses": ["vm-mrtg.risse.tv"] },
+      "http": { "urls": ["https://mrtg.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-librenms": {
+    "tags": { "category": "vm", "role": "nms" },
+    "checks": {
+      "ping": { "addresses": ["vm-librenms.risse.tv"] },
+      "http": { "urls": ["https://nms.risse.tv"], "skip_verify": true }
+    }
+  },
+  "vm-unifi": {
+    "tags": { "category": "vm", "role": "wifi-controller" },
+    "checks": {
+      "ping": { "addresses": ["vm-unifi.risse.tv"] },
+      "http": { "urls": ["https://vm-unifi.risse.tv:8443"], "skip_verify": true }
+    }
+  },
+  "laptop-reg1": {
+    "tags": { "category": "laptop", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["laptop-reg1.risse.tv"] }
+    }
+  },
+  "laptop-reg2": {
+    "tags": { "category": "laptop", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["laptop-reg2.risse.tv"] }
+    }
+  },
+  "laptop-info1": {
+    "tags": { "category": "laptop", "building": "main", "role": "info-desk" },
+    "checks": {
+      "ping": { "addresses": ["laptop-info1.risse.tv"] }
+    }
+  },
+  "env-sensor4": {
+    "tags": { "category": "sensor", "building": "workshop", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor4.risse.tv"] },
+      "http": { "urls": ["http://env-sensor4.risse.tv/metrics"] }
+    }
+  },
+  "env-sensor5": {
+    "tags": { "category": "sensor", "building": "dining", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor5.risse.tv"] },
+      "http": { "urls": ["http://env-sensor5.risse.tv/metrics"] }
+    }
+  },
+  "ups-noc": {
+    "tags": { "category": "ups", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["ups-noc.risse.tv"] },
+      "http": { "urls": ["http://ups-noc.risse.tv/status"] }
+    }
+  },
+  "ups-expo": {
+    "tags": { "category": "ups", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["ups-expo.risse.tv"] },
+      "http": { "urls": ["http://ups-expo.risse.tv/status"] }
+    }
+  },
+  "3dp5": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp5.risse.tv"] },
+      "http": { "urls": ["http://3dp5.risse.tv"] }
+    }
+  },
+  "3dp6": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp6.risse.tv"] },
+      "http": { "urls": ["http://3dp6.risse.tv"] }
+    }
+  },
+  "cnc2": {
+    "tags": { "category": "cnc", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["cnc2.risse.tv"] },
+      "http": { "urls": ["http://cnc2.risse.tv"] }
+    }
+  },
+  "badge-printer5": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer5.risse.tv"] }
+    }
+  },
+  "badge-printer6": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer6.risse.tv"] }
+    }
+  },
+  "phone-reg2": {
+    "tags": { "category": "phone", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["phone-reg2.risse.tv"] }
+    }
+  },
+  "phone-dining1": {
+    "tags": { "category": "phone", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["phone-dining1.risse.tv"] }
+    }
+  },
+  "phone-workshop1": {
+    "tags": { "category": "phone", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["phone-workshop1.risse.tv"] }
     }
   }
 }
