@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
@@ -140,16 +141,20 @@ func copyConfig(cfg map[string]any) map[string]any {
 }
 
 // rrdValuesFromResult extracts metric values from a check.Result in the
-// order declared by the metric definitions. Returns an empty slice if the
-// check failed or no declared metrics are present.
-func rrdValuesFromResult(result check.Result, metrics []check.MetricDef) []int64 {
-	if !result.Success {
-		return []int64{}
+// order declared by the metric definitions. Returns nil if no metrics are
+// present (complete failure, skip RRD update). When only some metrics are
+// present (partial failure), missing ones are returned as "U" so rrdtool
+// records them as UNKNOWN, allowing surviving targets to continue graphing.
+func rrdValuesFromResult(result check.Result, metrics []check.MetricDef) []string {
+	if len(metrics) == 0 || len(result.Metrics) == 0 {
+		return nil
 	}
-	var vals []int64
-	for _, m := range metrics {
+	vals := make([]string, len(metrics))
+	for i, m := range metrics {
 		if v, ok := result.Metrics[m.ResultKey]; ok {
-			vals = append(vals, v)
+			vals[i] = strconv.FormatInt(v, 10)
+		} else {
+			vals[i] = "U"
 		}
 	}
 	return vals

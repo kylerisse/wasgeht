@@ -149,8 +149,9 @@ func (r *RRD) getLastUpdate() (int64, error) {
 
 // SafeUpdate updates the RRD file with the provided values at the given timestamp.
 // It checks if the new timestamp is newer than the last update to avoid duplicates.
+// Values are pre-formatted strings; use "U" for UNKNOWN/NaN on missing metrics.
 // Returns the Unix timestamp of the update, or an error.
-func (r *RRD) SafeUpdate(t time.Time, values []int64) (int64, error) {
+func (r *RRD) SafeUpdate(t time.Time, values []string) (int64, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -169,9 +170,7 @@ func (r *RRD) SafeUpdate(t time.Time, values []int64) (int64, error) {
 		// Build the update string: timestamp:val1:val2:...
 		parts := make([]string, len(values)+1)
 		parts[0] = strconv.FormatInt(timestampUnix, 10)
-		for i, v := range values {
-			parts[i+1] = strconv.FormatInt(v, 10)
-		}
+		copy(parts[1:], values)
 		updateStr := strings.Join(parts, ":")
 
 		cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)

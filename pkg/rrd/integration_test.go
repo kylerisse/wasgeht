@@ -265,7 +265,7 @@ func TestSafeUpdate_MultiDS_Success(t *testing.T) {
 	defer r.file.Close()
 
 	ts := time.Now()
-	lastUpdate, err := r.SafeUpdate(ts, []int64{3, 7})
+	lastUpdate, err := r.SafeUpdate(ts, []string{"3", "7"})
 	if err != nil {
 		t.Fatalf("SafeUpdate multi-DS failed: %v", err)
 	}
@@ -288,13 +288,13 @@ func TestSafeUpdate_MultiDS_AcceptsNewer(t *testing.T) {
 	defer r.file.Close()
 
 	ts1 := time.Now()
-	_, err = r.SafeUpdate(ts1, []int64{3, 7})
+	_, err = r.SafeUpdate(ts1, []string{"3", "7"})
 	if err != nil {
 		t.Fatalf("first SafeUpdate failed: %v", err)
 	}
 
 	ts2 := ts1.Add(61 * time.Second)
-	lastUpdate, err := r.SafeUpdate(ts2, []int64{5, 10})
+	lastUpdate, err := r.SafeUpdate(ts2, []string{"5", "10"})
 	if err != nil {
 		t.Fatalf("second SafeUpdate failed: %v", err)
 	}
@@ -342,7 +342,7 @@ func TestSafeUpdate_MultiMetric_Success(t *testing.T) {
 	defer r.file.Close()
 
 	ts := time.Now()
-	lastUpdate, err := r.SafeUpdate(ts, []int64{15000, 22000})
+	lastUpdate, err := r.SafeUpdate(ts, []string{"15000", "22000"})
 	if err != nil {
 		t.Fatalf("SafeUpdate multi-metric failed: %v", err)
 	}
@@ -367,7 +367,7 @@ func TestSafeUpdate_SingleDS(t *testing.T) {
 	defer r.file.Close()
 
 	ts := time.Now()
-	lastUpdate, err := r.SafeUpdate(ts, []int64{12340})
+	lastUpdate, err := r.SafeUpdate(ts, []string{"12340"})
 	if err != nil {
 		t.Fatalf("SafeUpdate failed: %v", err)
 	}
@@ -390,12 +390,12 @@ func TestSafeUpdate_RejectsSameTimestamp(t *testing.T) {
 	defer r.file.Close()
 
 	ts := time.Now()
-	_, err = r.SafeUpdate(ts, []int64{12340})
+	_, err = r.SafeUpdate(ts, []string{"12340"})
 	if err != nil {
 		t.Fatalf("first SafeUpdate failed: %v", err)
 	}
 
-	_, err = r.SafeUpdate(ts, []int64{56780})
+	_, err = r.SafeUpdate(ts, []string{"56780"})
 	if err == nil {
 		t.Error("expected error for same timestamp update")
 	}
@@ -415,7 +415,7 @@ func TestSafeUpdate_EmptyValues(t *testing.T) {
 	defer r.file.Close()
 
 	ts := time.Now()
-	_, err = r.SafeUpdate(ts, []int64{})
+	_, err = r.SafeUpdate(ts, []string{})
 	if err != nil {
 		t.Fatalf("SafeUpdate with empty values failed: %v", err)
 	}

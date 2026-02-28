@@ -59,8 +59,8 @@ func TestRrdValuesFromResult_Success(t *testing.T) {
 	}
 
 	vals := rrdValuesFromResult(result, pingMetrics)
-	if len(vals) != 1 || vals[0] != 56780 {
-		t.Errorf("expected [56780], got %v", vals)
+	if len(vals) != 1 || vals[0] != "56780" {
+		t.Errorf("expected [\"56780\"], got %v", vals)
 	}
 }
 
@@ -80,8 +80,8 @@ func TestRrdValuesFromResult_NoLatencyMetric(t *testing.T) {
 	}
 
 	vals := rrdValuesFromResult(result, pingMetrics)
-	if len(vals) != 0 {
-		t.Errorf("expected empty slice for missing latency, got %v", vals)
+	if len(vals) != 1 || vals[0] != "U" {
+		t.Errorf("expected [\"U\"] for missing latency, got %v", vals)
 	}
 }
 
@@ -102,11 +102,11 @@ func TestRrdValuesFromResult_MultipleMetrics(t *testing.T) {
 	if len(vals) != 2 {
 		t.Fatalf("expected 2 values, got %d", len(vals))
 	}
-	if vals[0] != 10000 {
-		t.Errorf("expected rx_bytes=10000, got %d", vals[0])
+	if vals[0] != "10000" {
+		t.Errorf("expected rx_bytes=\"10000\", got %q", vals[0])
 	}
-	if vals[1] != 2000 {
-		t.Errorf("expected tx_bytes=2000, got %d", vals[1])
+	if vals[1] != "2000" {
+		t.Errorf("expected tx_bytes=\"2000\", got %q", vals[1])
 	}
 }
 
@@ -116,19 +116,22 @@ func TestRrdValuesFromResult_PartialMetrics(t *testing.T) {
 		{ResultKey: "tx_bytes", DSName: "tx", Label: "transmitted", Unit: "bytes"},
 	}
 	result := check.Result{
-		Success: true,
+		Success: false,
 		Metrics: map[string]int64{
 			"rx_bytes": 10000,
-			// tx_bytes missing
+			// tx_bytes missing (target failed)
 		},
 	}
 
 	vals := rrdValuesFromResult(result, multiMetrics)
-	if len(vals) != 1 {
-		t.Fatalf("expected 1 value for partial metrics, got %d", len(vals))
+	if len(vals) != 2 {
+		t.Fatalf("expected 2 values for partial metrics, got %d", len(vals))
 	}
-	if vals[0] != 10000 {
-		t.Errorf("expected rx_bytes=10000, got %d", vals[0])
+	if vals[0] != "10000" {
+		t.Errorf("expected rx_bytes=\"10000\", got %q", vals[0])
+	}
+	if vals[1] != "U" {
+		t.Errorf("expected tx_bytes=\"U\" for failed target, got %q", vals[1])
 	}
 }
 
