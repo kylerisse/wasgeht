@@ -649,7 +649,7 @@ document.addEventListener('alpine:init', function () {
             },
 
             checkLabel: function (checkType) {
-                return checkType.replace('_', ' ');
+                return checkType;
             },
 
             checkAlive: function (checkType) {

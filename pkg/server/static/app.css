@@ -424,7 +424,6 @@
 .check-card-name {
     font-weight: 700;
     font-size: 0.9rem;
-    text-transform: capitalize;
 }
 
 .check-card-status {
@@ -471,7 +470,6 @@
     text-align: center;
     font-size: 0.85rem;
     padding: 0.4rem;
-    text-transform: capitalize;
 }
 
 .graph-table td {
