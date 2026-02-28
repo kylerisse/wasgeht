@@ -22,8 +22,8 @@ type checkInstance struct {
 func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
-	// Add a random delay of 1-59 seconds before starting to reduce initial filesystem activity.
-	startDelay := time.Duration(rand.Intn(59)+1) * time.Second
+	// Add a random delay of 1-119 seconds before starting to reduce initial filesystem activity.
+	startDelay := time.Duration(rand.Intn(119)+1) * time.Second
 	s.logger.Infof("Worker for host %s will start in %v", name, startDelay)
 	select {
 	case <-time.After(startDelay):
