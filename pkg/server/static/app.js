@@ -36,6 +36,18 @@ var filterState = {
     },
     setOmitted: function (arr) {
         localStorage.setItem(this.KEY_OMITTED, JSON.stringify(arr));
+    },
+
+    getHiddenChecks: function (hostname) {
+        try {
+            var raw = localStorage.getItem('wasgeht.hidden_checks.' + hostname);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    },
+    setHiddenChecks: function (hostname, arr) {
+        localStorage.setItem('wasgeht.hidden_checks.' + hostname, JSON.stringify(arr));
     }
 };
 
@@ -542,7 +554,10 @@ document.addEventListener('alpine:init', function () {
                     .then(function (data) {
                         self.host = data;
                         self.checkTypes = Object.keys(data.checks || {}).sort();
-                        self.visibleChecks = self.checkTypes.slice();
+                        var hidden = filterState.getHiddenChecks(self.hostname);
+                        self.visibleChecks = self.checkTypes.filter(function (ct) {
+                            return hidden.indexOf(ct) === -1;
+                        });
                         self.loading = false;
                     })
                     .catch(function () {
@@ -615,6 +630,10 @@ document.addEventListener('alpine:init', function () {
                 } else {
                     this.visibleChecks.splice(idx, 1);
                 }
+                var hidden = this.checkTypes.filter(function (ct) {
+                    return this.visibleChecks.indexOf(ct) === -1;
+                }, this);
+                filterState.setHiddenChecks(this.hostname, hidden);
             },
 
             isCheckVisible: function (checkType) {
@@ -649,6 +668,34 @@ document.addEventListener('alpine:init', function () {
                 var symbol = alive ? ' \u2713' : ' \u2717';
                 var metric = checkSummaryMetric(checkType, this.host && this.host.checks && this.host.checks[checkType]);
                 return this.checkLabel(checkType) + symbol + metric;
+            },
+
+            checkCardClass: function (checkType) {
+                var alive = this.checkAlive(checkType);
+                var cls = 'check-card ' + (alive ? 'check-alive' : 'check-dead');
+                if (!this.isCheckVisible(checkType)) cls += ' check-filter-dimmed';
+                return cls;
+            },
+
+            checkMetricEntries: function (checkType) {
+                var data = this.host && this.host.checks && this.host.checks[checkType];
+                if (!data || !data.metrics) return [];
+                var isCount = (checkType === 'wifi_stations');
+                return Object.entries(data.metrics).map(function (e) {
+                    var key = e[0];
+                    var val = e[1];
+                    var displayVal = isCount ? String(val) : (val / 1000).toFixed(1) + ' ms';
+                    return { key: key, value: displayVal };
+                });
+            },
+
+            checkLastUpdate: function (checkType) {
+                var data = this.host && this.host.checks && this.host.checks[checkType];
+                if (!data || !data.lastupdate) return '';
+                var d = new Date(data.lastupdate * 1000);
+                var p = function (n) { return n < 10 ? '0' + n : String(n); };
+                return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+                    ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
             },
 
             hostStatusBadgeClass: function () {

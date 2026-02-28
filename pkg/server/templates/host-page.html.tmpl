@@ -42,13 +42,23 @@
 				</div>
 			</div>
 
-			<!-- Check type filter -->
-			<div class="check-filter">
+			<!-- Check detail cards -->
+			<div class="check-cards">
 				<template x-for="ct in checkTypes">
-					<button x-bind:class="checkToggleClass(ct)"
-						x-on:click="toggleCheck(ct)"
-						x-text="checkToggleText(ct)">
-					</button>
+					<div x-bind:class="checkCardClass(ct)" x-on:click="toggleCheck(ct)">
+						<div class="check-card-header">
+							<span class="check-card-name" x-text="checkLabel(ct)"></span>
+							<span class="check-card-lastupdate" x-text="checkLastUpdate(ct)"></span>
+						</div>
+						<div class="check-card-metrics">
+							<template x-for="m in checkMetricEntries(ct)">
+								<div class="check-card-metric">
+									<span class="check-card-metric-name" x-text="m.key"></span>
+									<span class="check-card-metric-value" x-text="m.value"></span>
+								</div>
+							</template>
+						</div>
+					</div>
 				</template>
 			</div>
 

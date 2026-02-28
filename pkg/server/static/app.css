@@ -388,6 +388,80 @@
     opacity: 0.8;
 }
 
+/* ── Check detail cards (host detail page) ───────────────── */
+
+.check-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.check-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.5rem;
+    min-width: 120px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.check-card:hover {
+    opacity: 0.8;
+}
+
+.check-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.check-card-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: capitalize;
+}
+
+.check-card-status {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.check-card-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.75rem;
+}
+
+.check-card-metric {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.check-card-metric-name {
+    opacity: 0.7;
+    font-family: var(--pico-font-family-monospace, monospace);
+}
+
+.check-card-metric-value {
+    font-weight: 600;
+    font-family: var(--pico-font-family-monospace, monospace);
+}
+
+.check-card-lastupdate {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    font-family: var(--pico-font-family-monospace, monospace);
+    white-space: nowrap;
+}
+
 .graph-table {
     width: 100%;
     border-collapse: collapse;
