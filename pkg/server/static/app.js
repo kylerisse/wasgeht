@@ -440,18 +440,21 @@ document.addEventListener('alpine:init', function () {
         return {
             hostname: '',
             host: null,
+            allHosts: {},
             checkTypes: [],
             visibleChecks: [],
-            visibleTimes: [],
             allTimes: ALL_TIMES,
             loading: true,
+            modalSrc: '',
+            modalAlt: '',
+            modalOpen: false,
 
             init: function () {
                 var params = new URLSearchParams(window.location.search);
                 this.hostname = params.get('hostname') || '';
-                this.visibleTimes = ALL_TIMES.map(function (t) { return t.key; });
                 if (this.hostname) {
                     this.fetchHost();
+                    this.fetchAllHosts();
                 }
             },
 
@@ -470,6 +473,41 @@ document.addEventListener('alpine:init', function () {
                     });
             },
 
+            fetchAllHosts: function () {
+                var self = this;
+                fetch('/api')
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) { self.allHosts = data.hosts || {}; });
+            },
+
+            summaryEntries: function () {
+                var counts = {};
+                Object.entries(this.allHosts).forEach(function (entry) {
+                    var s = entry[1].status;
+                    counts[s] = (counts[s] || 0) + 1;
+                });
+                return ALL_STATUSES.filter(function (s) {
+                    return (counts[s] || 0) > 0;
+                }).map(function (s) {
+                    return { status: s, count: counts[s] };
+                });
+            },
+
+            summaryBadgeClass: function (entry) {
+                return 'summary-badge status-' + entry.status;
+            },
+
+            openModal: function (checkType, t) {
+                this.modalSrc = this.imgSrc(checkType, t.key);
+                this.modalAlt = this.hostname + ' ' + checkType + ' ' + t.label;
+                this.modalOpen = true;
+            },
+
+            closeModal: function () {
+                this.modalOpen = false;
+                this.modalSrc = '';
+            },
+
             toggleCheck: function (checkType) {
                 var idx = this.visibleChecks.indexOf(checkType);
                 if (idx === -1) {
@@ -483,25 +521,8 @@ document.addEventListener('alpine:init', function () {
                 return this.visibleChecks.indexOf(checkType) !== -1;
             },
 
-            toggleTime: function (timeKey) {
-                var idx = this.visibleTimes.indexOf(timeKey);
-                if (idx === -1) {
-                    this.visibleTimes.push(timeKey);
-                } else {
-                    this.visibleTimes.splice(idx, 1);
-                }
-            },
-
-            isTimeVisible: function (timeKey) {
-                return this.visibleTimes.indexOf(timeKey) !== -1;
-            },
-
             showAllChecks: function () {
                 this.visibleChecks = this.checkTypes.slice();
-            },
-
-            showAllTimes: function () {
-                this.visibleTimes = ALL_TIMES.map(function (t) { return t.key; });
             },
 
             imgSrc: function (checkType, timeKey) {
@@ -510,6 +531,44 @@ document.addEventListener('alpine:init', function () {
 
             checkLabel: function (checkType) {
                 return checkType.replace('_', ' ');
+            },
+
+            checkToggleClass: function (checkType) {
+                return 'filter-toggle' + (this.isCheckVisible(checkType) ? ' active' : '');
+            },
+
+            hostStatusBadgeClass: function () {
+                if (!this.host) return 'summary-badge';
+                return 'summary-badge status-' + this.host.status;
+            },
+
+            statusText: function () {
+                if (!this.host) return '';
+                return this.host.status;
+            },
+
+            hostTags: function () {
+                if (!this.host || !this.host.tags) return [];
+                return Object.entries(this.host.tags);
+            },
+
+            tagText: function (tag) {
+                return tag[0] + ': ' + tag[1];
+            },
+
+            visibleCheckTypes: function () {
+                var self = this;
+                return this.checkTypes.filter(function (ct) {
+                    return self.isCheckVisible(ct);
+                });
+            },
+
+            graphImgSrc: function (checkType, t) {
+                return this.imgSrc(checkType, t.key);
+            },
+
+            graphAlt: function (checkType, t) {
+                return this.hostname + ' ' + checkType + ' ' + t.label;
             }
         };
     });

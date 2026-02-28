@@ -256,7 +256,9 @@
 .host-tag {
     font-size: 0.75rem;
     padding: 0.15rem 0.5rem;
-    background-color: var(--pico-secondary-background, #e0e0e0);
+    background-color: #e3f2fd;
+    color: #0d47a1;
+    border: 1px solid #90caf9;
     border-radius: 1rem;
 }
 
@@ -294,26 +296,67 @@
     color: #fff;
 }
 
-.graph-section {
-    margin-bottom: 2rem;
+.graph-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-.graph-section h3 {
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid var(--pico-muted-border-color, #ddd);
-    padding-bottom: 0.25rem;
+.graph-table th {
+    text-align: center;
+    font-size: 0.85rem;
+    padding: 0.4rem;
+    text-transform: capitalize;
 }
 
-.graph-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
+.graph-table td {
+    padding: 0.4rem;
+    vertical-align: top;
 }
 
-.graph-grid img {
+.graph-table .time-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    vertical-align: middle;
+    width: 3rem;
+}
+
+.graph-table img {
     max-width: 100%;
     height: auto;
     border-radius: 0.25rem;
+    display: block;
+}
+
+/* ── Graph modal ──────────────────────────────────────────── */
+
+.graph-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+}
+
+.graph-modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+}
+
+.graph-modal-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 0.25rem;
+}
+
+.graph-table img {
+    cursor: pointer;
 }
 
 /* ── Utilities ────────────────────────────────────────────── */
