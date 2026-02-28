@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 	<head>
 		<meta charset="UTF-8" />
-		<title>Was Geht: Grid View</title>
+		<title>Was Geht: Grid</title>
 		<link rel="stylesheet" href="/vendor/pico-2.1.1.classless.min.css" />
 		<link rel="stylesheet" href="/app.css" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,7 +12,7 @@
 			<!-- Top bar: nav + summary badges (clickable to filter) + search -->
 			<div class="summary-bar">
 				<a href="/">Dashboard</a>
-				<a href="/grid-view.html">Grid View</a>
+				<a href="/grid-view.html">Grid</a>
 				<template x-for="entry in summaryEntries()">
 					<span x-bind:class="summaryBadgeClickClass(entry)"
 						x-on:click="toggleStatus(entry.status)"

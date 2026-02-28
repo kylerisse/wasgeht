@@ -12,7 +12,7 @@
 			<!-- Top bar: nav + summary badges (clickable to filter) + search -->
 			<div class="summary-bar">
 				<a href="/">Dashboard</a>
-				<a href="/grid-view.html">Grid View</a>
+				<a href="/grid-view.html">Grid</a>
 				<template x-for="entry in summaryEntries()">
 					<span x-bind:class="summaryBadgeClickClass(entry)"
 						x-on:click="toggleStatus(entry.status)"
