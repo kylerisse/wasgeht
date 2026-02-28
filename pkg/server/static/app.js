@@ -295,7 +295,7 @@ document.addEventListener('alpine:init', function () {
             },
 
             checkBadgeText: function (chk) {
-                var symbol = chk[1].alive ? ' \u2713' : ' \u2717';
+                var symbol = chk[1].alive ? ' \u2713' : ' !';
                 var metric = checkSummaryMetric(chk[0], chk[1]);
                 return chk[0] + symbol + metric;
             },
