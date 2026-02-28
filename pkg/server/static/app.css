@@ -139,6 +139,32 @@
     z-index: 1;
 }
 
+.grid-item {
+    position: relative;
+}
+
+.grid-item-omit {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 6px 8px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    color: inherit;
+    z-index: 2;
+}
+
+.grid-item:hover .grid-item-omit {
+    opacity: 0.6;
+}
+
+.grid-item-omit:hover {
+    opacity: 1 !important;
+}
+
 .grid-item a {
     display: flex;
     align-items: center;

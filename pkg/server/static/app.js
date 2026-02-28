@@ -282,6 +282,7 @@ document.addEventListener('alpine:init', function () {
             search: '',
             activeStatuses: [],
             omitted: [],
+            allStatuses: ALL_STATUSES,
             refreshCountdown: 5,
             _interval: null,
             _countdownInterval: null,
@@ -357,6 +358,62 @@ document.addEventListener('alpine:init', function () {
             updateSearch: function (val) {
                 this.search = val;
                 filterState.setSearch(val);
+            },
+
+            omitHostEntry: function (entry) {
+                var hostname = entry[0];
+                if (this.omitted.indexOf(hostname) === -1) {
+                    this.omitted.push(hostname);
+                    filterState.setOmitted(this.omitted);
+                }
+            },
+
+            clearOmitted: function () {
+                this.omitted = [];
+                filterState.setOmitted([]);
+            },
+
+            summaryEntries: function () {
+                var self = this;
+                var counts = {};
+                Object.entries(this.hosts).forEach(function (entry) {
+                    if (self.omitted.indexOf(entry[0]) !== -1) return;
+                    var s = entry[1].status;
+                    counts[s] = (counts[s] || 0) + 1;
+                });
+                return ALL_STATUSES.filter(function (s) {
+                    return (counts[s] || 0) > 0;
+                }).map(function (s) {
+                    return { status: s, count: counts[s] };
+                });
+            },
+
+            summaryBadgeClickClass: function (entry) {
+                var base = 'summary-badge summary-badge-clickable status-' + entry.status;
+                if (this.activeStatuses.length > 0 && !this.isStatusActive(entry.status)) {
+                    base += ' summary-badge-dimmed';
+                }
+                return base;
+            },
+
+            gridItemClass: function (entry) {
+                return 'grid-item status-' + entry[1].status;
+            },
+
+            hostDetailHref: function (entry) {
+                return '/host-detail?hostname=' + encodeURIComponent(entry[0]);
+            },
+
+            hostName: function (entry) {
+                return entry[0];
+            },
+
+            omittedText: function () {
+                return this.omitted.length + ' host(s) omitted';
+            },
+
+            hasOmitted: function () {
+                return this.omitted.length > 0;
             }
         };
     });
