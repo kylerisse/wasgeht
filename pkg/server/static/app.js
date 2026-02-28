@@ -189,6 +189,15 @@ document.addEventListener('alpine:init', function () {
                 return this.activeStatuses.indexOf(status) !== -1;
             },
 
+            clearStatuses: function () {
+                this.activeStatuses = [];
+                filterState.setStatuses([]);
+            },
+
+            hasActiveStatuses: function () {
+                return this.activeStatuses.length > 0;
+            },
+
             updateSearch: function (val) {
                 this.search = val;
                 filterState.setSearch(val);
@@ -385,6 +394,15 @@ document.addEventListener('alpine:init', function () {
 
             isStatusActive: function (status) {
                 return this.activeStatuses.indexOf(status) !== -1;
+            },
+
+            clearStatuses: function () {
+                this.activeStatuses = [];
+                filterState.setStatuses([]);
+            },
+
+            hasActiveStatuses: function () {
+                return this.activeStatuses.length > 0;
             },
 
             updateSearch: function (val) {

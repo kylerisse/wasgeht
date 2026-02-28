@@ -21,6 +21,7 @@
 						<span x-text="entry.count"></span>
 					</span>
 				</template>
+				<button class="filter-clear-btn" x-show="hasActiveStatuses()" x-on:click="clearStatuses()" title="Clear status filter">&#x2715;</button>
 				<span class="summary-bar-spacer"></span>
 				<div class="omitted-dropdown" x-show="hasOmitted()">
 					<button class="clear-omitted-btn" x-text="omittedText()"></button>

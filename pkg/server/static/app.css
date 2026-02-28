@@ -126,6 +126,24 @@
     padding-bottom: 0.4rem;
 }
 
+.filter-clear-btn {
+    background: none;
+    border: none;
+    padding: 0.1rem 0.35rem;
+    margin: 0;
+    width: auto;
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--pico-muted-color, #888);
+    opacity: 0.6;
+    border-radius: 0.25rem;
+}
+
+.filter-clear-btn:hover {
+    opacity: 1;
+}
+
 .search-wrap {
     position: relative;
     display: inline-flex;
