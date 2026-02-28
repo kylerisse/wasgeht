@@ -472,9 +472,12 @@ document.addEventListener('alpine:init', function () {
             visibleChecks: [],
             allTimes: ALL_TIMES,
             loading: true,
+            graphTimestamp: Date.now(),
             modalSrc: '',
             modalAlt: '',
             modalOpen: false,
+            _statusInterval: null,
+            _graphInterval: null,
 
             init: function () {
                 var self = this;
@@ -484,11 +487,19 @@ document.addEventListener('alpine:init', function () {
                 if (this.hostname) {
                     this.fetchHost();
                     this.fetchAllHosts();
-                    this._interval = setInterval(function () {
+                    this._statusInterval = setInterval(function () {
                         self.fetchHost();
                         self.fetchAllHosts();
+                    }, 5000);
+                    this._graphInterval = setInterval(function () {
+                        self.graphTimestamp = Date.now();
                     }, 60000);
                 }
+            },
+
+            destroy: function () {
+                clearInterval(this._statusInterval);
+                clearInterval(this._graphInterval);
             },
 
             fetchHost: function () {
@@ -582,15 +593,27 @@ document.addEventListener('alpine:init', function () {
             },
 
             imgSrc: function (checkType, timeKey) {
-                return '/imgs/' + this.hostname + '/' + this.hostname + '_' + checkType + '_' + timeKey + '.png?t=' + Date.now();
+                return '/imgs/' + this.hostname + '/' + this.hostname + '_' + checkType + '_' + timeKey + '.png?t=' + this.graphTimestamp;
             },
 
             checkLabel: function (checkType) {
                 return checkType.replace('_', ' ');
             },
 
+            checkAlive: function (checkType) {
+                return this.host && this.host.checks && this.host.checks[checkType] && this.host.checks[checkType].alive;
+            },
+
             checkToggleClass: function (checkType) {
-                return 'filter-toggle' + (this.isCheckVisible(checkType) ? ' active' : '');
+                var alive = this.checkAlive(checkType);
+                var cls = 'check-filter-btn ' + (alive ? 'check-alive' : 'check-dead');
+                if (!this.isCheckVisible(checkType)) cls += ' check-filter-dimmed';
+                return cls;
+            },
+
+            checkToggleText: function (checkType) {
+                var symbol = this.checkAlive(checkType) ? ' \u2713' : ' \u2717';
+                return this.checkLabel(checkType) + symbol;
             },
 
             hostStatusBadgeClass: function () {

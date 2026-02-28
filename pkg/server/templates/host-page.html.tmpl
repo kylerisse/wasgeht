@@ -47,7 +47,7 @@
 				<template x-for="ct in checkTypes">
 					<button x-bind:class="checkToggleClass(ct)"
 						x-on:click="toggleCheck(ct)"
-						x-text="checkLabel(ct)">
+						x-text="checkToggleText(ct)">
 					</button>
 				</template>
 			</div>

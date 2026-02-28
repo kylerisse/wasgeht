@@ -284,22 +284,27 @@
     align-self: center;
 }
 
-.filter-toggle {
-    font-size: 0.8rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 0.25rem;
-    border: 1px solid var(--pico-primary, #1a6fb5);
-    color: var(--pico-primary, #1a6fb5);
-    background: transparent;
+.check-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 1rem;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
+    transition: opacity 0.15s;
     margin: 0;
     width: auto;
 }
 
-.filter-toggle.active {
-    background-color: var(--pico-primary, #1a6fb5);
-    color: #fff;
+.check-filter-dimmed {
+    opacity: 0.35;
+}
+
+.check-filter-btn:hover {
+    opacity: 0.8;
 }
 
 .graph-table {
