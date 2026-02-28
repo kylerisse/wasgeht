@@ -292,8 +292,11 @@ document.addEventListener('alpine:init', function () {
             omitted: [],
             allStatuses: ALL_STATUSES,
             refreshCountdown: 5,
+            winW: window.innerWidth,
+            winH: window.innerHeight,
             _interval: null,
             _countdownInterval: null,
+            _resizeHandler: null,
 
             init: function () {
                 this.search = filterState.getSearch();
@@ -306,11 +309,17 @@ document.addEventListener('alpine:init', function () {
                     self.refreshCountdown--;
                     if (self.refreshCountdown < 0) self.refreshCountdown = 5;
                 }, 1000);
+                this._resizeHandler = function () {
+                    self.winW = window.innerWidth;
+                    self.winH = window.innerHeight;
+                };
+                window.addEventListener('resize', this._resizeHandler);
             },
 
             destroy: function () {
                 clearInterval(this._interval);
                 clearInterval(this._countdownInterval);
+                window.removeEventListener('resize', this._resizeHandler);
             },
 
             fetchData: function () {
@@ -414,6 +423,23 @@ document.addEventListener('alpine:init', function () {
 
             gridItemClass: function (entry) {
                 return 'grid-item status-' + entry[1].status;
+            },
+
+            gridStyle: function () {
+                var n = this.filteredHosts().length;
+                if (n === 0) return {};
+                var grid = document.querySelector('.grid-view');
+                var gridTop = grid ? grid.getBoundingClientRect().top : 60;
+                var availH = this.winH - gridTop;
+                var availW = this.winW - 32;
+                var ratio = availW / availH;
+                var cols = Math.max(1, Math.round(Math.sqrt(n * ratio)));
+                var rows = Math.ceil(n / cols);
+                return {
+                    gridTemplateColumns: 'repeat(' + cols + ', 1fr)',
+                    gridTemplateRows: 'repeat(' + rows + ', 1fr)',
+                    height: availH + 'px',
+                };
             },
 
             hostDetailHref: function (entry) {

@@ -8,7 +8,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
 	<body x-data="gridview">
-		<main>
+		<main class="grid-main">
 			<!-- Top bar: nav + summary badges (clickable to filter) + search -->
 			<div class="summary-bar">
 				<a href="/">Dashboard</a>
@@ -37,7 +37,7 @@
 			</div>
 
 			<!-- Host grid -->
-			<div class="grid-view">
+			<div class="grid-view" x-bind:style="gridStyle()">
 				<template x-for="entry in filteredHosts()">
 					<div x-bind:class="gridItemClass(entry)">
 						<a x-bind:href="hostDetailHref(entry)" x-text="hostName(entry)"></a>

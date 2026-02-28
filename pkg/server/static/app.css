@@ -170,17 +170,20 @@
 
 /* ── Grid view (flamegraph) ───────────────────────────────── */
 
+.grid-main {
+    max-width: none !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    padding-bottom: 0 !important;
+}
+
 .grid-view {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
     gap: 4px;
-    padding: 0.5rem 0;
+    padding-top: 0.5rem;
 }
 
 .grid-item {
-    flex: 0 0 calc(10% - 4px);
-    min-width: 80px;
-    height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -380,11 +383,6 @@
 /* ── Responsive ───────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-    .grid-item {
-        flex: 0 0 calc(20% - 4px);
-        min-width: 60px;
-    }
-
     .summary-bar input[type="search"] {
         max-width: 100%;
         width: 100%;
@@ -397,8 +395,3 @@
     }
 }
 
-@media (max-width: 480px) {
-    .grid-item {
-        flex: 0 0 calc(33.33% - 4px);
-    }
-}
