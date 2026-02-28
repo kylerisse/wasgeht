@@ -52,7 +52,7 @@
 				</thead>
 				<tbody>
 					<template x-for="entry in filteredHosts()">
-						<tr>
+						<tr x-bind:class="'host-row status-' + entry[1].status">
 							<td>
 								<a class="hostname-link"
 									x-bind:href="hostDetailHref(entry)"
