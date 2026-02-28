@@ -252,6 +252,12 @@
 
 /* ── Host detail ──────────────────────────────────────────── */
 
+.host-detail-main {
+    max-width: none !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
 .host-header {
     display: flex;
     align-items: center;
