@@ -22,7 +22,7 @@ func TestHandlePrometheus_BasicOutput(t *testing.T) {
 	status := s.getOrCreateStatus("google", "ping")
 	status.SetResult(check.Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 12345},
+		Metrics: map[string]*int64{"latency_us": p64(12345)},
 	})
 
 	req := httptest.NewRequest("GET", "/metrics", nil)
@@ -123,13 +123,13 @@ func TestHandlePrometheus_MultipleChecks(t *testing.T) {
 	pingStatus := s.getOrCreateStatus("multi", "ping")
 	pingStatus.SetResult(check.Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 500},
+		Metrics: map[string]*int64{"latency_us": p64(500)},
 	})
 
 	httpStatus := s.getOrCreateStatus("multi", "http")
 	httpStatus.SetResult(check.Result{
 		Success: true,
-		Metrics: map[string]int64{"response_ms": 42},
+		Metrics: map[string]*int64{"response_ms": p64(42)},
 	})
 
 	req := httptest.NewRequest("GET", "/metrics", nil)

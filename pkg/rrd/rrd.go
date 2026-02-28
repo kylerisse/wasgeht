@@ -149,8 +149,9 @@ func (r *RRD) getLastUpdate() (int64, error) {
 
 // SafeUpdate updates the RRD file with the provided values at the given timestamp.
 // It checks if the new timestamp is newer than the last update to avoid duplicates.
+// Values are pre-formatted strings; use "U" for UNKNOWN/NaN on missing metrics.
 // Returns the Unix timestamp of the update, or an error.
-func (r *RRD) SafeUpdate(t time.Time, values []int64) (int64, error) {
+func (r *RRD) SafeUpdate(t time.Time, values []string) (int64, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -169,9 +170,7 @@ func (r *RRD) SafeUpdate(t time.Time, values []int64) (int64, error) {
 		// Build the update string: timestamp:val1:val2:...
 		parts := make([]string, len(values)+1)
 		parts[0] = strconv.FormatInt(timestampUnix, 10)
-		for i, v := range values {
-			parts[i+1] = strconv.FormatInt(v, 10)
-		}
+		copy(parts[1:], values)
 		updateStr := strings.Join(parts, ":")
 
 		cmd := exec.Command("rrdtool", "update", r.file.Name(), updateStr)
@@ -184,10 +183,14 @@ func (r *RRD) SafeUpdate(t time.Time, values []int64) (int64, error) {
 	}
 
 	for _, graph := range r.graphs {
-		err := graph.draw()
-		if err != nil {
-			r.logger.Errorf("Failed to draw graph for RRD file %s: %v", r.file.Name(), err)
+		if time.Since(graph.lastDrawn) < graph.drawInterval {
+			continue
 		}
+		if err := graph.draw(); err != nil {
+			r.logger.Errorf("Failed to draw graph for RRD file %s: %v", r.file.Name(), err)
+			continue
+		}
+		graph.lastDrawn = time.Now()
 	}
 
 	return timestampUnix, nil
@@ -195,29 +198,34 @@ func (r *RRD) SafeUpdate(t time.Time, values []int64) (int64, error) {
 
 // initGraphs initializes a list of graphs for different time lengths and consolidation functions.
 func (r *RRD) initGraphs() {
-	timeLengths := map[string]string{
-		"15m": "MAX",
-		"1h":  "MAX",
-		"4h":  "MAX",
-		"8h":  "MAX",
-		"1d":  "AVERAGE",
-		"4d":  "AVERAGE",
-		"1w":  "AVERAGE",
-		"31d": "AVERAGE",
-		"93d": "AVERAGE",
-		"1y":  "AVERAGE",
-		"2y":  "AVERAGE",
-		"5y":  "AVERAGE",
+	type graphSpec struct {
+		conFunc  string
+		interval time.Duration
 	}
 
-	for timeLength, conFunc := range timeLengths {
-		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, conFunc, r.checkTyp, r.metrics, r.descLabel, r.logger)
+	specs := map[string]graphSpec{
+		"15m": {"MAX", 1 * time.Minute},
+		"1h":  {"MAX", 1 * time.Minute},
+		"4h":  {"MAX", 5 * time.Minute},
+		"8h":  {"MAX", 5 * time.Minute},
+		"1d":  {"AVERAGE", 10 * time.Minute},
+		"4d":  {"AVERAGE", 30 * time.Minute},
+		"1w":  {"AVERAGE", 30 * time.Minute},
+		"31d": {"AVERAGE", 1 * time.Hour},
+		"93d": {"AVERAGE", 1 * time.Hour},
+		"1y":  {"AVERAGE", 6 * time.Hour},
+		"2y":  {"AVERAGE", 6 * time.Hour},
+		"5y":  {"AVERAGE", 6 * time.Hour},
+	}
+
+	for timeLength, spec := range specs {
+		graph, err := newGraph(r.name, r.graphDir, r.file.Name(), timeLength, spec.conFunc, r.checkTyp, r.metrics, r.descLabel, spec.interval, r.logger)
 		if err != nil {
-			r.logger.Errorf("Failed to create %s graph for %s with time length %s: %v", conFunc, r.name, timeLength, err)
+			r.logger.Errorf("Failed to create %s graph for %s with time length %s: %v", spec.conFunc, r.name, timeLength, err)
 			continue
 		}
 		r.graphs = append(r.graphs, graph)
-		r.logger.Debugf("Added %s graph for %s with time length %s.", conFunc, r.name, timeLength)
+		r.logger.Debugf("Added %s graph for %s with time length %s.", spec.conFunc, r.name, timeLength)
 	}
 
 	r.logger.Debugf("Total graphs initialized for %s: %d", r.name, len(r.graphs))

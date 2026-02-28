@@ -356,7 +356,7 @@ func TestRun_Localhost(t *testing.T) {
 	if !result.Success {
 		t.Skipf("ping failed (may not have permission): %v", result.Err)
 	}
-	if result.Metrics["127.0.0.1"] <= 0 {
-		t.Errorf("expected positive latency, got %d", result.Metrics["127.0.0.1"])
+	if p := result.Metrics["127.0.0.1"]; p == nil || *p <= 0 {
+		t.Errorf("expected positive latency, got %v", result.Metrics["127.0.0.1"])
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
 	"github.com/sirupsen/logrus"
@@ -33,6 +34,8 @@ type graph struct {
 	metrics               []check.MetricDef // Metrics to draw (one per DS in the RRD)
 	descLabel             string            // descriptor-level label override (may be empty)
 	consolidationFunction string            // Consolidation function (e.g., "AVERAGE" "MAX")
+	drawInterval          time.Duration     // Minimum time between redraws
+	lastDrawn             time.Time         // Time of last successful draw
 	logger                *logrus.Logger
 }
 
@@ -48,7 +51,7 @@ type graph struct {
 //   - metrics: The metric definitions for data sources in the RRD.
 //   - descLabel: Descriptor-level label override for graph title/axis (may be empty).
 //   - logger: The logger instance.
-func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, metrics []check.MetricDef, descLabel string, logger *logrus.Logger) (*graph, error) {
+func newGraph(host string, graphDir string, rrdPath string, timeLength string, consolidationFunction string, checkType string, metrics []check.MetricDef, descLabel string, drawInterval time.Duration, logger *logrus.Logger) (*graph, error) {
 
 	dirPath := fmt.Sprintf("%s/imgs/%s", graphDir, host)
 	filePath := fmt.Sprintf("%s/%s_%s_%s.png", dirPath, host, checkType, timeLength)
@@ -71,6 +74,7 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 		metrics:               metrics,
 		descLabel:             descLabel,
 		consolidationFunction: consolidationFunction,
+		drawInterval:          drawInterval,
 		logger:                logger,
 	}
 
@@ -79,6 +83,7 @@ func newGraph(host string, graphDir string, rrdPath string, timeLength string, c
 	if err != nil {
 		return g, err
 	}
+	g.lastDrawn = time.Now()
 	logger.Debugf("Graph initialized and drawn for host %s, check type %s, time length %s.", host, checkType, timeLength)
 	return g, nil
 }

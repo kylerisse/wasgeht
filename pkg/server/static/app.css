@@ -1,0 +1,592 @@
+/* wasgeht unified styles — supplements Pico CSS classless */
+
+/* ── Color palette ────────────────────────────────────────── */
+
+:root {
+    --status-up-bg: #c8e6c9;
+    --status-up-fg: #1b5e20;
+    --status-up-row: #e8f5e9;
+
+    --status-down-bg: #ffcccb;
+    --status-down-fg: #b71c1c;
+    --status-down-row: #ffebee;
+
+    --status-degraded-bg: #fff9c4;
+    --status-degraded-fg: #f57f17;
+    --status-degraded-row: #fffde7;
+
+    --status-stale-bg: #ffe0b2;
+    --status-stale-fg: #e65100;
+    --status-stale-row: #fff3e0;
+
+    --status-pending-bg: #e1f5fe;
+    --status-pending-fg: #01579b;
+    --status-pending-row: #e3f2fd;
+
+    --status-unconfigured-bg: #e0e0e0;
+    --status-unconfigured-fg: #424242;
+    --status-unconfigured-row: #f5f5f5;
+
+    --tag-bg: #e3f2fd;
+    --tag-fg: #0d47a1;
+    --tag-border: #90caf9;
+}
+
+/* ── Status colors ────────────────────────────────────────── */
+
+.status-up { background-color: var(--status-up-bg); color: var(--status-up-fg); }
+.status-down { background-color: var(--status-down-bg); color: var(--status-down-fg); }
+.status-degraded { background-color: var(--status-degraded-bg); color: var(--status-degraded-fg); }
+.status-stale { background-color: var(--status-stale-bg); color: var(--status-stale-fg); }
+.status-pending { background-color: var(--status-pending-bg); color: var(--status-pending-fg); }
+.status-unconfigured { background-color: var(--status-unconfigured-bg); color: var(--status-unconfigured-fg); }
+
+/* ── Summary bar ──────────────────────────────────────────── */
+
+.summary-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.summary-bar a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    background-color: var(--pico-muted-background, #e9ecef);
+    color: var(--pico-color, #333);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.15s;
+}
+
+.summary-bar a:hover {
+    background-color: var(--pico-muted-border-color, #d0d5dd);
+    text-decoration: none;
+}
+
+.summary-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.summary-badge-clickable {
+    cursor: pointer;
+    transition: opacity 0.15s;
+    user-select: none;
+}
+
+.summary-badge-clickable:hover {
+    opacity: 0.8;
+}
+
+.summary-badge-dimmed {
+    opacity: 0.35;
+}
+
+.summary-bar-spacer {
+    margin-left: auto;
+}
+
+.omitted-dropdown {
+    position: relative;
+    display: inline-flex;
+}
+
+.clear-omitted-btn {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    margin: 0;
+    width: auto;
+    border-radius: 1rem;
+    cursor: pointer;
+}
+
+.omitted-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--pico-card-background-color, var(--pico-background-color, #fff));
+    color: var(--pico-color, #333);
+    border: 1px solid var(--pico-muted-border-color, #ccc);
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    min-width: 160px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+}
+
+.omitted-dropdown:hover .omitted-dropdown-menu {
+    display: block;
+}
+
+.omitted-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.3rem 0.75rem;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: inherit !important;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.omitted-dropdown-item:hover {
+    background: var(--pico-secondary-background, #e9ecef);
+}
+
+.omitted-dropdown-item:first-child {
+    font-weight: 600;
+    border-bottom: 1px solid var(--pico-muted-border-color, #ddd);
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.4rem;
+}
+
+.filter-clear-btn {
+    background: none;
+    border: none;
+    padding: 0.1rem 0.35rem;
+    margin: 0;
+    width: auto;
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--pico-muted-color, #888);
+    opacity: 0.6;
+    border-radius: 0.25rem;
+}
+
+.filter-clear-btn:hover {
+    opacity: 1;
+}
+
+.search-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.search-wrap input[type="search"] {
+    max-width: 200px;
+    margin-bottom: 0;
+    padding: 0.2rem 1.6rem 0.2rem 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    height: auto;
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 0.3rem;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    line-height: 1;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--pico-muted-color, #888);
+    opacity: 0.6;
+}
+
+.search-clear-btn:hover {
+    opacity: 1;
+}
+
+/* ── Dashboard table ──────────────────────────────────────── */
+
+.full-width-main {
+    max-width: none !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+.host-table {
+    width: 100%;
+}
+
+.host-row.status-up           td { background-color: var(--status-up-row); }
+.host-row.status-down         td { background-color: var(--status-down-row); }
+.host-row.status-degraded     td { background-color: var(--status-degraded-row); }
+.host-row.status-stale        td { background-color: var(--status-stale-row); }
+.host-row.status-pending      td { background-color: var(--status-pending-row); }
+.host-row.status-unconfigured td { background-color: var(--status-unconfigured-row); }
+
+.host-table th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.host-table td,
+.host-table th {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+}
+
+.host-table .hostname-link {
+    font-family: var(--pico-font-family-monospace);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.host-table .hostname-link:hover {
+    text-decoration: underline;
+}
+
+.check-badge {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    margin-right: 0.25rem;
+    white-space: nowrap;
+}
+
+.check-alive { background-color: var(--status-up-bg); color: var(--status-up-fg); }
+.check-dead { background-color: var(--status-down-bg); color: var(--status-down-fg); }
+
+.host-actions {
+    cursor: pointer;
+    opacity: 0.4;
+    font-size: 0.75rem;
+}
+
+.host-actions:hover {
+    opacity: 1;
+}
+
+/* ── Grid view (flamegraph) ───────────────────────────────── */
+
+.grid-main {
+    padding-bottom: 0 !important;
+}
+
+body:has(.grid-main) {
+    overflow: hidden;
+}
+
+.grid-view {
+    display: grid;
+    gap: 4px;
+    padding-top: 0.5rem;
+    overflow: hidden;
+}
+
+.grid-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s;
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.grid-item:hover {
+    transform: scale(1.05);
+    z-index: 1;
+}
+
+.grid-item-omit {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 6px 8px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    color: inherit;
+    z-index: 2;
+}
+
+.grid-item:hover .grid-item-omit {
+    opacity: 0.6;
+}
+
+.grid-item-omit:hover {
+    opacity: 1 !important;
+}
+
+.grid-item a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-align: center;
+    overflow: hidden;
+    word-break: break-all;
+    padding: 0.15rem;
+}
+
+/* ── Host detail ──────────────────────────────────────────── */
+
+.host-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.host-header h1 {
+    margin-bottom: 0;
+}
+
+.host-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.host-tag {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    background-color: var(--tag-bg);
+    color: var(--tag-fg);
+    border: 1px solid var(--tag-border);
+    border-radius: 1rem;
+}
+
+.check-filter,
+.time-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.check-filter label,
+.time-filter label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    align-self: center;
+}
+
+.check-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 1rem;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin: 0;
+    width: auto;
+}
+
+.check-filter-dimmed {
+    opacity: 0.35;
+}
+
+.check-filter-btn:hover {
+    opacity: 0.8;
+}
+
+/* ── Check detail cards (host detail page) ───────────────── */
+
+.check-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.check-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.5rem;
+    min-width: 120px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.check-card:hover {
+    opacity: 0.8;
+}
+
+.check-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.check-card-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.check-card-status {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.check-card-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.75rem;
+}
+
+.check-card-metric {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.check-card-metric-name {
+    opacity: 0.7;
+    font-family: var(--pico-font-family-monospace, monospace);
+}
+
+.check-card-metric-value {
+    font-weight: 600;
+    font-family: var(--pico-font-family-monospace, monospace);
+}
+
+.check-card-lastupdate {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    font-family: var(--pico-font-family-monospace, monospace);
+    white-space: nowrap;
+}
+
+.graph-table {
+    width: auto;
+    border-collapse: collapse;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.graph-table th {
+    text-align: center;
+    font-size: 0.85rem;
+    padding: 0.4rem;
+}
+
+.graph-table td {
+    padding: 0.4rem;
+    vertical-align: top;
+}
+
+.graph-table .time-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    vertical-align: middle;
+    width: 3rem;
+}
+
+.graph-table img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.25rem;
+    display: block;
+}
+
+/* ── Graph modal ──────────────────────────────────────────── */
+
+.graph-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+}
+
+.graph-modal-content {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.graph-modal-content img {
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    border-radius: 0;
+}
+
+.graph-table img {
+    cursor: pointer;
+}
+
+/* ── Utilities ────────────────────────────────────────────── */
+
+.hidden {
+    display: none !important;
+}
+
+.text-muted {
+    color: var(--pico-muted-color, #666);
+}
+
+.sort-arrow {
+    font-size: 0.7rem;
+    margin-left: 0.25rem;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .search-wrap {
+        width: 100%;
+    }
+
+    .search-wrap input[type="search"] {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .host-table td,
+    .host-table th {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.8rem;
+    }
+}
+

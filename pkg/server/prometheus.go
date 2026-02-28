@@ -31,12 +31,15 @@ func (s *Server) handlePrometheus(w http.ResponseWriter, _ *http.Request) {
 				aliveVal,
 			))
 			for metricKey, metricVal := range snap.Metrics {
+				if metricVal == nil {
+					continue
+				}
 				w.Write(fmt.Appendf([]byte{},
 					"check_metric{host=\"%s\", check=\"%s\", metric=\"%s\"} %d\n",
 					sanitizedName,
 					sanitizedCheck,
 					sanitizePrometheusLabel(metricKey),
-					metricVal,
+					*metricVal,
 				))
 			}
 		}

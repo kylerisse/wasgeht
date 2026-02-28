@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+func p64(v int64) *int64 { return &v }
+
 func TestNewStatus_ZeroValues(t *testing.T) {
 	s := NewStatus()
 	if s.Alive() {
@@ -22,7 +24,7 @@ func TestStatus_SetResult_Success(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 1234},
+		Metrics: map[string]*int64{"latency_us": p64(1234)},
 	})
 
 	if !s.Alive() {
@@ -33,7 +35,7 @@ func TestStatus_SetResult_Success(t *testing.T) {
 		t.Fatal("expected latency_us metric to be present")
 	}
 	if v != 1234 {
-		t.Errorf("expected latency_us=1234.0, got %d", v)
+		t.Errorf("expected latency_us=1234, got %d", v)
 	}
 }
 
@@ -42,7 +44,7 @@ func TestStatus_SetResult_Failure(t *testing.T) {
 	// First set it alive
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 1000},
+		Metrics: map[string]*int64{"latency_us": p64(1000)},
 	})
 	// Then fail
 	s.SetResult(Result{
@@ -61,7 +63,7 @@ func TestStatus_SetResult_SuccessWithoutMetrics(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]int64{},
+		Metrics: map[string]*int64{},
 	})
 
 	if !s.Alive() {
@@ -76,9 +78,9 @@ func TestStatus_Metric_MultipleMetrics(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]int64{
-			"latency_us":    12340,
-			"response_code": 2000,
+		Metrics: map[string]*int64{
+			"latency_us":    p64(12340),
+			"response_code": p64(2000),
 		},
 	})
 
@@ -108,7 +110,7 @@ func TestStatus_Snapshot(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 5678},
+		Metrics: map[string]*int64{"latency_us": p64(5678)},
 	})
 	s.SetLastUpdate(1700000000)
 
@@ -117,7 +119,8 @@ func TestStatus_Snapshot(t *testing.T) {
 	if !snap.Alive {
 		t.Error("snapshot should be alive")
 	}
-	if v, ok := snap.Metrics["latency_us"]; !ok || v != 5678 {
+	v, ok := snap.Metrics["latency_us"]
+	if !ok || v == nil || *v != 5678 {
 		t.Errorf("snapshot metrics: expected latency_us=5678, got %v (ok=%v)", v, ok)
 	}
 	if snap.LastUpdate != 1700000000 {
@@ -129,7 +132,7 @@ func TestStatus_Snapshot_Independent(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 1000},
+		Metrics: map[string]*int64{"latency_us": p64(1000)},
 	})
 
 	snap := s.Snapshot()
@@ -150,13 +153,13 @@ func TestStatus_Snapshot_MetricsMapIndependent(t *testing.T) {
 	s := NewStatus()
 	s.SetResult(Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 1000},
+		Metrics: map[string]*int64{"latency_us": p64(1000)},
 	})
 
 	snap := s.Snapshot()
 
 	// Mutate the snapshot's metrics map
-	snap.Metrics["latency_us"] = 9999
+	snap.Metrics["latency_us"] = p64(9999)
 
 	// Status should be unaffected
 	v, ok := s.Metric("latency_us")
@@ -176,7 +179,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			s.SetResult(Result{
 				Success: true,
-				Metrics: map[string]int64{"latency_us": int64(n)},
+				Metrics: map[string]*int64{"latency_us": p64(int64(n))},
 			})
 			s.SetLastUpdate(int64(n))
 		}(i)

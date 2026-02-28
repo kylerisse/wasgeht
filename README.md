@@ -200,7 +200,7 @@ Set `skip_verify` to `true` to support locally signed certificates.
 
 Sends DNS queries to a specific server and validates each answer against an expected value. Supports A, AAAA, and PTR record types. Each query produces a separate data source in the RRD, rendered as colored lines on the graph. The check succeeds only if all configured queries resolve and every answer matches its expected value.
 
-PTR query names must be provided in reverse notation (e.g. `1.73.168.192.in-addr.arpa`). Expected PTR values may include or omit the trailing dot — both forms are accepted.
+PTR query names must be provided in reverse notation (e.g. `1.168.168.192.in-addr.arpa`). Expected PTR values may include or omit the trailing dot — both forms are accepted.
 
 | Option    | Type           | Default      | Description                                          |
 | --------- | -------------- | ------------ | ---------------------------------------------------- |

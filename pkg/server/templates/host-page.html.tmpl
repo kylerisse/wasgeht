@@ -1,85 +1,104 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Was Geht: Latency Graphs for {{ .Hostname }}</title>
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="stylesheet" type="text/css" href="host-detail.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-</head>
-<body>
-    <nav>
-        <a href="/">Home</a>
-        <a href="/flamegraph.html">Hosts</a>
-    </nav>
+<!doctype html>
+<html lang="en" data-theme="light">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Was Geht: {{ .Hostname }}</title>
+		<link rel="stylesheet" href="/vendor/pico-2.1.1.classless.min.css" />
+		<link rel="stylesheet" href="/app.css" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+	</head>
+	<body x-data="hostdetail">
+		<main class="full-width-main">
+			<!-- Top bar: nav + global summary (unfiltered) -->
+			<div class="summary-bar">
+				<a href="/">Dashboard</a>
+				<a href="/grid-view.html">Grid</a>
+				<template x-for="entry in summaryEntries()">
+					<span x-bind:class="summaryBadgeClass(entry)">
+						<span x-text="entry.status"></span>
+						<span x-text="entry.count"></span>
+					</span>
+				</template>
+				<span class="summary-bar-spacer"></span>
+				<div class="omitted-dropdown" x-show="hasOmitted()">
+					<button class="clear-omitted-btn" x-text="omittedText()"></button>
+					<div class="omitted-dropdown-menu">
+						<button class="omitted-dropdown-item" x-on:click="clearOmitted()">Restore all</button>
+						<template x-for="h in omitted">
+							<button class="omitted-dropdown-item" x-on:click="restoreHost(h)" x-text="h"></button>
+						</template>
+					</div>
+				</div>
+			</div>
 
-    <div class="container">
-        <h1>{{ .Hostname }}</h1>
-        <nav id="latency-graph-tabs">
-            <button class="latency-graph-tab-button active" data-target="all">Show all</button>
-            <button class="latency-graph-tab-button" data-target="15m">15m</button>
-            <button class="latency-graph-tab-button" data-target="1h">1h</button>
-            <button class="latency-graph-tab-button" data-target="4h">4h</button>
-            <button class="latency-graph-tab-button" data-target="8h">8h</button>
-            <button class="latency-graph-tab-button" data-target="1d">1d</button>
-            <button class="latency-graph-tab-button" data-target="4d">4d</button>
-            <button class="latency-graph-tab-button" data-target="1w">1w</button>
-            <button class="latency-graph-tab-button" data-target="31d">1mo</button>
-            <button class="latency-graph-tab-button" data-target="93d">1q</button>
-            <button class="latency-graph-tab-button" data-target="1y">1y</button>
-            <button class="latency-graph-tab-button" data-target="2y">2y</button>
-            <button class="latency-graph-tab-button" data-target="5y">5y</button>
-        </nav>
-        <div id="latency-graph-panels">
-            <div class="data-panel" id="panel-15m">
-                <h2>Latency 15m</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_15m.png"/>
-            </div>
-            <div class="data-panel" id="panel-1h">
-                <h2>Latency 1h</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_1h.png"/>
-            </div>
-            <div class="data-panel" id="panel-4h">
-                <h2>Latency 4h</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_4h.png"/>
-            </div>
-            <div class="data-panel" id="panel-8h">
-                <h2>Latency 8h</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_8h.png"/>
-            </div>
-            <div class="data-panel" id="panel-1d">
-                <h2>Latency 1d</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_1d.png"/>
-            </div>
-            <div class="data-panel" id="panel-4d">
-                <h2>Latency 4d</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_4d.png"/>
-            </div>
-            <div class="data-panel" id="panel-1w">
-                <h2>Latency 1w</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_1w.png"/>
-            </div>
-            <div class="data-panel" id="panel-31d">
-                <h2>Latency 1mo</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_31d.png"/>
-            </div>
-            <div class="data-panel" id="panel-93d">
-                <h2>Latency 1q</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_93d.png"/>
-            </div>
-            <div class="data-panel" id="panel-1y">
-                <h2>Latency 1y</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_1y.png"/>
-            </div>
-            <div class="data-panel" id="panel-2y">
-                <h2>Latency 2y</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_2y.png"/>
-            </div>
-            <div class="data-panel" id="panel-5y">
-                <h2>Latency 5y</h2>
-                <img src="imgs/{{ .Hostname }}/{{ .Hostname }}_ping_5y.png"/>
-            </div>
-        </div>
-    </div>
-    <script src="host-detail.js"></script>
-</body>
+			<!-- Host header -->
+			<div class="host-header">
+				<h1>{{ .Hostname }}</h1>
+				<div class="host-tags">
+					<template x-for="tag in hostTags()">
+						<span class="host-tag" x-text="tagText(tag)"></span>
+					</template>
+				</div>
+			</div>
+
+			<!-- Check detail cards -->
+			<div class="check-cards">
+				<template x-for="ct in checkTypes">
+					<div x-bind:class="checkCardClass(ct)" x-on:click="toggleCheck(ct)">
+						<div class="check-card-header">
+							<span class="check-card-name" x-text="checkLabel(ct)"></span>
+							<span class="check-card-lastupdate" x-text="checkLastUpdate(ct)"></span>
+						</div>
+						<div class="check-card-metrics">
+							<template x-for="m in checkMetricEntries(ct)">
+								<div class="check-card-metric">
+									<span class="check-card-metric-name" x-text="m.key"></span>
+									<span class="check-card-metric-value" x-text="m.value"></span>
+								</div>
+							</template>
+						</div>
+					</div>
+				</template>
+				<button class="filter-clear-btn" x-show="hasActiveCheck()" x-on:click="clearChecks()" title="Show all checks">&#x2715;</button>
+				</div>
+
+			<!-- Graph table: rows = time ranges, columns = check types -->
+			<table class="graph-table">
+				<thead>
+					<tr>
+						<th></th>
+						<template x-for="ct in visibleCheckTypes()">
+							<th x-text="checkLabel(ct)"></th>
+						</template>
+					</tr>
+				</thead>
+				<tbody>
+					<template x-for="t in allTimes">
+						<tr>
+							<td class="time-label" x-text="t.label"></td>
+							<template x-for="ct in visibleCheckTypes()">
+								<td>
+									<img x-bind:src="graphImgSrc(ct, t)"
+										x-bind:alt="graphAlt(ct, t)"
+										x-on:click="openModal(ct, t)" />
+								</td>
+							</template>
+						</tr>
+					</template>
+				</tbody>
+			</table>
+
+			<p x-show="loading">Loading...</p>
+
+			<!-- Full-size graph modal -->
+			<div class="graph-modal-overlay" x-show="modalOpen" x-on:click="closeModal()">
+				<div class="graph-modal-content">
+					<img x-bind:src="modalSrc" x-bind:alt="modalAlt" />
+				</div>
+			</div>
+		</main>
+
+		<script src="/vendor/alpine-csp-3.15.8.min.js" defer></script>
+		<script src="/app.js"></script>
+	</body>
 </html>

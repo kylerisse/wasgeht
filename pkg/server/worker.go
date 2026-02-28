@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/kylerisse/wasgeht/pkg/check"
@@ -22,8 +23,8 @@ type checkInstance struct {
 func (s *Server) worker(name string, h *host.Host) {
 	defer s.wg.Done()
 
-	// Add a random delay of 1-59 seconds before starting to reduce initial filesystem activity.
-	startDelay := time.Duration(rand.Intn(59)+1) * time.Second
+	// Add a random delay of 1-119 seconds before starting to reduce initial filesystem activity.
+	startDelay := time.Duration(rand.Intn(119)+1) * time.Second
 	s.logger.Infof("Worker for host %s will start in %v", name, startDelay)
 	select {
 	case <-time.After(startDelay):
@@ -140,16 +141,22 @@ func copyConfig(cfg map[string]any) map[string]any {
 }
 
 // rrdValuesFromResult extracts metric values from a check.Result in the
-// order declared by the metric definitions. Returns an empty slice if the
-// check failed or no declared metrics are present.
-func rrdValuesFromResult(result check.Result, metrics []check.MetricDef) []int64 {
-	if !result.Success {
-		return []int64{}
+// order declared by the metric definitions. Returns nil if there are no
+// metric definitions or no metrics map (skip RRD update entirely). A nil
+// pointer value for a key means the target failed; it is recorded as "U"
+// (UNKNOWN) so rrdtool graphs the surviving targets while showing a gap
+// for the failed one.
+func rrdValuesFromResult(result check.Result, metrics []check.MetricDef) []string {
+	if len(metrics) == 0 || result.Metrics == nil {
+		return nil
 	}
-	var vals []int64
-	for _, m := range metrics {
-		if v, ok := result.Metrics[m.ResultKey]; ok {
-			vals = append(vals, v)
+	vals := make([]string, len(metrics))
+	for i, m := range metrics {
+		v, ok := result.Metrics[m.ResultKey]
+		if !ok || v == nil {
+			vals[i] = "U"
+		} else {
+			vals[i] = strconv.FormatInt(*v, 10)
 		}
 	}
 	return vals

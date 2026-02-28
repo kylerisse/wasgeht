@@ -26,8 +26,7 @@ func (s *Status) Alive() bool {
 }
 
 // Metric returns the value of a named metric from the last result.
-// Returns the value and true if found, or 0 and false if not present
-// or the last check failed.
+// Returns the value and true if found and non-nil, or 0 and false otherwise.
 func (s *Status) Metric(key string) (int64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -35,7 +34,10 @@ func (s *Status) Metric(key string) (int64, bool) {
 		return 0, false
 	}
 	v, ok := s.lastResult.Metrics[key]
-	return v, ok
+	if !ok || v == nil {
+		return 0, false
+	}
+	return *v, true
 }
 
 // LastUpdate returns the unix timestamp of the last successful RRD update.
@@ -66,11 +68,16 @@ func (s *Status) Snapshot() StatusSnapshot {
 	defer s.mu.RUnlock()
 
 	// Deep copy the metrics map so the snapshot is independent
-	var metrics map[string]int64
+	var metrics map[string]*int64
 	if s.lastResult.Metrics != nil {
-		metrics = make(map[string]int64, len(s.lastResult.Metrics))
+		metrics = make(map[string]*int64, len(s.lastResult.Metrics))
 		for k, v := range s.lastResult.Metrics {
-			metrics[k] = v
+			if v != nil {
+				cv := *v
+				metrics[k] = &cv
+			} else {
+				metrics[k] = nil
+			}
 		}
 	}
 
@@ -84,6 +91,6 @@ func (s *Status) Snapshot() StatusSnapshot {
 // StatusSnapshot is a point-in-time copy of Status fields.
 type StatusSnapshot struct {
 	Alive      bool
-	Metrics    map[string]int64
+	Metrics    map[string]*int64
 	LastUpdate int64
 }

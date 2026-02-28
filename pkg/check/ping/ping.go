@@ -131,8 +131,9 @@ func (p *Ping) Describe() check.Descriptor {
 // is stored in microseconds keyed by address string.
 func (p *Ping) Run(ctx context.Context) check.Result {
 	now := time.Now()
-	metrics := make(map[string]int64)
+	metrics := make(map[string]*int64, len(p.addresses))
 	var lastErr error
+	succeeded := 0
 
 	timeoutSec := fmt.Sprintf("%.0f", p.timeout.Seconds())
 	count := strconv.Itoa(p.count)
@@ -146,29 +147,25 @@ func (p *Ping) Run(ctx context.Context) check.Result {
 
 		if err := cmd.Run(); err != nil {
 			lastErr = fmt.Errorf("ping %s: %w", a.address, err)
+			metrics[a.resultKey] = nil
 			continue
 		}
 
 		latency, err := parseOutput(out.String())
 		if err != nil {
 			lastErr = fmt.Errorf("ping %s: %w", a.address, err)
+			metrics[a.resultKey] = nil
 			continue
 		}
 
-		metrics[a.resultKey] = int64(latency.Microseconds())
-	}
-
-	if len(metrics) == len(p.addresses) {
-		return check.Result{
-			Timestamp: now,
-			Success:   true,
-			Metrics:   metrics,
-		}
+		v := int64(latency.Microseconds())
+		metrics[a.resultKey] = &v
+		succeeded++
 	}
 
 	return check.Result{
 		Timestamp: now,
-		Success:   false,
+		Success:   succeeded == len(p.addresses),
 		Err:       lastErr,
 		Metrics:   metrics,
 	}

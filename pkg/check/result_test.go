@@ -22,15 +22,17 @@ func TestResult_ZeroValue(t *testing.T) {
 }
 
 func TestResult_WithMetrics(t *testing.T) {
+	v := int64(12345)
 	r := Result{
 		Timestamp: time.Now(),
 		Success:   true,
-		Metrics:   map[string]int64{"latency_us": 12345},
+		Metrics:   map[string]*int64{"latency_us": &v},
 	}
 	if !r.Success {
 		t.Error("expected success")
 	}
-	if v, ok := r.Metrics["latency_us"]; !ok || v != 12345 {
-		t.Errorf("expected latency_us=12345, got %v", v)
+	p, ok := r.Metrics["latency_us"]
+	if !ok || p == nil || *p != 12345 {
+		t.Errorf("expected latency_us=12345, got %v", p)
 	}
 }

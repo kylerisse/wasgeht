@@ -235,9 +235,10 @@ func TestCheckStatusResponse_OmitsEmptyMetrics(t *testing.T) {
 }
 
 func TestCheckStatusResponse_IncludesMetrics(t *testing.T) {
+	v := int64(12345)
 	resp := CheckStatusResponse{
 		Alive:      true,
-		Metrics:    map[string]int64{"latency_us": 12345},
+		Metrics:    map[string]*int64{"latency_us": &v},
 		LastUpdate: 1700000000,
 	}
 
@@ -251,7 +252,8 @@ func TestCheckStatusResponse_IncludesMetrics(t *testing.T) {
 		t.Fatalf("unmarshal failed: %v", err)
 	}
 
-	if decoded.Metrics["latency_us"] != 12345 {
-		t.Errorf("expected latency_us=12345, got %v", decoded.Metrics["latency_us"])
+	p := decoded.Metrics["latency_us"]
+	if p == nil || *p != 12345 {
+		t.Errorf("expected latency_us=12345, got %v", p)
 	}
 }

@@ -112,12 +112,9 @@ func (c *Check) Describe() check.Descriptor {
 // Success requires every query to resolve and every answer to match its expected value.
 // Each query's RTT is stored in microseconds keyed by the query name.
 func (c *Check) Run(ctx context.Context) check.Result {
-	result := check.Result{
-		Timestamp: time.Now(),
-		Metrics:   make(map[string]int64),
-	}
-
+	metrics := make(map[string]*int64, len(c.queries))
 	var lastErr error
+	succeeded := 0
 
 	for _, q := range c.queries {
 		msg := new(dns.Msg)
@@ -127,30 +124,33 @@ func (c *Check) Run(ctx context.Context) check.Result {
 		resp, rtt, err := c.client.ExchangeContext(ctx, msg, c.server)
 		if err != nil {
 			lastErr = fmt.Errorf("dns %s %s: %w", qtypeName(q.qtype), q.name, err)
+			metrics[q.resultKey] = nil
 			continue
 		}
 
 		if resp.Rcode != dns.RcodeSuccess {
 			lastErr = fmt.Errorf("dns %s %s: rcode %s", qtypeName(q.qtype), q.name, dns.RcodeToString[resp.Rcode])
+			metrics[q.resultKey] = nil
 			continue
 		}
 
 		if err := validateAnswer(resp.Answer, q.qtype, q.expect); err != nil {
 			lastErr = fmt.Errorf("dns %s %s: %w", qtypeName(q.qtype), q.name, err)
+			metrics[q.resultKey] = nil
 			continue
 		}
 
-		result.Metrics[q.resultKey] = rtt.Microseconds()
+		v := rtt.Microseconds()
+		metrics[q.resultKey] = &v
+		succeeded++
 	}
 
-	if len(result.Metrics) == len(c.queries) {
-		result.Success = true
-	} else {
-		result.Success = false
-		result.Err = lastErr
+	return check.Result{
+		Timestamp: time.Now(),
+		Success:   succeeded == len(c.queries),
+		Err:       lastErr,
+		Metrics:   metrics,
 	}
-
-	return result
 }
 
 // validateAnswer checks that at least one RR in the answer section matches

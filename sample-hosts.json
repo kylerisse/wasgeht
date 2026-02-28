@@ -2,74 +2,179 @@
   "router": {
     "tags": { "category": "router" },
     "checks": {
-      "ping": {
-        "addresses": ["router.risse.tv"]
-      },
+      "ping": { "addresses": ["router.example.com"] },
       "dns": {
-        "server": "router.risse.tv:53",
+        "server": "router.example.com:53",
         "timeout": "1s",
         "queries": [
-          { "name": "router.risse.tv",           "type": "A",   "expect": "192.168.73.1" },
-          { "name": "1.73.168.192.in-addr.arpa",  "type": "PTR", "expect": "router.risse.tv." },
-          { "name": "k.root-servers.net",         "type": "A",   "expect": "193.0.14.129" },
-          { "name": "129.14.0.193.in-addr.arpa",  "type": "PTR", "expect": "k.root-servers.net." }
+          { "name": "router.example.com",          "type": "A",   "expect": "192.168.168.1" },
+          { "name": "1.168.168.192.in-addr.arpa", "type": "PTR", "expect": "router.example.com." },
+          { "name": "k.root-servers.net",        "type": "A",   "expect": "193.0.14.129" },
+          { "name": "129.14.0.193.in-addr.arpa", "type": "PTR", "expect": "k.root-servers.net." }
         ]
       }
+    }
+  },
+  "router-backup": {
+    "tags": { "category": "router", "role": "backup" },
+    "checks": {
+      "ping": { "addresses": ["192.168.168.2"] }
+    }
+  },
+  "core-sw1": {
+    "tags": { "category": "switch", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["core-sw1.example.com"] },
+      "http": { "urls": ["https://core-sw1.example.com"], "skip_verify": true }
+    }
+  },
+  "core-sw2": {
+    "tags": { "category": "switch", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["core-sw2.example.com"] },
+      "http": { "urls": ["https://core-sw2.example.com"], "skip_verify": true }
+    }
+  },
+  "dist-sw1": {
+    "tags": { "category": "switch", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["dist-sw1.example.com"] },
+      "http": { "urls": ["https://dist-sw1.example.com"], "skip_verify": true }
+    }
+  },
+  "dist-sw2": {
+    "tags": { "category": "switch", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["dist-sw2.example.com"] },
+      "http": { "urls": ["https://dist-sw2.example.com"], "skip_verify": true }
+    }
+  },
+  "dist-sw3": {
+    "tags": { "category": "switch", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["dist-sw3.example.com"] },
+      "http": { "urls": ["https://dist-sw3.example.com"], "skip_verify": true }
+    }
+  },
+  "dist-sw4": {
+    "tags": { "category": "switch", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["dist-sw4.example.com"] },
+      "http": { "urls": ["https://dist-sw4.example.com"], "skip_verify": true }
     }
   },
   "ap1": {
     "tags": { "category": "ap", "building": "expo" },
     "checks": {
-      "ping": {
-        "addresses": ["ap1.risse.tv"]
-      },
-      "wifi_stations": {
-        "address": "ap1.risse.tv",
-        "radios": ["phy0-ap0", "phy1-ap0"]
-      },
-      "http": {
-        "urls": ["https://ap1.risse.tv"],
-        "skip_verify": true
-      }
+      "ping": { "addresses": ["ap1.example.com"] },
+      "wifi_stations": { "address": "ap1.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap1.example.com"], "skip_verify": true }
     }
   },
   "ap2": {
     "tags": { "category": "ap", "building": "conference" },
     "checks": {
-      "ping": {
-        "addresses": ["ap2.risse.tv"]
-      },
-      "wifi_stations": {
-        "address": "ap2.risse.tv",
-        "radios": ["phy0-ap0", "phy1-ap0"]
-      },
-      "http": {
-        "urls": ["https://ap2.risse.tv"],
-        "skip_verify": true
-      }
+      "ping": { "addresses": ["ap2.example.com"] },
+      "wifi_stations": { "address": "ap2.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap2.example.com"], "skip_verify": true }
+    }
+  },
+  "ap3": {
+    "tags": { "category": "ap", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["ap3.example.com"] },
+      "wifi_stations": { "address": "ap3.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap3.example.com"], "skip_verify": true }
+    }
+  },
+  "ap4": {
+    "tags": { "category": "ap", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["ap4.example.com"] },
+      "wifi_stations": { "address": "ap4.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap4.example.com"], "skip_verify": true }
+    }
+  },
+  "ap5": {
+    "tags": { "category": "ap", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["ap5.example.com"] },
+      "wifi_stations": { "address": "ap5.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap5.example.com"], "skip_verify": true }
+    }
+  },
+  "ap6": {
+    "tags": { "category": "ap", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["ap6.example.com"] },
+      "wifi_stations": { "address": "ap6.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap6.example.com"], "skip_verify": true }
+    }
+  },
+  "ap7": {
+    "tags": { "category": "ap", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["ap7.example.com"] },
+      "wifi_stations": { "address": "ap7.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap7.example.com"], "skip_verify": true }
+    }
+  },
+  "ap8": {
+    "tags": { "category": "ap", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["ap8.example.com"] },
+      "wifi_stations": { "address": "ap8.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap8.example.com"], "skip_verify": true }
+    }
+  },
+  "ap9": {
+    "tags": { "category": "ap", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["ap9.example.com"] },
+      "wifi_stations": { "address": "ap9.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap9.example.com"], "skip_verify": true }
+    }
+  },
+  "ap10": {
+    "tags": { "category": "ap", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["ap10.example.com"] },
+      "wifi_stations": { "address": "ap10.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap10.example.com"], "skip_verify": true }
+    }
+  },
+  "ap11": {
+    "tags": { "category": "ap", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["ap11.example.com"] },
+      "wifi_stations": { "address": "ap11.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap11.example.com"], "skip_verify": true }
+    }
+  },
+  "ap12": {
+    "tags": { "category": "ap", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["ap12.example.com"] },
+      "wifi_stations": { "address": "ap12.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap12.example.com"], "skip_verify": true }
     }
   },
   "fakeap": {
     "checks": {
-      "wifi_stations": {
-        "address": "fakeap.risse.tv",
-        "radios": ["phy0-ap0", "phy1-ap0"]
-      }
+      "wifi_stations": { "address": "fakeap.example.com", "radios": ["phy0-ap0", "phy1-ap0"] }
     }
   },
   "qube": {
     "tags": { "category": "server" },
     "checks": {
-      "ping": {
-        "addresses": ["qube.risse.tv"]
-      },
+      "ping": { "addresses": ["qube.example.com"] },
       "http": {
         "urls": [
-          "http://qube.risse.tv:2018/sign.json",
-          "http://qube.risse.tv:2017/schedule",
-          "https://whatsup.risse.tv",
-          "https://wasgeht.risse.tv",
-          "https://mrtg.risse.tv"
+          "http://qube.example.com:2018/sign.json",
+          "http://qube.example.com:2017/schedule",
+          "https://whatsup.example.com",
+          "https://wasgeht.example.com",
+          "https://mrtg.example.com"
         ],
         "skip_verify": true
       }
@@ -78,72 +183,1503 @@
   "pi3": {
     "tags": { "category": "pi" },
     "checks": {
-      "ping": {
-        "addresses": ["pi3.risse.tv"]
-      },
-      "http": {
-        "urls": ["http://pi3.risse.tv:2017"]
-      }
+      "ping": { "addresses": ["pi3.example.com"] },
+      "http": { "urls": ["http://pi3.example.com:2017"] }
     }
   },
   "pi4": {
     "tags": { "category": "pi" },
     "checks": {
-      "ping": {
-        "addresses": ["pi4.risse.tv"]
+      "ping": { "addresses": ["pi4.example.com"] },
+      "http": { "urls": ["http://pi4.example.com:2017"] }
+    }
+  },
+  "pi5": {
+    "tags": { "category": "pi", "role": "sensor" },
+    "checks": {
+      "ping": { "addresses": ["pi5.example.com"] },
+      "http": { "urls": ["http://pi5.example.com:2017"] }
+    }
+  },
+  "pi6": {
+    "tags": { "category": "pi", "role": "sensor" },
+    "checks": {
+      "ping": { "addresses": ["pi6.example.com"] },
+      "http": { "urls": ["http://pi6.example.com:2017"] }
+    }
+  },
+  "pi7": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi7.example.com"] }
+    }
+  },
+  "pi8": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi8.example.com"] }
+    }
+  },
+  "pi9": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi9.example.com"] }
+    }
+  },
+  "pi10": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi10.example.com"] }
+    }
+  },
+  "noc-ws1": {
+    "tags": { "category": "workstation", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["noc-ws1.example.com"] }
+    }
+  },
+  "noc-ws2": {
+    "tags": { "category": "workstation", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["noc-ws2.example.com"] }
+    }
+  },
+  "noc-ws3": {
+    "tags": { "category": "workstation", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["noc-ws3.example.com"] }
+    }
+  },
+  "noc-printer": {
+    "tags": { "category": "printer", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["noc-printer.example.com"] }
+    }
+  },
+  "reg-ws1": {
+    "tags": { "category": "workstation", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-ws1.example.com"] },
+      "http": { "urls": ["http://reg-ws1.example.com:8080/status"] }
+    }
+  },
+  "reg-ws2": {
+    "tags": { "category": "workstation", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-ws2.example.com"] },
+      "http": { "urls": ["http://reg-ws2.example.com:8080/status"] }
+    }
+  },
+  "reg-ws3": {
+    "tags": { "category": "workstation", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-ws3.example.com"] },
+      "http": { "urls": ["http://reg-ws3.example.com:8080/status"] }
+    }
+  },
+  "reg-printer": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-printer.example.com"] }
+    }
+  },
+  "reg-printer2": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["reg-printer2.example.com"] }
+    }
+  },
+  "badge-server": {
+    "tags": { "category": "server", "role": "badge" },
+    "checks": {
+      "ping": { "addresses": ["badge-server.example.com"] },
+      "http": { "urls": ["http://badge-server.example.com:8080/health"] }
+    }
+  },
+  "schedule-server": {
+    "tags": { "category": "server", "role": "schedule" },
+    "checks": {
+      "ping": { "addresses": ["schedule-server.example.com"] },
+      "http": {
+        "urls": [
+          "http://schedule-server.example.com:2017/schedule",
+          "http://schedule-server.example.com:2017/health"
+        ]
+      }
+    }
+  },
+  "sign-server": {
+    "tags": { "category": "server", "role": "signage" },
+    "checks": {
+      "ping": { "addresses": ["sign-server.example.com"] },
+      "http": {
+        "urls": [
+          "http://sign-server.example.com:2018/sign.json",
+          "http://sign-server.example.com:2018/health"
+        ]
+      }
+    }
+  },
+  "chat-server": {
+    "tags": { "category": "server", "role": "chat" },
+    "checks": {
+      "ping": { "addresses": ["chat-server.example.com"] },
+      "http": {
+        "urls": [
+          "https://chat.example.com",
+          "https://chat.example.com/health"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "git-server": {
+    "tags": { "category": "server", "role": "vcs" },
+    "checks": {
+      "ping": { "addresses": ["git.example.com"] },
+      "http": {
+        "urls": ["https://git.example.com"],
+        "skip_verify": true
+      }
+    }
+  },
+  "wiki-server": {
+    "tags": { "category": "server", "role": "wiki" },
+    "checks": {
+      "ping": { "addresses": ["wiki.example.com"] },
+      "http": {
+        "urls": ["https://wiki.example.com"],
+        "skip_verify": true
+      }
+    }
+  },
+  "monitor1": {
+    "tags": { "category": "server", "role": "monitoring" },
+    "checks": {
+      "ping": { 
+	"addresses": [
+	      "monitor1.example.com",
+	      "192.168.168.1"
+      	] 
       },
       "http": {
-        "urls": ["http://pi4.risse.tv:2017"]
+        "urls": [
+          "https://wasgeht.example.com",
+          "https://mrtg.example.com"
+        ],
+        "skip_verify": true
       }
+    }
+  },
+  "nas1": {
+    "tags": { "category": "storage", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["nas1.example.com"] },
+      "http": { "urls": ["https://nas1.example.com"], "skip_verify": true }
+    }
+  },
+  "nas2": {
+    "tags": { "category": "storage", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["nas2.example.com"] },
+      "http": { "urls": ["https://nas2.example.com"], "skip_verify": true }
+    }
+  },
+  "backup1": {
+    "tags": { "category": "storage", "role": "backup" },
+    "checks": {
+      "ping": { "addresses": ["backup1.example.com"] }
+    }
+  },
+  "pdu-noc": {
+    "tags": { "category": "pdu", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["pdu-noc.example.com"] },
+      "http": { "urls": ["https://pdu-noc.example.com"], "skip_verify": true }
+    }
+  },
+  "pdu-expo1": {
+    "tags": { "category": "pdu", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pdu-expo1.example.com"] },
+      "http": { "urls": ["https://pdu-expo1.example.com"], "skip_verify": true }
+    }
+  },
+  "pdu-expo2": {
+    "tags": { "category": "pdu", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pdu-expo2.example.com"] },
+      "http": { "urls": ["https://pdu-expo2.example.com"], "skip_verify": true }
+    }
+  },
+  "pdu-conf1": {
+    "tags": { "category": "pdu", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["pdu-conf1.example.com"] },
+      "http": { "urls": ["https://pdu-conf1.example.com"], "skip_verify": true }
+    }
+  },
+  "pdu-workshop": {
+    "tags": { "category": "pdu", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["pdu-workshop.example.com"] },
+      "http": { "urls": ["https://pdu-workshop.example.com"], "skip_verify": true }
+    }
+  },
+  "kvm1": {
+    "tags": { "category": "kvm", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["kvm1.example.com"] },
+      "http": { "urls": ["https://kvm1.example.com"], "skip_verify": true }
+    }
+  },
+  "kvm2": {
+    "tags": { "category": "kvm", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["kvm2.example.com"] },
+      "http": { "urls": ["https://kvm2.example.com"], "skip_verify": true }
+    }
+  },
+  "uplink1": {
+    "tags": { "category": "uplink", "isp": "isp-a" },
+    "checks": {
+      "ping": { "addresses": ["203.0.113.1"], "timeout": "3s" },
+      "http": { "urls": ["http://203.0.113.1/status"] }
+    }
+  },
+  "uplink2": {
+    "tags": { "category": "uplink", "isp": "isp-b" },
+    "checks": {
+      "ping": { "addresses": ["198.51.100.1"], "timeout": "3s" },
+      "http": { "urls": ["http://198.51.100.1/status"] }
     }
   },
   "google": {
     "checks": {
-      "ping": {
-        "addresses": ["8.8.8.8", "8.8.4.4"],
-        "timeout": "5s"
-      },
+      "ping": { "addresses": ["8.8.8.8", "8.8.4.4"], "timeout": "5s" },
       "http": {
-        "urls": [
-          "https://www.google.com",
-          "https://www.google.com/maps"
-        ]
+        "urls": ["https://www.google.com", "https://www.google.com/maps"]
       },
       "dns": {
         "server": "8.8.8.8:53",
         "timeout": "5s",
         "queries": [
-          { "name": "k.root-servers.net",         "type": "A",   "expect": "193.0.14.129" },
-          { "name": "129.14.0.193.in-addr.arpa",  "type": "PTR", "expect": "k.root-servers.net." }
+          { "name": "k.root-servers.net",        "type": "A",   "expect": "193.0.14.129" },
+          { "name": "129.14.0.193.in-addr.arpa", "type": "PTR", "expect": "k.root-servers.net." }
         ]
       }
+    }
+  },
+  "cloudflare": {
+    "checks": {
+      "ping": { "addresses": ["1.1.1.1", "1.0.0.1"], "timeout": "5s" },
+      "dns": {
+        "server": "1.1.1.1:53",
+        "timeout": "5s",
+        "queries": [
+          { "name": "k.root-servers.net", "type": "A", "expect": "193.0.14.129" }
+        ]
+      }
+    }
+  },
+  "vm-host1": {
+    "tags": { "category": "hypervisor", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["vm-host1.example.com"] },
+      "http": { "urls": ["https://vm-host1.example.com:8006"], "skip_verify": true }
+    }
+  },
+  "vm-host2": {
+    "tags": { "category": "hypervisor", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["vm-host2.example.com"] },
+      "http": { "urls": ["https://vm-host2.example.com:8006"], "skip_verify": true }
+    }
+  },
+  "vm-dns1": {
+    "tags": { "category": "vm", "role": "dns" },
+    "checks": {
+      "ping": { "addresses": ["vm-dns1.example.com"] },
+      "dns": {
+        "server": "vm-dns1.example.com:53",
+        "timeout": "2s",
+        "queries": [
+          { "name": "router.example.com", "type": "A", "expect": "192.168.168.1" }
+        ]
+      }
+    }
+  },
+  "vm-dns2": {
+    "tags": { "category": "vm", "role": "dns" },
+    "checks": {
+      "ping": { "addresses": ["vm-dns2.example.com"] },
+      "dns": {
+        "server": "vm-dns2.example.com:53",
+        "timeout": "2s",
+        "queries": [
+          { "name": "router.example.com", "type": "A", "expect": "192.168.168.1" }
+        ]
+      }
+    }
+  },
+  "vm-dhcp1": {
+    "tags": { "category": "vm", "role": "dhcp" },
+    "checks": {
+      "ping": { "addresses": ["vm-dhcp1.example.com"] }
+    }
+  },
+  "vm-proxy": {
+    "tags": { "category": "vm", "role": "proxy" },
+    "checks": {
+      "ping": { "addresses": ["vm-proxy.example.com"] },
+      "http": { "urls": ["https://vm-proxy.example.com/health"], "skip_verify": true }
+    }
+  },
+  "vm-ntp": {
+    "tags": { "category": "vm", "role": "ntp" },
+    "checks": {
+      "ping": { "addresses": ["vm-ntp.example.com"] }
+    }
+  },
+  "vm-syslog": {
+    "tags": { "category": "vm", "role": "logging" },
+    "checks": {
+      "ping": { "addresses": ["vm-syslog.example.com"] },
+      "http": { "urls": ["http://vm-syslog.example.com:9000"], "skip_verify": false }
+    }
+  },
+  "vm-metrics": {
+    "tags": { "category": "vm", "role": "metrics" },
+    "checks": {
+      "ping": { "addresses": ["vm-metrics.example.com"] },
+      "http": {
+        "urls": [
+          "http://vm-metrics.example.com:9090",
+          "http://vm-metrics.example.com:3000"
+        ]
+      }
+    }
+  },
+  "vm-vpn": {
+    "tags": { "category": "vm", "role": "vpn" },
+    "checks": {
+      "ping": { "addresses": ["vm-vpn.example.com"] }
+    }
+  },
+  "vm-mail": {
+    "tags": { "category": "vm", "role": "mail" },
+    "checks": {
+      "ping": { "addresses": ["vm-mail.example.com"] },
+      "http": { "urls": ["https://mail.example.com"], "skip_verify": true }
+    }
+  },
+  "expo-sign1": {
+    "tags": { "category": "signage", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["expo-sign1.example.com"] },
+      "http": { "urls": ["http://expo-sign1.example.com:8080"] }
+    }
+  },
+  "expo-sign2": {
+    "tags": { "category": "signage", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["expo-sign2.example.com"] },
+      "http": { "urls": ["http://expo-sign2.example.com:8080"] }
+    }
+  },
+  "expo-sign3": {
+    "tags": { "category": "signage", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["expo-sign3.example.com"] },
+      "http": { "urls": ["http://expo-sign3.example.com:8080"] }
+    }
+  },
+  "expo-sign4": {
+    "tags": { "category": "signage", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["expo-sign4.example.com"] },
+      "http": { "urls": ["http://expo-sign4.example.com:8080"] }
+    }
+  },
+  "conf-sign1": {
+    "tags": { "category": "signage", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["conf-sign1.example.com"] },
+      "http": { "urls": ["http://conf-sign1.example.com:8080"] }
+    }
+  },
+  "conf-sign2": {
+    "tags": { "category": "signage", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["conf-sign2.example.com"] },
+      "http": { "urls": ["http://conf-sign2.example.com:8080"] }
+    }
+  },
+  "conf-sign3": {
+    "tags": { "category": "signage", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["conf-sign3.example.com"] },
+      "http": { "urls": ["http://conf-sign3.example.com:8080"] }
+    }
+  },
+  "workshop-sign1": {
+    "tags": { "category": "signage", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-sign1.example.com"] },
+      "http": { "urls": ["http://workshop-sign1.example.com:8080"] }
+    }
+  },
+  "workshop-sign2": {
+    "tags": { "category": "signage", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-sign2.example.com"] },
+      "http": { "urls": ["http://workshop-sign2.example.com:8080"] }
+    }
+  },
+  "dining-sign1": {
+    "tags": { "category": "signage", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["dining-sign1.example.com"] },
+      "http": { "urls": ["http://dining-sign1.example.com:8080"] }
+    }
+  },
+  "cam-expo1": {
+    "tags": { "category": "camera", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["cam-expo1.example.com"] },
+      "http": { "urls": ["http://cam-expo1.example.com/status"] }
+    }
+  },
+  "cam-expo2": {
+    "tags": { "category": "camera", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["cam-expo2.example.com"] },
+      "http": { "urls": ["http://cam-expo2.example.com/status"] }
+    }
+  },
+  "cam-expo3": {
+    "tags": { "category": "camera", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["cam-expo3.example.com"] },
+      "http": { "urls": ["http://cam-expo3.example.com/status"] }
+    }
+  },
+  "cam-entrance1": {
+    "tags": { "category": "camera", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["cam-entrance1.example.com"] },
+      "http": { "urls": ["http://cam-entrance1.example.com/status"] }
+    }
+  },
+  "cam-entrance2": {
+    "tags": { "category": "camera", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["cam-entrance2.example.com"] },
+      "http": { "urls": ["http://cam-entrance2.example.com/status"] }
+    }
+  },
+  "cam-parking1": {
+    "tags": { "category": "camera", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["cam-parking1.example.com"] },
+      "http": { "urls": ["http://cam-parking1.example.com/status"] }
+    }
+  },
+  "cam-parking2": {
+    "tags": { "category": "camera", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["cam-parking2.example.com"] },
+      "http": { "urls": ["http://cam-parking2.example.com/status"] }
+    }
+  },
+  "cam-noc": {
+    "tags": { "category": "camera", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["cam-noc.example.com"] },
+      "http": { "urls": ["http://cam-noc.example.com/status"] }
+    }
+  },
+  "voip-gw1": {
+    "tags": { "category": "voip", "role": "gateway" },
+    "checks": {
+      "ping": { "addresses": ["voip-gw1.example.com"] },
+      "http": { "urls": ["https://voip-gw1.example.com"], "skip_verify": true }
+    }
+  },
+  "voip-pbx": {
+    "tags": { "category": "voip", "role": "pbx" },
+    "checks": {
+      "ping": { "addresses": ["voip-pbx.example.com"] },
+      "http": { "urls": ["https://voip-pbx.example.com/admin"], "skip_verify": true }
+    }
+  },
+  "phone-noc1": {
+    "tags": { "category": "phone", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["phone-noc1.example.com"] }
+    }
+  },
+  "phone-noc2": {
+    "tags": { "category": "phone", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["phone-noc2.example.com"] }
+    }
+  },
+  "phone-reg1": {
+    "tags": { "category": "phone", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["phone-reg1.example.com"] }
+    }
+  },
+  "phone-info1": {
+    "tags": { "category": "phone", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["phone-info1.example.com"] }
+    }
+  },
+  "laptop-noc1": {
+    "tags": { "category": "laptop", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["laptop-noc1.example.com"] }
+    }
+  },
+  "laptop-noc2": {
+    "tags": { "category": "laptop", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["laptop-noc2.example.com"] }
+    }
+  },
+  "laptop-av1": {
+    "tags": { "category": "laptop", "building": "conference", "role": "av" },
+    "checks": {
+      "ping": { "addresses": ["laptop-av1.example.com"] }
+    }
+  },
+  "laptop-av2": {
+    "tags": { "category": "laptop", "building": "conference", "role": "av" },
+    "checks": {
+      "ping": { "addresses": ["laptop-av2.example.com"] }
+    }
+  },
+  "av-mixer1": {
+    "tags": { "category": "av", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["av-mixer1.example.com"] },
+      "http": { "urls": ["http://av-mixer1.example.com/api/status"] }
+    }
+  },
+  "av-mixer2": {
+    "tags": { "category": "av", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["av-mixer2.example.com"] },
+      "http": { "urls": ["http://av-mixer2.example.com/api/status"] }
+    }
+  },
+  "av-stream1": {
+    "tags": { "category": "av", "building": "conference", "role": "stream" },
+    "checks": {
+      "ping": { "addresses": ["av-stream1.example.com"] },
+      "http": { "urls": ["http://av-stream1.example.com:1935/health"] }
+    }
+  },
+  "av-stream2": {
+    "tags": { "category": "av", "building": "workshop", "role": "stream" },
+    "checks": {
+      "ping": { "addresses": ["av-stream2.example.com"] },
+      "http": { "urls": ["http://av-stream2.example.com:1935/health"] }
+    }
+  },
+  "3dp1": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp1.example.com"] },
+      "http": { "urls": ["http://3dp1.example.com"] }
+    }
+  },
+  "3dp2": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp2.example.com"] },
+      "http": { "urls": ["http://3dp2.example.com"] }
+    }
+  },
+  "3dp3": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp3.example.com"] },
+      "http": { "urls": ["http://3dp3.example.com"] }
+    }
+  },
+  "3dp4": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp4.example.com"] },
+      "http": { "urls": ["http://3dp4.example.com"] }
+    }
+  },
+  "laser1": {
+    "tags": { "category": "laser", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["laser1.example.com"] },
+      "http": { "urls": ["http://laser1.example.com"] }
+    }
+  },
+  "laser2": {
+    "tags": { "category": "laser", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["laser2.example.com"] },
+      "http": { "urls": ["http://laser2.example.com"] }
+    }
+  },
+  "cnc1": {
+    "tags": { "category": "cnc", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["cnc1.example.com"] },
+      "http": { "urls": ["http://cnc1.example.com"] }
+    }
+  },
+  "pos-dining1": {
+    "tags": { "category": "pos", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["pos-dining1.example.com"] },
+      "http": { "urls": ["http://pos-dining1.example.com:8080/health"] }
+    }
+  },
+  "pos-dining2": {
+    "tags": { "category": "pos", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["pos-dining2.example.com"] },
+      "http": { "urls": ["http://pos-dining2.example.com:8080/health"] }
+    }
+  },
+  "pos-dining3": {
+    "tags": { "category": "pos", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["pos-dining3.example.com"] },
+      "http": { "urls": ["http://pos-dining3.example.com:8080/health"] }
+    }
+  },
+  "pos-merch1": {
+    "tags": { "category": "pos", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pos-merch1.example.com"] },
+      "http": { "urls": ["http://pos-merch1.example.com:8080/health"] }
+    }
+  },
+  "pos-merch2": {
+    "tags": { "category": "pos", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pos-merch2.example.com"] },
+      "http": { "urls": ["http://pos-merch2.example.com:8080/health"] }
+    }
+  },
+  "pos-merch3": {
+    "tags": { "category": "pos", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["pos-merch3.example.com"] },
+      "http": { "urls": ["http://pos-merch3.example.com:8080/health"] }
+    }
+  },
+  "pos-server": {
+    "tags": { "category": "server", "role": "pos-backend" },
+    "checks": {
+      "ping": { "addresses": ["pos-server.example.com"] },
+      "http": { "urls": ["http://pos-server.example.com:8080/health"] }
+    }
+  },
+  "badge-printer1": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer1.example.com"] }
+    }
+  },
+  "badge-printer2": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer2.example.com"] }
+    }
+  },
+  "badge-printer3": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer3.example.com"] }
+    }
+  },
+  "badge-printer4": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer4.example.com"] }
+    }
+  },
+  "access-ctrl1": {
+    "tags": { "category": "access-control", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["access-ctrl1.example.com"] },
+      "http": { "urls": ["http://access-ctrl1.example.com/api/status"] }
+    }
+  },
+  "access-ctrl2": {
+    "tags": { "category": "access-control", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["access-ctrl2.example.com"] },
+      "http": { "urls": ["http://access-ctrl2.example.com/api/status"] }
+    }
+  },
+  "env-sensor1": {
+    "tags": { "category": "sensor", "building": "noc", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor1.example.com"] },
+      "http": { "urls": ["http://env-sensor1.example.com/metrics"] }
+    }
+  },
+  "env-sensor2": {
+    "tags": { "category": "sensor", "building": "expo", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor2.example.com"] },
+      "http": { "urls": ["http://env-sensor2.example.com/metrics"] }
+    }
+  },
+  "env-sensor3": {
+    "tags": { "category": "sensor", "building": "conference", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor3.example.com"] },
+      "http": { "urls": ["http://env-sensor3.example.com/metrics"] }
+    }
+  },
+  "localhost": {
+    "checks": {
+      "ping": { "addresses": ["127.0.0.1", "::1"] }
     }
   },
   "fake1": {},
   "fake2": {
     "checks": {
-      "ping": {
-        "addresses": ["192.0.2.1"],
-        "timeout": "1s"
-      }
+      "ping": { "addresses": ["192.0.2.1"], "timeout": "1s" }
     }
   },
   "fake3": {
     "checks": {
-      "ping": {
-        "addresses": ["10.10.10.10"],
-        "timeout": "1s"
+      "ping": { "addresses": ["10.10.10.10"], "timeout": "1s" }
+    }
+  },
+  "fake4": {
+    "checks": {
+      "ping": { "addresses": ["192.0.2.2"], "timeout": "1s" }
+    }
+  },
+  "fake5": {
+    "checks": {
+      "ping": { "addresses": ["192.0.2.3"], "timeout": "1s" }
+    }
+  },
+  "sw-expo-a": {
+    "tags": { "category": "switch", "building": "expo", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-expo-a.example.com"] },
+      "http": { "urls": ["https://sw-expo-a.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-expo-b": {
+    "tags": { "category": "switch", "building": "expo", "rack": "b" },
+    "checks": {
+      "ping": { "addresses": ["sw-expo-b.example.com"] },
+      "http": { "urls": ["https://sw-expo-b.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-expo-c": {
+    "tags": { "category": "switch", "building": "expo", "rack": "c" },
+    "checks": {
+      "ping": { "addresses": ["sw-expo-c.example.com"] },
+      "http": { "urls": ["https://sw-expo-c.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-conf-a": {
+    "tags": { "category": "switch", "building": "conference", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-conf-a.example.com"] },
+      "http": { "urls": ["https://sw-conf-a.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-conf-b": {
+    "tags": { "category": "switch", "building": "conference", "rack": "b" },
+    "checks": {
+      "ping": { "addresses": ["sw-conf-b.example.com"] },
+      "http": { "urls": ["https://sw-conf-b.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-workshop-a": {
+    "tags": { "category": "switch", "building": "workshop", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-workshop-a.example.com"] },
+      "http": { "urls": ["https://sw-workshop-a.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-dining-a": {
+    "tags": { "category": "switch", "building": "dining", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-dining-a.example.com"] },
+      "http": { "urls": ["https://sw-dining-a.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-outdoor-a": {
+    "tags": { "category": "switch", "building": "outdoor", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-outdoor-a.example.com"] },
+      "http": { "urls": ["https://sw-outdoor-a.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-reg-a": {
+    "tags": { "category": "switch", "building": "registration", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-reg-a.example.com"] },
+      "http": { "urls": ["https://sw-reg-a.example.com"], "skip_verify": true }
+    }
+  },
+  "inet-test": {
+    "tags": { "category": "probe", "role": "internet" },
+    "checks": {
+      "ping": { "addresses": ["8.8.8.8", "1.1.1.1", "9.9.9.9"], "timeout": "5s" },
+      "http": {
+        "urls": [
+          "https://www.google.com",
+          "https://www.cloudflare.com",
+          "https://www.github.com"
+        ]
       }
     }
   },
-  "localhost": {
+  "ntp-pool": {
+    "tags": { "category": "probe", "role": "ntp" },
     "checks": {
-      "ping": {
-        "addresses": [
-          "127.0.0.1",
-          "::1"
-        ]
+      "ping": { "addresses": ["0.pool.ntp.org", "1.pool.ntp.org"], "timeout": "5s" }
+    }
+  },
+  "expo-ap-mesh1": {
+    "tags": { "category": "ap", "building": "expo", "role": "mesh" },
+    "checks": {
+      "ping": { "addresses": ["expo-ap-mesh1.example.com"] },
+      "wifi_stations": { "address": "expo-ap-mesh1.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://expo-ap-mesh1.example.com"], "skip_verify": true }
+    }
+  },
+  "expo-ap-mesh2": {
+    "tags": { "category": "ap", "building": "expo", "role": "mesh" },
+    "checks": {
+      "ping": { "addresses": ["expo-ap-mesh2.example.com"] },
+      "wifi_stations": { "address": "expo-ap-mesh2.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://expo-ap-mesh2.example.com"], "skip_verify": true }
+    }
+  },
+  "conf-ap-mesh1": {
+    "tags": { "category": "ap", "building": "conference", "role": "mesh" },
+    "checks": {
+      "ping": { "addresses": ["conf-ap-mesh1.example.com"] },
+      "wifi_stations": { "address": "conf-ap-mesh1.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://conf-ap-mesh1.example.com"], "skip_verify": true }
+    }
+  },
+  "workshop-ap1": {
+    "tags": { "category": "ap", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-ap1.example.com"] },
+      "wifi_stations": { "address": "workshop-ap1.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://workshop-ap1.example.com"], "skip_verify": true }
+    }
+  },
+  "workshop-ap2": {
+    "tags": { "category": "ap", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-ap2.example.com"] },
+      "wifi_stations": { "address": "workshop-ap2.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://workshop-ap2.example.com"], "skip_verify": true }
+    }
+  },
+  "dining-ap1": {
+    "tags": { "category": "ap", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["dining-ap1.example.com"] },
+      "wifi_stations": { "address": "dining-ap1.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://dining-ap1.example.com"], "skip_verify": true }
+    }
+  },
+  "outdoor-ap1": {
+    "tags": { "category": "ap", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["outdoor-ap1.example.com"] },
+      "wifi_stations": { "address": "outdoor-ap1.example.com", "radios": ["phy0-ap0"] },
+      "http": { "urls": ["https://outdoor-ap1.example.com"], "skip_verify": true }
+    }
+  },
+  "outdoor-ap2": {
+    "tags": { "category": "ap", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["outdoor-ap2.example.com"] },
+      "wifi_stations": { "address": "outdoor-ap2.example.com", "radios": ["phy0-ap0"] },
+      "http": { "urls": ["https://outdoor-ap2.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-ctfd": {
+    "tags": { "category": "vm", "role": "ctf" },
+    "checks": {
+      "ping": { "addresses": ["vm-ctfd.example.com"] },
+      "http": {
+        "urls": ["https://ctf.example.com", "https://ctf.example.com/api/v1/statistics"],
+        "skip_verify": true
       }
+    }
+  },
+  "vm-scoreboard": {
+    "tags": { "category": "vm", "role": "ctf" },
+    "checks": {
+      "ping": { "addresses": ["vm-scoreboard.example.com"] },
+      "http": { "urls": ["https://scoreboard.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-challenges": {
+    "tags": { "category": "vm", "role": "ctf" },
+    "checks": {
+      "ping": { "addresses": ["vm-challenges.example.com"] },
+      "http": { "urls": ["http://vm-challenges.example.com:8888/health"] }
+    }
+  },
+  "vm-radio": {
+    "tags": { "category": "vm", "role": "radio" },
+    "checks": {
+      "ping": { "addresses": ["vm-radio.example.com"] },
+      "http": {
+        "urls": [
+          "https://radio.example.com",
+          "http://vm-radio.example.com:8000/status-json.xsl"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "vm-volunteer": {
+    "tags": { "category": "vm", "role": "volunteer" },
+    "checks": {
+      "ping": { "addresses": ["vm-volunteer.example.com"] },
+      "http": { "urls": ["https://volunteer.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-matrix": {
+    "tags": { "category": "vm", "role": "matrix" },
+    "checks": {
+      "ping": { "addresses": ["vm-matrix.example.com"] },
+      "http": {
+        "urls": [
+          "https://matrix.example.com/_matrix/client/versions",
+          "https://element.example.com"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "vm-mastodon": {
+    "tags": { "category": "vm", "role": "social" },
+    "checks": {
+      "ping": { "addresses": ["vm-mastodon.example.com"] },
+      "http": {
+        "urls": [
+          "https://social.example.com/api/v2/instance",
+          "https://social.example.com"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "vm-pastebin": {
+    "tags": { "category": "vm", "role": "paste" },
+    "checks": {
+      "ping": { "addresses": ["vm-pastebin.example.com"] },
+      "http": { "urls": ["https://paste.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-etherpad": {
+    "tags": { "category": "vm", "role": "collaboration" },
+    "checks": {
+      "ping": { "addresses": ["vm-etherpad.example.com"] },
+      "http": { "urls": ["https://pad.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-hedgedoc": {
+    "tags": { "category": "vm", "role": "collaboration" },
+    "checks": {
+      "ping": { "addresses": ["vm-hedgedoc.example.com"] },
+      "http": { "urls": ["https://doc.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-netbox": {
+    "tags": { "category": "vm", "role": "ipam" },
+    "checks": {
+      "ping": { "addresses": ["vm-netbox.example.com"] },
+      "http": { "urls": ["https://netbox.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-oxidized": {
+    "tags": { "category": "vm", "role": "config-backup" },
+    "checks": {
+      "ping": { "addresses": ["vm-oxidized.example.com"] },
+      "http": { "urls": ["http://vm-oxidized.example.com:8888/nodes"] }
+    }
+  },
+  "vm-smokeping": {
+    "tags": { "category": "vm", "role": "latency" },
+    "checks": {
+      "ping": { "addresses": ["vm-smokeping.example.com"] },
+      "http": { "urls": ["https://smokeping.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-ticket": {
+    "tags": { "category": "vm", "role": "ticketing" },
+    "checks": {
+      "ping": { "addresses": ["vm-ticket.example.com"] },
+      "http": { "urls": ["https://ticket.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-inventory": {
+    "tags": { "category": "vm", "role": "inventory" },
+    "checks": {
+      "ping": { "addresses": ["vm-inventory.example.com"] },
+      "http": { "urls": ["https://inventory.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-feedback": {
+    "tags": { "category": "vm", "role": "feedback" },
+    "checks": {
+      "ping": { "addresses": ["vm-feedback.example.com"] },
+      "http": { "urls": ["https://feedback.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-pretalx": {
+    "tags": { "category": "vm", "role": "cfp" },
+    "checks": {
+      "ping": { "addresses": ["vm-pretalx.example.com"] },
+      "http": {
+        "urls": [
+          "https://cfp.example.com",
+          "https://cfp.example.com/api/events/"
+        ],
+        "skip_verify": true
+      }
+    }
+  },
+  "vm-attendeebadge": {
+    "tags": { "category": "vm", "role": "badge" },
+    "checks": {
+      "ping": { "addresses": ["vm-attendeebadge.example.com"] },
+      "http": { "urls": ["https://badge.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-sponsors": {
+    "tags": { "category": "vm", "role": "sponsors" },
+    "checks": {
+      "ping": { "addresses": ["vm-sponsors.example.com"] },
+      "http": { "urls": ["https://sponsors.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-merch": {
+    "tags": { "category": "vm", "role": "merch" },
+    "checks": {
+      "ping": { "addresses": ["vm-merch.example.com"] },
+      "http": { "urls": ["https://merch.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-photo": {
+    "tags": { "category": "vm", "role": "photo" },
+    "checks": {
+      "ping": { "addresses": ["vm-photo.example.com"] },
+      "http": { "urls": ["https://photos.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-archive": {
+    "tags": { "category": "vm", "role": "archive" },
+    "checks": {
+      "ping": { "addresses": ["vm-archive.example.com"] },
+      "http": { "urls": ["https://archive.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-map": {
+    "tags": { "category": "vm", "role": "map" },
+    "checks": {
+      "ping": { "addresses": ["vm-map.example.com"] },
+      "http": { "urls": ["https://map.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-announce": {
+    "tags": { "category": "vm", "role": "announce" },
+    "checks": {
+      "ping": { "addresses": ["vm-announce.example.com"] },
+      "http": { "urls": ["https://announce.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-cdn": {
+    "tags": { "category": "vm", "role": "cdn" },
+    "checks": {
+      "ping": { "addresses": ["vm-cdn.example.com"] },
+      "http": { "urls": ["https://cdn.example.com/health"], "skip_verify": true }
+    }
+  },
+  "vm-lb1": {
+    "tags": { "category": "vm", "role": "loadbalancer" },
+    "checks": {
+      "ping": { "addresses": ["vm-lb1.example.com"] },
+      "http": { "urls": ["http://vm-lb1.example.com:8080/health"] }
+    }
+  },
+  "vm-lb2": {
+    "tags": { "category": "vm", "role": "loadbalancer" },
+    "checks": {
+      "ping": { "addresses": ["vm-lb2.example.com"] },
+      "http": { "urls": ["http://vm-lb2.example.com:8080/health"] }
+    }
+  },
+  "vm-certbot": {
+    "tags": { "category": "vm", "role": "pki" },
+    "checks": {
+      "ping": { "addresses": ["vm-certbot.example.com"] },
+      "http": { "urls": ["https://pki.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-firewall": {
+    "tags": { "category": "vm", "role": "firewall" },
+    "checks": {
+      "ping": { "addresses": ["vm-firewall.example.com"] },
+      "http": { "urls": ["https://vm-firewall.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-ids": {
+    "tags": { "category": "vm", "role": "ids" },
+    "checks": {
+      "ping": { "addresses": ["vm-ids.example.com"] },
+      "http": { "urls": ["http://vm-ids.example.com:3000/health"] }
+    }
+  },
+  "vm-wazuh": {
+    "tags": { "category": "vm", "role": "siem" },
+    "checks": {
+      "ping": { "addresses": ["vm-wazuh.example.com"] },
+      "http": { "urls": ["https://vm-wazuh.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-ansible": {
+    "tags": { "category": "vm", "role": "automation" },
+    "checks": {
+      "ping": { "addresses": ["vm-ansible.example.com"] },
+      "http": { "urls": ["https://vm-ansible.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-terraform": {
+    "tags": { "category": "vm", "role": "automation" },
+    "checks": {
+      "ping": { "addresses": ["vm-terraform.example.com"] }
+    }
+  },
+  "vm-registry": {
+    "tags": { "category": "vm", "role": "registry" },
+    "checks": {
+      "ping": { "addresses": ["vm-registry.example.com"] },
+      "http": { "urls": ["https://registry.example.com/v2/"], "skip_verify": true }
+    }
+  },
+  "vm-ci": {
+    "tags": { "category": "vm", "role": "ci" },
+    "checks": {
+      "ping": { "addresses": ["vm-ci.example.com"] },
+      "http": { "urls": ["https://ci.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-s3": {
+    "tags": { "category": "vm", "role": "objectstore" },
+    "checks": {
+      "ping": { "addresses": ["vm-s3.example.com"] },
+      "http": { "urls": ["https://s3.example.com/minio/health/live"], "skip_verify": true }
+    }
+  },
+  "ap13": {
+    "tags": { "category": "ap", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["ap13.example.com"] },
+      "wifi_stations": { "address": "ap13.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap13.example.com"], "skip_verify": true }
+    }
+  },
+  "ap14": {
+    "tags": { "category": "ap", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["ap14.example.com"] },
+      "wifi_stations": { "address": "ap14.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap14.example.com"], "skip_verify": true }
+    }
+  },
+  "ap15": {
+    "tags": { "category": "ap", "building": "main" },
+    "checks": {
+      "ping": { "addresses": ["ap15.example.com"] },
+      "wifi_stations": { "address": "ap15.example.com", "radios": ["phy0-ap0", "phy1-ap0"] },
+      "http": { "urls": ["https://ap15.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-noc-a": {
+    "tags": { "category": "switch", "building": "noc", "rack": "a" },
+    "checks": {
+      "ping": { "addresses": ["sw-noc-a.example.com"] },
+      "http": { "urls": ["https://sw-noc-a.example.com"], "skip_verify": true }
+    }
+  },
+  "sw-noc-b": {
+    "tags": { "category": "switch", "building": "noc", "rack": "b" },
+    "checks": {
+      "ping": { "addresses": ["sw-noc-b.example.com"] },
+      "http": { "urls": ["https://sw-noc-b.example.com"], "skip_verify": true }
+    }
+  },
+  "pi11": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi11.example.com"] }
+    }
+  },
+  "pi12": {
+    "tags": { "category": "pi", "role": "kiosk" },
+    "checks": {
+      "ping": { "addresses": ["pi12.example.com"] }
+    }
+  },
+  "pi13": {
+    "tags": { "category": "pi", "role": "sensor" },
+    "checks": {
+      "ping": { "addresses": ["pi13.example.com"] },
+      "http": { "urls": ["http://pi13.example.com:2017"] }
+    }
+  },
+  "pi14": {
+    "tags": { "category": "pi", "role": "sensor" },
+    "checks": {
+      "ping": { "addresses": ["pi14.example.com"] },
+      "http": { "urls": ["http://pi14.example.com:2017"] }
+    }
+  },
+  "cam-conf1": {
+    "tags": { "category": "camera", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["cam-conf1.example.com"] },
+      "http": { "urls": ["http://cam-conf1.example.com/status"] }
+    }
+  },
+  "cam-conf2": {
+    "tags": { "category": "camera", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["cam-conf2.example.com"] },
+      "http": { "urls": ["http://cam-conf2.example.com/status"] }
+    }
+  },
+  "cam-workshop1": {
+    "tags": { "category": "camera", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["cam-workshop1.example.com"] },
+      "http": { "urls": ["http://cam-workshop1.example.com/status"] }
+    }
+  },
+  "cam-dining1": {
+    "tags": { "category": "camera", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["cam-dining1.example.com"] },
+      "http": { "urls": ["http://cam-dining1.example.com/status"] }
+    }
+  },
+  "pos-dining4": {
+    "tags": { "category": "pos", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["pos-dining4.example.com"] },
+      "http": { "urls": ["http://pos-dining4.example.com:8080/health"] }
+    }
+  },
+  "conf-sign4": {
+    "tags": { "category": "signage", "building": "conference" },
+    "checks": {
+      "ping": { "addresses": ["conf-sign4.example.com"] },
+      "http": { "urls": ["http://conf-sign4.example.com:8080"] }
+    }
+  },
+  "workshop-sign3": {
+    "tags": { "category": "signage", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["workshop-sign3.example.com"] },
+      "http": { "urls": ["http://workshop-sign3.example.com:8080"] }
+    }
+  },
+  "dining-sign2": {
+    "tags": { "category": "signage", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["dining-sign2.example.com"] },
+      "http": { "urls": ["http://dining-sign2.example.com:8080"] }
+    }
+  },
+  "outdoor-sign1": {
+    "tags": { "category": "signage", "building": "outdoor" },
+    "checks": {
+      "ping": { "addresses": ["outdoor-sign1.example.com"] },
+      "http": { "urls": ["http://outdoor-sign1.example.com:8080"] }
+    }
+  },
+  "vm-jumpbox": {
+    "tags": { "category": "vm", "role": "jumpbox" },
+    "checks": {
+      "ping": { "addresses": ["vm-jumpbox.example.com"] }
+    }
+  },
+  "vm-vault": {
+    "tags": { "category": "vm", "role": "secrets" },
+    "checks": {
+      "ping": { "addresses": ["vm-vault.example.com"] },
+      "http": { "urls": ["https://vault.example.com/v1/sys/health"], "skip_verify": true }
+    }
+  },
+  "vm-netflow": {
+    "tags": { "category": "vm", "role": "netflow" },
+    "checks": {
+      "ping": { "addresses": ["vm-netflow.example.com"] },
+      "http": { "urls": ["http://vm-netflow.example.com:3000"] }
+    }
+  },
+  "vm-portal": {
+    "tags": { "category": "vm", "role": "captive-portal" },
+    "checks": {
+      "ping": { "addresses": ["vm-portal.example.com"] },
+      "http": { "urls": ["https://portal.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-attendee-api": {
+    "tags": { "category": "vm", "role": "api" },
+    "checks": {
+      "ping": { "addresses": ["vm-attendee-api.example.com"] },
+      "http": { "urls": ["https://api.example.com/health"], "skip_verify": true }
+    }
+  },
+  "vm-whatsup": {
+    "tags": { "category": "vm", "role": "schedule" },
+    "checks": {
+      "ping": { "addresses": ["vm-whatsup.example.com"] },
+      "http": { "urls": ["https://whatsup.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-mrtg": {
+    "tags": { "category": "vm", "role": "graphs" },
+    "checks": {
+      "ping": { "addresses": ["vm-mrtg.example.com"] },
+      "http": { "urls": ["https://mrtg.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-librenms": {
+    "tags": { "category": "vm", "role": "nms" },
+    "checks": {
+      "ping": { "addresses": ["vm-librenms.example.com"] },
+      "http": { "urls": ["https://nms.example.com"], "skip_verify": true }
+    }
+  },
+  "vm-unifi": {
+    "tags": { "category": "vm", "role": "wifi-controller" },
+    "checks": {
+      "ping": { "addresses": ["vm-unifi.example.com"] },
+      "http": { "urls": ["https://vm-unifi.example.com:8443"], "skip_verify": true }
+    }
+  },
+  "laptop-reg1": {
+    "tags": { "category": "laptop", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["laptop-reg1.example.com"] }
+    }
+  },
+  "laptop-reg2": {
+    "tags": { "category": "laptop", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["laptop-reg2.example.com"] }
+    }
+  },
+  "laptop-info1": {
+    "tags": { "category": "laptop", "building": "main", "role": "info-desk" },
+    "checks": {
+      "ping": { "addresses": ["laptop-info1.example.com"] }
+    }
+  },
+  "env-sensor4": {
+    "tags": { "category": "sensor", "building": "workshop", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor4.example.com"] },
+      "http": { "urls": ["http://env-sensor4.example.com/metrics"] }
+    }
+  },
+  "env-sensor5": {
+    "tags": { "category": "sensor", "building": "dining", "role": "environment" },
+    "checks": {
+      "ping": { "addresses": ["env-sensor5.example.com"] },
+      "http": { "urls": ["http://env-sensor5.example.com/metrics"] }
+    }
+  },
+  "ups-noc": {
+    "tags": { "category": "ups", "building": "noc" },
+    "checks": {
+      "ping": { "addresses": ["ups-noc.example.com"] },
+      "http": { "urls": ["http://ups-noc.example.com/status"] }
+    }
+  },
+  "ups-expo": {
+    "tags": { "category": "ups", "building": "expo" },
+    "checks": {
+      "ping": { "addresses": ["ups-expo.example.com"] },
+      "http": { "urls": ["http://ups-expo.example.com/status"] }
+    }
+  },
+  "3dp5": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp5.example.com"] },
+      "http": { "urls": ["http://3dp5.example.com"] }
+    }
+  },
+  "3dp6": {
+    "tags": { "category": "printer3d", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["3dp6.example.com"] },
+      "http": { "urls": ["http://3dp6.example.com"] }
+    }
+  },
+  "cnc2": {
+    "tags": { "category": "cnc", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["cnc2.example.com"] },
+      "http": { "urls": ["http://cnc2.example.com"] }
+    }
+  },
+  "badge-printer5": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer5.example.com"] }
+    }
+  },
+  "badge-printer6": {
+    "tags": { "category": "printer", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["badge-printer6.example.com"] }
+    }
+  },
+  "phone-reg2": {
+    "tags": { "category": "phone", "building": "registration" },
+    "checks": {
+      "ping": { "addresses": ["phone-reg2.example.com"] }
+    }
+  },
+  "phone-dining1": {
+    "tags": { "category": "phone", "building": "dining" },
+    "checks": {
+      "ping": { "addresses": ["phone-dining1.example.com"] }
+    }
+  },
+  "phone-workshop1": {
+    "tags": { "category": "phone", "building": "workshop" },
+    "checks": {
+      "ping": { "addresses": ["phone-workshop1.example.com"] }
     }
   }
 }

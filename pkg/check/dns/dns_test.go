@@ -84,7 +84,7 @@ func TestNew_WithTimeoutZero(t *testing.T) {
 
 func TestDescribe_SingleQuery(t *testing.T) {
 	queries := []queryConfig{
-		{name: "router.risse.tv", qtype: dns.TypeA, expect: "192.168.73.1", resultKey: "router.risse.tv", dsName: "q0"},
+		{name: "router.example.com", qtype: dns.TypeA, expect: "192.168.168.1", resultKey: "router.example.com", dsName: "q0"},
 	}
 	chk, err := New("127.0.0.1:53", queries)
 	if err != nil {
@@ -101,8 +101,8 @@ func TestDescribe_SingleQuery(t *testing.T) {
 	if m.DSName != "q0" {
 		t.Errorf("expected DSName 'q0', got %q", m.DSName)
 	}
-	if m.ResultKey != "router.risse.tv" {
-		t.Errorf("expected ResultKey 'router.risse.tv', got %q", m.ResultKey)
+	if m.ResultKey != "router.example.com" {
+		t.Errorf("expected ResultKey 'router.example.com', got %q", m.ResultKey)
 	}
 	if m.Unit != "ms" {
 		t.Errorf("expected Unit 'ms', got %q", m.Unit)
@@ -403,9 +403,9 @@ func TestNormalizeFQDN_WithoutDot(t *testing.T) {
 
 func TestValidateAnswer_AMatch(t *testing.T) {
 	rrs := []dns.RR{
-		&dns.A{Hdr: dns.RR_Header{Rrtype: dns.TypeA}, A: net.ParseIP("192.168.73.1")},
+		&dns.A{Hdr: dns.RR_Header{Rrtype: dns.TypeA}, A: net.ParseIP("192.168.168.1")},
 	}
-	if err := validateAnswer(rrs, dns.TypeA, "192.168.73.1"); err != nil {
+	if err := validateAnswer(rrs, dns.TypeA, "192.168.168.1"); err != nil {
 		t.Errorf("expected match, got: %v", err)
 	}
 }
@@ -414,7 +414,7 @@ func TestValidateAnswer_ANoMatch(t *testing.T) {
 	rrs := []dns.RR{
 		&dns.A{Hdr: dns.RR_Header{Rrtype: dns.TypeA}, A: net.ParseIP("10.0.0.1")},
 	}
-	if err := validateAnswer(rrs, dns.TypeA, "192.168.73.1"); err == nil {
+	if err := validateAnswer(rrs, dns.TypeA, "192.168.168.1"); err == nil {
 		t.Error("expected mismatch error")
 	}
 }
@@ -430,18 +430,18 @@ func TestValidateAnswer_AAAAMatch(t *testing.T) {
 
 func TestValidateAnswer_PTRMatchWithTrailingDot(t *testing.T) {
 	rrs := []dns.RR{
-		&dns.PTR{Hdr: dns.RR_Header{Rrtype: dns.TypePTR}, Ptr: "router.risse.tv."},
+		&dns.PTR{Hdr: dns.RR_Header{Rrtype: dns.TypePTR}, Ptr: "router.example.com."},
 	}
-	if err := validateAnswer(rrs, dns.TypePTR, "router.risse.tv."); err != nil {
+	if err := validateAnswer(rrs, dns.TypePTR, "router.example.com."); err != nil {
 		t.Errorf("expected match, got: %v", err)
 	}
 }
 
 func TestValidateAnswer_PTRMatchWithoutTrailingDot(t *testing.T) {
 	rrs := []dns.RR{
-		&dns.PTR{Hdr: dns.RR_Header{Rrtype: dns.TypePTR}, Ptr: "router.risse.tv."},
+		&dns.PTR{Hdr: dns.RR_Header{Rrtype: dns.TypePTR}, Ptr: "router.example.com."},
 	}
-	if err := validateAnswer(rrs, dns.TypePTR, "router.risse.tv"); err != nil {
+	if err := validateAnswer(rrs, dns.TypePTR, "router.example.com"); err != nil {
 		t.Errorf("expected match regardless of trailing dot, got: %v", err)
 	}
 }
@@ -469,13 +469,13 @@ func TestRun_AQuery_Success(t *testing.T) {
 		m.SetReply(r)
 		m.Answer = append(m.Answer, &dns.A{
 			Hdr: dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
-			A:   net.ParseIP("192.168.73.1"),
+			A:   net.ParseIP("192.168.168.1"),
 		})
 		_ = w.WriteMsg(m)
 	})
 
 	queries := []queryConfig{
-		{name: "router.risse.tv", qtype: dns.TypeA, expect: "192.168.73.1", resultKey: "router.risse.tv", dsName: "q0"},
+		{name: "router.example.com", qtype: dns.TypeA, expect: "192.168.168.1", resultKey: "router.example.com", dsName: "q0"},
 	}
 	chk, err := New(addr, queries)
 	if err != nil {
@@ -486,8 +486,8 @@ func TestRun_AQuery_Success(t *testing.T) {
 	if !result.Success {
 		t.Errorf("expected success, got failure: %v", result.Err)
 	}
-	if result.Metrics["router.risse.tv"] <= 0 {
-		t.Errorf("expected positive RTT, got %d", result.Metrics["router.risse.tv"])
+	if p := result.Metrics["router.example.com"]; p == nil || *p <= 0 {
+		t.Errorf("expected positive RTT, got %v", result.Metrics["router.example.com"])
 	}
 	if result.Timestamp.IsZero() {
 		t.Error("expected non-zero timestamp")
@@ -500,13 +500,13 @@ func TestRun_PTRQuery_Success(t *testing.T) {
 		m.SetReply(r)
 		m.Answer = append(m.Answer, &dns.PTR{
 			Hdr: dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 60},
-			Ptr: "router.risse.tv.",
+			Ptr: "router.example.com.",
 		})
 		_ = w.WriteMsg(m)
 	})
 
 	queries := []queryConfig{
-		{name: "1.73.168.192.in-addr.arpa", qtype: dns.TypePTR, expect: "router.risse.tv.", resultKey: "1.73.168.192.in-addr.arpa", dsName: "q0"},
+		{name: "1.168.168.192.in-addr.arpa", qtype: dns.TypePTR, expect: "router.example.com.", resultKey: "1.168.168.192.in-addr.arpa", dsName: "q0"},
 	}
 	chk, err := New(addr, queries)
 	if err != nil {
@@ -552,20 +552,20 @@ func TestRun_MultipleQueries_AllSuccess(t *testing.T) {
 		case dns.TypeA:
 			m.Answer = append(m.Answer, &dns.A{
 				Hdr: dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
-				A:   net.ParseIP("192.168.73.1"),
+				A:   net.ParseIP("192.168.168.1"),
 			})
 		case dns.TypePTR:
 			m.Answer = append(m.Answer, &dns.PTR{
 				Hdr: dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 60},
-				Ptr: "router.risse.tv.",
+				Ptr: "router.example.com.",
 			})
 		}
 		_ = w.WriteMsg(m)
 	})
 
 	queries := []queryConfig{
-		{name: "router.risse.tv", qtype: dns.TypeA, expect: "192.168.73.1", resultKey: "router.risse.tv", dsName: "q0"},
-		{name: "1.73.168.192.in-addr.arpa", qtype: dns.TypePTR, expect: "router.risse.tv.", resultKey: "1.73.168.192.in-addr.arpa", dsName: "q1"},
+		{name: "router.example.com", qtype: dns.TypeA, expect: "192.168.168.1", resultKey: "router.example.com", dsName: "q0"},
+		{name: "1.168.168.192.in-addr.arpa", qtype: dns.TypePTR, expect: "router.example.com.", resultKey: "1.168.168.192.in-addr.arpa", dsName: "q1"},
 	}
 	chk, err := New(addr, queries)
 	if err != nil {
@@ -593,7 +593,7 @@ func TestRun_WrongAnswer_Failure(t *testing.T) {
 	})
 
 	queries := []queryConfig{
-		{name: "router.risse.tv", qtype: dns.TypeA, expect: "192.168.73.1", resultKey: "router.risse.tv", dsName: "q0"},
+		{name: "router.example.com", qtype: dns.TypeA, expect: "192.168.168.1", resultKey: "router.example.com", dsName: "q0"},
 	}
 	chk, err := New(addr, queries)
 	if err != nil {
@@ -640,7 +640,7 @@ func TestRun_PartialSuccess_Failure(t *testing.T) {
 		if call == 1 {
 			m.Answer = append(m.Answer, &dns.A{
 				Hdr: dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
-				A:   net.ParseIP("192.168.73.1"),
+				A:   net.ParseIP("192.168.168.1"),
 			})
 		} else {
 			m.Rcode = dns.RcodeNameError
@@ -649,7 +649,7 @@ func TestRun_PartialSuccess_Failure(t *testing.T) {
 	})
 
 	queries := []queryConfig{
-		{name: "router.risse.tv", qtype: dns.TypeA, expect: "192.168.73.1", resultKey: "router.risse.tv", dsName: "q0"},
+		{name: "router.example.com", qtype: dns.TypeA, expect: "192.168.168.1", resultKey: "router.example.com", dsName: "q0"},
 		{name: "missing.example.com", qtype: dns.TypeA, expect: "5.6.7.8", resultKey: "missing.example.com", dsName: "q1"},
 	}
 	chk, err := New(addr, queries)
@@ -661,8 +661,14 @@ func TestRun_PartialSuccess_Failure(t *testing.T) {
 	if result.Success {
 		t.Error("expected failure when one query fails")
 	}
-	if len(result.Metrics) != 1 {
-		t.Errorf("expected 1 successful metric, got %d", len(result.Metrics))
+	if len(result.Metrics) != 2 {
+		t.Errorf("expected 2 metrics (one nil, one non-nil), got %d", len(result.Metrics))
+	}
+	if result.Metrics["router.example.com"] == nil {
+		t.Error("expected non-nil metric for successful query")
+	}
+	if result.Metrics["missing.example.com"] != nil {
+		t.Error("expected nil metric for failed query")
 	}
 }
 
