@@ -34,9 +34,7 @@
 
 			<!-- Check type filter -->
 			<div class="check-filter">
-				<label>Checks:</label>
-				<button class="filter-toggle active" x-on:click="showAllChecks()">All</button>
-				<template x-for="ct in checkTypes">
+			<template x-for="ct in checkTypes">
 					<button x-bind:class="checkToggleClass(ct)"
 						x-on:click="toggleCheck(ct)"
 						x-text="checkLabel(ct)">
