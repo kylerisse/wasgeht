@@ -137,6 +137,12 @@
 
 /* ── Dashboard table ──────────────────────────────────────── */
 
+.dashboard-main {
+    max-width: none !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
 .host-table {
     width: 100%;
 }
