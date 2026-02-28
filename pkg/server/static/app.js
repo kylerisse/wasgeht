@@ -92,12 +92,160 @@ function checkSummaryMetric(checkType, data) {
     return ' ' + (avg / 1000).toFixed(1) + 'ms';
 }
 
-/* ── Dashboard component ──────────────────────────────────── */
+/* ── Shared component behavior ────────────────────────────── */
+
+var shared = {
+    _startPolling: function () {
+        var self = this;
+        self.refreshCountdown = 5;
+        self.fetchData();
+        self._interval = setInterval(function () { self.fetchData(); }, 5000);
+        self._countdownInterval = setInterval(function () {
+            self.refreshCountdown--;
+            if (self.refreshCountdown < 0) self.refreshCountdown = 5;
+        }, 1000);
+    },
+
+    _stopPolling: function () {
+        clearInterval(this._interval);
+        clearInterval(this._countdownInterval);
+    },
+
+    fetchData: function () {
+        var self = this;
+        self.refreshCountdown = 5;
+        fetch('/api')
+            .then(function (r) { return r.json(); })
+            .then(function (data) { self.hosts = data.hosts || {}; });
+    },
+
+    filteredHosts: function () {
+        var self = this;
+        var entries = Object.entries(this.hosts);
+
+        entries = entries.filter(function (entry) {
+            return self.omitted.indexOf(entry[0]) === -1;
+        });
+
+        if (this.search) {
+            var q = this.search.toLowerCase();
+            entries = entries.filter(function (entry) {
+                return entry[0].toLowerCase().indexOf(q) !== -1;
+            });
+        }
+
+        if (this.activeStatuses.length > 0) {
+            entries = entries.filter(function (entry) {
+                return self.activeStatuses.indexOf(entry[1].status) !== -1;
+            });
+        }
+
+        entries.sort(function (a, b) {
+            return sortCompare(a[0].toLowerCase(), b[0].toLowerCase(), 'asc');
+        });
+
+        return entries;
+    },
+
+    toggleStatus: function (status) {
+        var idx = this.activeStatuses.indexOf(status);
+        if (idx === -1) {
+            this.activeStatuses.push(status);
+        } else {
+            this.activeStatuses.splice(idx, 1);
+        }
+        filterState.setStatuses(this.activeStatuses);
+    },
+
+    isStatusActive: function (status) {
+        return this.activeStatuses.indexOf(status) !== -1;
+    },
+
+    clearStatuses: function () {
+        this.activeStatuses = [];
+        filterState.setStatuses([]);
+    },
+
+    hasActiveStatuses: function () {
+        return this.activeStatuses.length > 0;
+    },
+
+    updateSearch: function (val) {
+        this.search = val;
+        filterState.setSearch(val);
+    },
+
+    omitHostEntry: function (entry) {
+        var hostname = entry[0];
+        if (this.omitted.indexOf(hostname) === -1) {
+            this.omitted.push(hostname);
+            filterState.setOmitted(this.omitted);
+        }
+    },
+
+    restoreHost: function (hostname) {
+        var idx = this.omitted.indexOf(hostname);
+        if (idx !== -1) {
+            this.omitted.splice(idx, 1);
+            filterState.setOmitted(this.omitted);
+        }
+    },
+
+    clearOmitted: function () {
+        this.omitted = [];
+        filterState.setOmitted([]);
+    },
+
+    summaryEntries: function () {
+        var self = this;
+        var counts = {};
+        Object.entries(this.hosts).forEach(function (entry) {
+            if (self.omitted.indexOf(entry[0]) !== -1) return;
+            var s = entry[1].status;
+            counts[s] = (counts[s] || 0) + 1;
+        });
+        return ALL_STATUSES.filter(function (s) {
+            return ALWAYS_SHOWN_STATUSES.indexOf(s) !== -1 || (counts[s] || 0) > 0;
+        }).map(function (s) {
+            return { status: s, count: counts[s] || 0 };
+        });
+    },
+
+    summaryBadgeClass: function (entry) {
+        return 'summary-badge status-' + entry.status;
+    },
+
+    summaryBadgeClickClass: function (entry) {
+        var base = 'summary-badge summary-badge-clickable status-' + entry.status;
+        if (this.activeStatuses.length > 0 && !this.isStatusActive(entry.status)) {
+            base += ' summary-badge-dimmed';
+        }
+        return base;
+    },
+
+    hostDetailHref: function (entry) {
+        return '/host-detail?hostname=' + encodeURIComponent(entry[0]);
+    },
+
+    hostName: function (entry) {
+        return entry[0];
+    },
+
+    omittedText: function () {
+        return this.omitted.length + ' host(s) omitted';
+    },
+
+    hasOmitted: function () {
+        return this.omitted.length > 0;
+    }
+};
+
+/* ── Alpine components ────────────────────────────────────── */
 
 document.addEventListener('alpine:init', function () {
 
     Alpine.data('dashboard', function () {
-        return {
+        return Object.assign({}, shared, {
             hosts: {},
             search: '',
             activeStatuses: [],
@@ -113,26 +261,11 @@ document.addEventListener('alpine:init', function () {
                 this.search = filterState.getSearch();
                 this.activeStatuses = filterState.getStatuses();
                 this.omitted = filterState.getOmitted();
-                this.fetchData();
-                var self = this;
-                this._interval = setInterval(function () { self.fetchData(); }, 5000);
-                this._countdownInterval = setInterval(function () {
-                    self.refreshCountdown--;
-                    if (self.refreshCountdown < 0) self.refreshCountdown = 5;
-                }, 1000);
+                this._startPolling();
             },
 
             destroy: function () {
-                clearInterval(this._interval);
-                clearInterval(this._countdownInterval);
-            },
-
-            fetchData: function () {
-                var self = this;
-                self.refreshCountdown = 5;
-                fetch('/api')
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) { self.hosts = data.hosts || {}; });
+                this._stopPolling();
             },
 
             filteredHosts: function () {
@@ -184,93 +317,6 @@ document.addEventListener('alpine:init', function () {
                 return this.sortDir === 'asc' ? ' \u25B2' : ' \u25BC';
             },
 
-            toggleStatus: function (status) {
-                var idx = this.activeStatuses.indexOf(status);
-                if (idx === -1) {
-                    this.activeStatuses.push(status);
-                } else {
-                    this.activeStatuses.splice(idx, 1);
-                }
-                filterState.setStatuses(this.activeStatuses);
-            },
-
-            isStatusActive: function (status) {
-                return this.activeStatuses.indexOf(status) !== -1;
-            },
-
-            clearStatuses: function () {
-                this.activeStatuses = [];
-                filterState.setStatuses([]);
-            },
-
-            hasActiveStatuses: function () {
-                return this.activeStatuses.length > 0;
-            },
-
-            updateSearch: function (val) {
-                this.search = val;
-                filterState.setSearch(val);
-            },
-
-            omitHostEntry: function (entry) {
-                this.omitHost(entry[0]);
-            },
-
-            omitHost: function (hostname) {
-                if (this.omitted.indexOf(hostname) === -1) {
-                    this.omitted.push(hostname);
-                    filterState.setOmitted(this.omitted);
-                }
-            },
-
-            restoreHost: function (hostname) {
-                var idx = this.omitted.indexOf(hostname);
-                if (idx !== -1) {
-                    this.omitted.splice(idx, 1);
-                    filterState.setOmitted(this.omitted);
-                }
-            },
-
-            clearOmitted: function () {
-                this.omitted = [];
-                filterState.setOmitted([]);
-            },
-
-            checkEntries: function (checks) {
-                return Object.entries(checks || {});
-            },
-
-            hostCheckEntries: function (entry) {
-                return this.checkEntries(entry[1].checks);
-            },
-
-            summaryEntries: function () {
-                var self = this;
-                var counts = {};
-                Object.entries(this.hosts).forEach(function (entry) {
-                    if (self.omitted.indexOf(entry[0]) !== -1) return;
-                    var s = entry[1].status;
-                    counts[s] = (counts[s] || 0) + 1;
-                });
-                return ALL_STATUSES.filter(function (s) {
-                    return ALWAYS_SHOWN_STATUSES.indexOf(s) !== -1 || (counts[s] || 0) > 0;
-                }).map(function (s) {
-                    return { status: s, count: counts[s] || 0 };
-                });
-            },
-
-            summaryBadgeClass: function (entry) {
-                return 'summary-badge status-' + entry.status;
-            },
-
-            summaryBadgeClickClass: function (entry) {
-                var base = 'summary-badge summary-badge-clickable status-' + entry.status;
-                if (this.activeStatuses.length > 0 && !this.isStatusActive(entry.status)) {
-                    base += ' summary-badge-dimmed';
-                }
-                return base;
-            },
-
             hostStatusBadgeClass: function (entry) {
                 return 'summary-badge status-' + entry[1].status;
             },
@@ -279,12 +325,12 @@ document.addEventListener('alpine:init', function () {
                 return entry[1].status;
             },
 
-            hostDetailHref: function (entry) {
-                return '/host-detail?hostname=' + encodeURIComponent(entry[0]);
+            checkEntries: function (checks) {
+                return Object.entries(checks || {});
             },
 
-            hostName: function (entry) {
-                return entry[0];
+            hostCheckEntries: function (entry) {
+                return this.checkEntries(entry[1].checks);
             },
 
             checkBadgeClass: function (chk) {
@@ -303,22 +349,14 @@ document.addEventListener('alpine:init', function () {
 
             refreshText: function () {
                 return 'Refresh in ' + this.refreshCountdown + 's';
-            },
-
-            omittedText: function () {
-                return this.omitted.length + ' host(s) omitted';
-            },
-
-            hasOmitted: function () {
-                return this.omitted.length > 0;
             }
-        };
+        });
     });
 
     /* ── Grid view component ──────────────────────────────────── */
 
     Alpine.data('gridview', function () {
-        return {
+        return Object.assign({}, shared, {
             hosts: {},
             search: '',
             activeStatuses: [],
@@ -335,13 +373,8 @@ document.addEventListener('alpine:init', function () {
                 this.search = filterState.getSearch();
                 this.activeStatuses = filterState.getStatuses();
                 this.omitted = filterState.getOmitted();
-                this.fetchData();
+                this._startPolling();
                 var self = this;
-                this._interval = setInterval(function () { self.fetchData(); }, 5000);
-                this._countdownInterval = setInterval(function () {
-                    self.refreshCountdown--;
-                    if (self.refreshCountdown < 0) self.refreshCountdown = 5;
-                }, 1000);
                 this._resizeHandler = function () {
                     self.winW = window.innerWidth;
                     self.winH = window.innerHeight;
@@ -350,117 +383,8 @@ document.addEventListener('alpine:init', function () {
             },
 
             destroy: function () {
-                clearInterval(this._interval);
-                clearInterval(this._countdownInterval);
+                this._stopPolling();
                 window.removeEventListener('resize', this._resizeHandler);
-            },
-
-            fetchData: function () {
-                var self = this;
-                self.refreshCountdown = 5;
-                fetch('/api')
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) { self.hosts = data.hosts || {}; });
-            },
-
-            filteredHosts: function () {
-                var self = this;
-                var entries = Object.entries(this.hosts);
-
-                entries = entries.filter(function (entry) {
-                    return self.omitted.indexOf(entry[0]) === -1;
-                });
-
-                if (this.search) {
-                    var q = this.search.toLowerCase();
-                    entries = entries.filter(function (entry) {
-                        return entry[0].toLowerCase().indexOf(q) !== -1;
-                    });
-                }
-
-                if (this.activeStatuses.length > 0) {
-                    entries = entries.filter(function (entry) {
-                        return self.activeStatuses.indexOf(entry[1].status) !== -1;
-                    });
-                }
-
-                entries.sort(function (a, b) {
-                    return sortCompare(a[0].toLowerCase(), b[0].toLowerCase(), 'asc');
-                });
-
-                return entries;
-            },
-
-            toggleStatus: function (status) {
-                var idx = this.activeStatuses.indexOf(status);
-                if (idx === -1) {
-                    this.activeStatuses.push(status);
-                } else {
-                    this.activeStatuses.splice(idx, 1);
-                }
-                filterState.setStatuses(this.activeStatuses);
-            },
-
-            isStatusActive: function (status) {
-                return this.activeStatuses.indexOf(status) !== -1;
-            },
-
-            clearStatuses: function () {
-                this.activeStatuses = [];
-                filterState.setStatuses([]);
-            },
-
-            hasActiveStatuses: function () {
-                return this.activeStatuses.length > 0;
-            },
-
-            updateSearch: function (val) {
-                this.search = val;
-                filterState.setSearch(val);
-            },
-
-            omitHostEntry: function (entry) {
-                var hostname = entry[0];
-                if (this.omitted.indexOf(hostname) === -1) {
-                    this.omitted.push(hostname);
-                    filterState.setOmitted(this.omitted);
-                }
-            },
-
-            restoreHost: function (hostname) {
-                var idx = this.omitted.indexOf(hostname);
-                if (idx !== -1) {
-                    this.omitted.splice(idx, 1);
-                    filterState.setOmitted(this.omitted);
-                }
-            },
-
-            clearOmitted: function () {
-                this.omitted = [];
-                filterState.setOmitted([]);
-            },
-
-            summaryEntries: function () {
-                var self = this;
-                var counts = {};
-                Object.entries(this.hosts).forEach(function (entry) {
-                    if (self.omitted.indexOf(entry[0]) !== -1) return;
-                    var s = entry[1].status;
-                    counts[s] = (counts[s] || 0) + 1;
-                });
-                return ALL_STATUSES.filter(function (s) {
-                    return ALWAYS_SHOWN_STATUSES.indexOf(s) !== -1 || (counts[s] || 0) > 0;
-                }).map(function (s) {
-                    return { status: s, count: counts[s] || 0 };
-                });
-            },
-
-            summaryBadgeClickClass: function (entry) {
-                var base = 'summary-badge summary-badge-clickable status-' + entry.status;
-                if (this.activeStatuses.length > 0 && !this.isStatusActive(entry.status)) {
-                    base += ' summary-badge-dimmed';
-                }
-                return base;
             },
 
             gridItemClass: function (entry) {
@@ -482,30 +406,14 @@ document.addEventListener('alpine:init', function () {
                     gridTemplateRows: 'repeat(' + rows + ', 1fr)',
                     height: availH + 'px',
                 };
-            },
-
-            hostDetailHref: function (entry) {
-                return '/host-detail?hostname=' + encodeURIComponent(entry[0]);
-            },
-
-            hostName: function (entry) {
-                return entry[0];
-            },
-
-            omittedText: function () {
-                return this.omitted.length + ' host(s) omitted';
-            },
-
-            hasOmitted: function () {
-                return this.omitted.length > 0;
             }
-        };
+        });
     });
 
     /* ── Host detail component ────────────────────────────────── */
 
     Alpine.data('hostdetail', function () {
-        return {
+        return Object.assign({}, shared, {
             hostname: '',
             host: null,
             allHosts: {},
@@ -579,31 +487,6 @@ document.addEventListener('alpine:init', function () {
                 }).map(function (s) {
                     return { status: s, count: counts[s] || 0 };
                 });
-            },
-
-            summaryBadgeClass: function (entry) {
-                return 'summary-badge status-' + entry.status;
-            },
-
-            hasOmitted: function () {
-                return this.omitted.length > 0;
-            },
-
-            omittedText: function () {
-                return this.omitted.length + ' host(s) omitted';
-            },
-
-            restoreHost: function (hostname) {
-                var idx = this.omitted.indexOf(hostname);
-                if (idx !== -1) {
-                    this.omitted.splice(idx, 1);
-                    filterState.setOmitted(this.omitted);
-                }
-            },
-
-            clearOmitted: function () {
-                this.omitted = [];
-                filterState.setOmitted([]);
             },
 
             openModal: function (checkType, t) {
@@ -739,7 +622,7 @@ document.addEventListener('alpine:init', function () {
             graphAlt: function (checkType, t) {
                 return this.hostname + ' ' + checkType + ' ' + t.label;
             }
-        };
+        });
     });
 
 });
