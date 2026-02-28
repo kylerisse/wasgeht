@@ -34,7 +34,6 @@
 			<!-- Host header -->
 			<div class="host-header">
 				<h1>{{ .Hostname }}</h1>
-				<span x-bind:class="hostStatusBadgeClass()" x-text="statusText()"></span>
 				<div class="host-tags">
 					<template x-for="tag in hostTags()">
 						<span class="host-tag" x-text="tagText(tag)"></span>

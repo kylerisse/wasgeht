@@ -462,8 +462,10 @@
 }
 
 .graph-table {
-    width: 100%;
+    width: auto;
     border-collapse: collapse;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .graph-table th {
