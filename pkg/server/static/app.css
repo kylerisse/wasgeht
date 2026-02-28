@@ -1,0 +1,280 @@
+/* wasgeht unified styles — supplements Pico CSS classless */
+
+/* ── Status colors ────────────────────────────────────────── */
+
+.status-up { background-color: #c8e6c9; color: #1b5e20; }
+.status-down { background-color: #ffcccb; color: #b71c1c; }
+.status-degraded { background-color: #fff9c4; color: #f57f17; }
+.status-stale { background-color: #ffe0b2; color: #e65100; }
+.status-pending { background-color: #e1f5fe; color: #01579b; }
+.status-unconfigured { background-color: #e0e0e0; color: #424242; }
+
+/* ── Summary bar ──────────────────────────────────────────── */
+
+.summary-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.summary-bar a {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.summary-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.summary-badge-clickable {
+    cursor: pointer;
+    transition: opacity 0.15s;
+    user-select: none;
+}
+
+.summary-badge-clickable:hover {
+    opacity: 0.8;
+}
+
+.summary-badge-dimmed {
+    opacity: 0.35;
+}
+
+.summary-bar-spacer {
+    margin-left: auto;
+}
+
+.clear-omitted-btn {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    margin: 0;
+    width: auto;
+    border-radius: 1rem;
+    cursor: pointer;
+}
+
+.summary-bar input[type="search"] {
+    max-width: 200px;
+    margin-bottom: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* ── Dashboard table ──────────────────────────────────────── */
+
+.host-table {
+    width: 100%;
+}
+
+.host-table th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.host-table td,
+.host-table th {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+}
+
+.host-table .hostname-link {
+    font-weight: 500;
+}
+
+.check-badge {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    margin-right: 0.25rem;
+    white-space: nowrap;
+}
+
+.check-alive { background-color: #c8e6c9; color: #1b5e20; }
+.check-dead { background-color: #ffcccb; color: #b71c1c; }
+
+.host-actions {
+    cursor: pointer;
+    opacity: 0.4;
+    font-size: 0.75rem;
+}
+
+.host-actions:hover {
+    opacity: 1;
+}
+
+/* ── Grid view (flamegraph) ───────────────────────────────── */
+
+.grid-view {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0.5rem 0;
+}
+
+.grid-item {
+    flex: 0 0 calc(10% - 4px);
+    min-width: 80px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s;
+}
+
+.grid-item:hover {
+    transform: scale(1.05);
+    z-index: 1;
+}
+
+.grid-item a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0.15rem;
+}
+
+/* ── Host detail ──────────────────────────────────────────── */
+
+.host-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.host-header h1 {
+    margin-bottom: 0;
+}
+
+.host-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.host-tag {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    background-color: var(--pico-secondary-background, #e0e0e0);
+    border-radius: 1rem;
+}
+
+.check-filter,
+.time-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.check-filter label,
+.time-filter label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    align-self: center;
+}
+
+.filter-toggle {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--pico-primary, #1a6fb5);
+    color: var(--pico-primary, #1a6fb5);
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+    margin: 0;
+    width: auto;
+}
+
+.filter-toggle.active {
+    background-color: var(--pico-primary, #1a6fb5);
+    color: #fff;
+}
+
+.graph-section {
+    margin-bottom: 2rem;
+}
+
+.graph-section h3 {
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--pico-muted-border-color, #ddd);
+    padding-bottom: 0.25rem;
+}
+
+.graph-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.graph-grid img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.25rem;
+}
+
+/* ── Utilities ────────────────────────────────────────────── */
+
+.hidden {
+    display: none !important;
+}
+
+.text-muted {
+    color: var(--pico-muted-color, #666);
+}
+
+.sort-arrow {
+    font-size: 0.7rem;
+    margin-left: 0.25rem;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .grid-item {
+        flex: 0 0 calc(20% - 4px);
+        min-width: 60px;
+    }
+
+    .summary-bar input[type="search"] {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .host-table td,
+    .host-table th {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-item {
+        flex: 0 0 calc(33.33% - 4px);
+    }
+}
