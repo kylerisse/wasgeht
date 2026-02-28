@@ -19,6 +19,16 @@
 						<span x-text="entry.count"></span>
 					</span>
 				</template>
+				<span class="summary-bar-spacer"></span>
+				<div class="omitted-dropdown" x-show="hasOmitted()">
+					<button class="clear-omitted-btn" x-text="omittedText()"></button>
+					<div class="omitted-dropdown-menu">
+						<button class="omitted-dropdown-item" x-on:click="clearOmitted()">Restore all</button>
+						<template x-for="h in omitted">
+							<button class="omitted-dropdown-item" x-on:click="restoreHost(h)" x-text="h"></button>
+						</template>
+					</div>
+				</div>
 			</div>
 
 			<!-- Host header -->
@@ -34,7 +44,7 @@
 
 			<!-- Check type filter -->
 			<div class="check-filter">
-			<template x-for="ct in checkTypes">
+				<template x-for="ct in checkTypes">
 					<button x-bind:class="checkToggleClass(ct)"
 						x-on:click="toggleCheck(ct)"
 						x-text="checkLabel(ct)">

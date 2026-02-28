@@ -441,6 +441,7 @@ document.addEventListener('alpine:init', function () {
             hostname: '',
             host: null,
             allHosts: {},
+            omitted: [],
             checkTypes: [],
             visibleChecks: [],
             allTimes: ALL_TIMES,
@@ -453,6 +454,7 @@ document.addEventListener('alpine:init', function () {
                 var self = this;
                 var params = new URLSearchParams(window.location.search);
                 this.hostname = params.get('hostname') || '';
+                this.omitted = filterState.getOmitted();
                 if (this.hostname) {
                     this.fetchHost();
                     this.fetchAllHosts();
@@ -486,8 +488,10 @@ document.addEventListener('alpine:init', function () {
             },
 
             summaryEntries: function () {
+                var self = this;
                 var counts = {};
                 Object.entries(this.allHosts).forEach(function (entry) {
+                    if (self.omitted.indexOf(entry[0]) !== -1) return;
                     var s = entry[1].status;
                     counts[s] = (counts[s] || 0) + 1;
                 });
@@ -500,6 +504,27 @@ document.addEventListener('alpine:init', function () {
 
             summaryBadgeClass: function (entry) {
                 return 'summary-badge status-' + entry.status;
+            },
+
+            hasOmitted: function () {
+                return this.omitted.length > 0;
+            },
+
+            omittedText: function () {
+                return this.omitted.length + ' host(s) omitted';
+            },
+
+            restoreHost: function (hostname) {
+                var idx = this.omitted.indexOf(hostname);
+                if (idx !== -1) {
+                    this.omitted.splice(idx, 1);
+                    filterState.setOmitted(this.omitted);
+                }
+            },
+
+            clearOmitted: function () {
+                this.omitted = [];
+                filterState.setOmitted([]);
             },
 
             openModal: function (checkType, t) {
