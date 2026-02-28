@@ -71,10 +71,6 @@ var ALL_TIMES = [
     { key: '5y',  label: '5y' }
 ];
 
-function statusLabel(status) {
-    return status.replace('_', ' ');
-}
-
 function sortCompare(a, b, dir) {
     if (a < b) return dir === 'asc' ? -1 : 1;
     if (a > b) return dir === 'asc' ? 1 : -1;
