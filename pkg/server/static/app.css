@@ -126,13 +126,38 @@
     padding-bottom: 0.4rem;
 }
 
-.summary-bar input[type="search"] {
+.search-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.search-wrap input[type="search"] {
     max-width: 200px;
     margin-bottom: 0;
-    padding: 0.2rem 0.5rem;
+    padding: 0.2rem 1.6rem 0.2rem 0.5rem;
     font-size: 0.85rem;
     line-height: 1.2;
     height: auto;
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 0.3rem;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    line-height: 1;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--pico-muted-color, #888);
+    opacity: 0.6;
+}
+
+.search-clear-btn:hover {
+    opacity: 1;
 }
 
 /* ── Dashboard table ──────────────────────────────────────── */
@@ -430,7 +455,11 @@
 /* ── Responsive ───────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-    .summary-bar input[type="search"] {
+    .search-wrap {
+        width: 100%;
+    }
+
+    .search-wrap input[type="search"] {
         max-width: 100%;
         width: 100%;
     }

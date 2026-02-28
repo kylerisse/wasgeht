@@ -31,9 +31,12 @@
 						</template>
 					</div>
 				</div>
+				<div class="search-wrap">
 				<input type="search" placeholder="Search hosts..."
 					x-bind:value="search"
 					x-on:input="updateSearch($event.target.value)" />
+				<button class="search-clear-btn" x-show="search" x-on:click="updateSearch('')" title="Clear search">&#x2715;</button>
+			</div>
 			</div>
 
 			<!-- Host table -->
