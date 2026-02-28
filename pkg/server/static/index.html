@@ -22,7 +22,15 @@
 					</span>
 				</template>
 				<span class="summary-bar-spacer"></span>
-				<button class="clear-omitted-btn" x-show="hasOmitted()" x-on:click="clearOmitted()" x-text="omittedText()"></button>
+				<div class="omitted-dropdown" x-show="hasOmitted()">
+					<button class="clear-omitted-btn" x-text="omittedText()"></button>
+					<div class="omitted-dropdown-menu">
+						<button class="omitted-dropdown-item" x-on:click="clearOmitted()">Restore all</button>
+						<template x-for="h in omitted">
+							<button class="omitted-dropdown-item" x-on:click="restoreHost(h)" x-text="h"></button>
+						</template>
+					</div>
+				</div>
 				<input type="search" placeholder="Search hosts..."
 					x-bind:value="search"
 					x-on:input="updateSearch($event.target.value)" />

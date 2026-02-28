@@ -192,6 +192,14 @@ document.addEventListener('alpine:init', function () {
                 }
             },
 
+            restoreHost: function (hostname) {
+                var idx = this.omitted.indexOf(hostname);
+                if (idx !== -1) {
+                    this.omitted.splice(idx, 1);
+                    filterState.setOmitted(this.omitted);
+                }
+            },
+
             clearOmitted: function () {
                 this.omitted = [];
                 filterState.setOmitted([]);
@@ -364,6 +372,14 @@ document.addEventListener('alpine:init', function () {
                 var hostname = entry[0];
                 if (this.omitted.indexOf(hostname) === -1) {
                     this.omitted.push(hostname);
+                    filterState.setOmitted(this.omitted);
+                }
+            },
+
+            restoreHost: function (hostname) {
+                var idx = this.omitted.indexOf(hostname);
+                if (idx !== -1) {
+                    this.omitted.splice(idx, 1);
                     filterState.setOmitted(this.omitted);
                 }
             },

@@ -53,6 +53,11 @@
     margin-left: auto;
 }
 
+.omitted-dropdown {
+    position: relative;
+    display: inline-flex;
+}
+
 .clear-omitted-btn {
     font-size: 0.75rem;
     padding: 0.2rem 0.6rem;
@@ -60,6 +65,53 @@
     width: auto;
     border-radius: 1rem;
     cursor: pointer;
+}
+
+.omitted-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--pico-card-background-color, var(--pico-background-color, #fff));
+    color: var(--pico-color, #333);
+    border: 1px solid var(--pico-muted-border-color, #ccc);
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    min-width: 160px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+}
+
+.omitted-dropdown:hover .omitted-dropdown-menu {
+    display: block;
+}
+
+.omitted-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.3rem 0.75rem;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: inherit !important;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.omitted-dropdown-item:hover {
+    background: var(--pico-secondary-background, #e9ecef);
+}
+
+.omitted-dropdown-item:first-child {
+    font-weight: 600;
+    border-bottom: 1px solid var(--pico-muted-border-color, #ddd);
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.4rem;
 }
 
 .summary-bar input[type="search"] {
