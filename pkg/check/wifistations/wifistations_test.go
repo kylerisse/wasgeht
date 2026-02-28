@@ -186,14 +186,14 @@ func TestRun_Success(t *testing.T) {
 	if !result.Success {
 		t.Fatalf("expected success, got error: %v", result.Err)
 	}
-	if result.Metrics["phy0-ap0"] != 3 {
-		t.Errorf("expected phy0-ap0=3, got %d", result.Metrics["phy0-ap0"])
+	if p := result.Metrics["phy0-ap0"]; p == nil || *p != 3 {
+		t.Errorf("expected phy0-ap0=3, got %v", result.Metrics["phy0-ap0"])
 	}
-	if result.Metrics["phy1-ap0"] != 7 {
-		t.Errorf("expected phy1-ap0=7, got %d", result.Metrics["phy1-ap0"])
+	if p := result.Metrics["phy1-ap0"]; p == nil || *p != 7 {
+		t.Errorf("expected phy1-ap0=7, got %v", result.Metrics["phy1-ap0"])
 	}
-	if result.Metrics[TotalResultKey] != 10 {
-		t.Errorf("expected total=10, got %d", result.Metrics[TotalResultKey])
+	if p := result.Metrics[TotalResultKey]; p == nil || *p != 10 {
+		t.Errorf("expected total=10, got %v", result.Metrics[TotalResultKey])
 	}
 }
 
@@ -214,8 +214,8 @@ func TestRun_TotalIsSum(t *testing.T) {
 	if !result.Success {
 		t.Fatalf("unexpected failure: %v", result.Err)
 	}
-	if result.Metrics[TotalResultKey] != 17 {
-		t.Errorf("expected total=17, got %d", result.Metrics[TotalResultKey])
+	if p := result.Metrics[TotalResultKey]; p == nil || *p != 17 {
+		t.Errorf("expected total=17, got %v", result.Metrics[TotalResultKey])
 	}
 }
 

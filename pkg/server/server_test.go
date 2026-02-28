@@ -51,7 +51,7 @@ func TestHostStatuses_ReturnsSnapshots(t *testing.T) {
 	status := s.getOrCreateStatus("host1", "ping")
 	status.SetResult(check.Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 5000},
+		Metrics: map[string]*int64{"latency_us": p64(5000)},
 	})
 	status.SetLastUpdate(1700000000)
 
@@ -67,8 +67,8 @@ func TestHostStatuses_ReturnsSnapshots(t *testing.T) {
 	if !snap.Alive {
 		t.Error("expected alive")
 	}
-	if snap.Metrics["latency_us"] != 5000 {
-		t.Errorf("expected latency_us=5000, got %d", snap.Metrics["latency_us"])
+	if p := snap.Metrics["latency_us"]; p == nil || *p != 5000 {
+		t.Errorf("expected latency_us=5000, got %v", snap.Metrics["latency_us"])
 	}
 	if snap.LastUpdate != 1700000000 {
 		t.Errorf("expected lastupdate=1700000000, got %d", snap.LastUpdate)
@@ -94,7 +94,7 @@ func TestHostStatuses_SnapshotIndependence(t *testing.T) {
 	status := s.getOrCreateStatus("host1", "ping")
 	status.SetResult(check.Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 1000},
+		Metrics: map[string]*int64{"latency_us": p64(1000)},
 	})
 
 	snaps := s.hostStatuses("host1")

@@ -486,8 +486,8 @@ func TestRun_AQuery_Success(t *testing.T) {
 	if !result.Success {
 		t.Errorf("expected success, got failure: %v", result.Err)
 	}
-	if result.Metrics["router.risse.tv"] <= 0 {
-		t.Errorf("expected positive RTT, got %d", result.Metrics["router.risse.tv"])
+	if p := result.Metrics["router.risse.tv"]; p == nil || *p <= 0 {
+		t.Errorf("expected positive RTT, got %v", result.Metrics["router.risse.tv"])
 	}
 	if result.Timestamp.IsZero() {
 		t.Error("expected non-zero timestamp")
@@ -661,8 +661,14 @@ func TestRun_PartialSuccess_Failure(t *testing.T) {
 	if result.Success {
 		t.Error("expected failure when one query fails")
 	}
-	if len(result.Metrics) != 1 {
-		t.Errorf("expected 1 successful metric, got %d", len(result.Metrics))
+	if len(result.Metrics) != 2 {
+		t.Errorf("expected 2 metrics (one nil, one non-nil), got %d", len(result.Metrics))
+	}
+	if result.Metrics["router.risse.tv"] == nil {
+		t.Error("expected non-nil metric for successful query")
+	}
+	if result.Metrics["missing.example.com"] != nil {
+		t.Error("expected nil metric for failed query")
 	}
 }
 

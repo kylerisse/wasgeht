@@ -13,9 +13,9 @@ import (
 
 // CheckStatusResponse represents the status of a single check in the API response.
 type CheckStatusResponse struct {
-	Alive      bool             `json:"alive"`
-	Metrics    map[string]int64 `json:"metrics,omitempty"`
-	LastUpdate int64            `json:"lastupdate"`
+	Alive      bool              `json:"alive"`
+	Metrics    map[string]*int64 `json:"metrics,omitempty"`
+	LastUpdate int64             `json:"lastupdate"`
 }
 
 // HostAPIResponse represents a host in the API response.

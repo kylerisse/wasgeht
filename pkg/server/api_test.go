@@ -23,7 +23,7 @@ func TestHandleAPI_BasicResponse(t *testing.T) {
 	status := s.getOrCreateStatus("google", "ping")
 	status.SetResult(check.Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 12345},
+		Metrics: map[string]*int64{"latency_us": p64(12345)},
 	})
 	status.SetLastUpdate(1700000000)
 
@@ -59,8 +59,8 @@ func TestHandleAPI_BasicResponse(t *testing.T) {
 	if !pingCheck.Alive {
 		t.Error("expected ping to be alive")
 	}
-	if pingCheck.Metrics["latency_us"] != 12345 {
-		t.Errorf("expected latency_us=12345, got %d", pingCheck.Metrics["latency_us"])
+	if p := pingCheck.Metrics["latency_us"]; p == nil || *p != 12345 {
+		t.Errorf("expected latency_us=12345, got %v", pingCheck.Metrics["latency_us"])
 	}
 	if pingCheck.LastUpdate != 1700000000 {
 		t.Errorf("expected lastupdate=1700000000, got %d", pingCheck.LastUpdate)
@@ -659,7 +659,7 @@ func TestHandleHostAPI_Found(t *testing.T) {
 	status := s.getOrCreateStatus("ap1", "ping")
 	status.SetResult(check.Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 5000},
+		Metrics: map[string]*int64{"latency_us": p64(5000)},
 	})
 	status.SetLastUpdate(time.Now().Unix())
 

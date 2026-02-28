@@ -190,10 +190,17 @@ func (w *WifiStations) Run(ctx context.Context) check.Result {
 	}
 	radioMetrics[TotalResultKey] = total
 
+	// Convert to *int64 for Result.Metrics.
+	metrics := make(map[string]*int64, len(radioMetrics))
+	for k, v := range radioMetrics {
+		cv := v
+		metrics[k] = &cv
+	}
+
 	return check.Result{
 		Timestamp: now,
 		Success:   true,
-		Metrics:   radioMetrics,
+		Metrics:   metrics,
 	}
 }
 

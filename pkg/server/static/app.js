@@ -87,9 +87,9 @@ function checkSummaryMetric(checkType, data) {
     var metrics = data.metrics;
     if (checkType === 'wifi_stations') {
         var total = metrics['total'];
-        return total !== undefined ? ' ' + total : '';
+        return (total !== undefined && total !== null) ? ' ' + total : '';
     }
-    var vals = Object.values(metrics);
+    var vals = Object.values(metrics).filter(function (v) { return v !== null; });
     if (vals.length === 0) return '';
     var avg = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
     return ' ' + (avg / 1000).toFixed(1) + 'ms';
@@ -684,7 +684,14 @@ document.addEventListener('alpine:init', function () {
                 return Object.entries(data.metrics).map(function (e) {
                     var key = e[0];
                     var val = e[1];
-                    var displayVal = isCount ? String(val) : (val / 1000).toFixed(1) + ' ms';
+                    var displayVal;
+                    if (val === null) {
+                        displayVal = '!';
+                    } else if (isCount) {
+                        displayVal = String(val);
+                    } else {
+                        displayVal = (val / 1000).toFixed(1) + ' ms';
+                    }
                     return { key: key, value: displayVal };
                 });
             },

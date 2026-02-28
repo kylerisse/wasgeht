@@ -13,9 +13,9 @@ type Result struct {
 	Success bool
 
 	// Metrics holds named measurements from the check execution.
-	// For example, a ping check might set {"latency_us": 1234.0}.
-	// An empty or nil map is valid for checks that only report success/failure.
-	Metrics map[string]int64
+	// A nil pointer value for a key means the target was attempted but failed.
+	// An absent key or nil map means no measurement was attempted.
+	Metrics map[string]*int64
 
 	// Err holds any error encountered during check execution.
 	// A non-nil Err generally corresponds to Success being false,

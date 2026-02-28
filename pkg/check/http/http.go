@@ -119,12 +119,9 @@ func (c *Check) Describe() check.Descriptor {
 
 // Run executes HTTP GET requests to all configured URLs and returns a Result.
 func (c *Check) Run(ctx context.Context) check.Result {
-	result := check.Result{
-		Timestamp: time.Now(),
-		Metrics:   make(map[string]int64),
-	}
-
+	metrics := make(map[string]*int64, len(c.urls))
 	var lastErr error
+	succeeded := 0
 
 	for _, url := range c.urls {
 		start := time.Now()
@@ -132,6 +129,7 @@ func (c *Check) Run(ctx context.Context) check.Result {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			lastErr = fmt.Errorf("failed to create request for %s: %w", url, err)
+			metrics[url] = nil
 			continue
 		}
 
@@ -140,21 +138,22 @@ func (c *Check) Run(ctx context.Context) check.Result {
 
 		if err != nil {
 			lastErr = fmt.Errorf("request to %s failed: %w", url, err)
+			metrics[url] = nil
 			continue
 		}
 		resp.Body.Close()
 
-		result.Metrics[url] = elapsed.Microseconds()
+		v := elapsed.Microseconds()
+		metrics[url] = &v
+		succeeded++
 	}
 
-	if len(result.Metrics) == len(c.urls) {
-		result.Success = true
-	} else {
-		result.Success = false
-		result.Err = lastErr
+	return check.Result{
+		Timestamp: time.Now(),
+		Success:   succeeded == len(c.urls),
+		Err:       lastErr,
+		Metrics:   metrics,
 	}
-
-	return result
 }
 
 // Factory creates an HTTP Check from a config map.

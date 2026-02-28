@@ -141,20 +141,22 @@ func copyConfig(cfg map[string]any) map[string]any {
 }
 
 // rrdValuesFromResult extracts metric values from a check.Result in the
-// order declared by the metric definitions. Returns nil if no metrics are
-// present (complete failure, skip RRD update). When only some metrics are
-// present (partial failure), missing ones are returned as "U" so rrdtool
-// records them as UNKNOWN, allowing surviving targets to continue graphing.
+// order declared by the metric definitions. Returns nil if there are no
+// metric definitions or no metrics map (skip RRD update entirely). A nil
+// pointer value for a key means the target failed; it is recorded as "U"
+// (UNKNOWN) so rrdtool graphs the surviving targets while showing a gap
+// for the failed one.
 func rrdValuesFromResult(result check.Result, metrics []check.MetricDef) []string {
-	if len(metrics) == 0 || len(result.Metrics) == 0 {
+	if len(metrics) == 0 || result.Metrics == nil {
 		return nil
 	}
 	vals := make([]string, len(metrics))
 	for i, m := range metrics {
-		if v, ok := result.Metrics[m.ResultKey]; ok {
-			vals[i] = strconv.FormatInt(v, 10)
-		} else {
+		v, ok := result.Metrics[m.ResultKey]
+		if !ok || v == nil {
 			vals[i] = "U"
+		} else {
+			vals[i] = strconv.FormatInt(*v, 10)
 		}
 	}
 	return vals

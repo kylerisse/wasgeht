@@ -324,8 +324,8 @@ func TestRun_SingleURL_Success(t *testing.T) {
 	if !result.Success {
 		t.Errorf("expected success, got failure: %v", result.Err)
 	}
-	if result.Metrics[srv.URL] <= 0 {
-		t.Errorf("expected positive response time, got %d", result.Metrics[srv.URL])
+	if p := result.Metrics[srv.URL]; p == nil || *p <= 0 {
+		t.Errorf("expected positive response time, got %v", result.Metrics[srv.URL])
 	}
 	if result.Timestamp.IsZero() {
 		t.Error("expected non-zero timestamp")

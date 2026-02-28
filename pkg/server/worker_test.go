@@ -6,6 +6,8 @@ import (
 	"github.com/kylerisse/wasgeht/pkg/check"
 )
 
+func p64(v int64) *int64 { return &v }
+
 // pingMetrics is the standard ping metric definition used across tests.
 var pingMetrics = []check.MetricDef{
 	{ResultKey: "latency_us", DSName: "latency", Label: "latency", Unit: "ms", Scale: 1000},
@@ -55,7 +57,7 @@ func TestCopyConfig_NoTargetInjected(t *testing.T) {
 func TestRrdValuesFromResult_Success(t *testing.T) {
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 56780},
+		Metrics: map[string]*int64{"latency_us": p64(56780)},
 	}
 
 	vals := rrdValuesFromResult(result, pingMetrics)
@@ -76,7 +78,7 @@ func TestRrdValuesFromResult_Failure(t *testing.T) {
 func TestRrdValuesFromResult_NoLatencyMetric(t *testing.T) {
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]int64{"something_else": 420},
+		Metrics: map[string]*int64{"something_else": p64(420)},
 	}
 
 	vals := rrdValuesFromResult(result, pingMetrics)
@@ -92,9 +94,9 @@ func TestRrdValuesFromResult_MultipleMetrics(t *testing.T) {
 	}
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]int64{
-			"rx_bytes": 10000,
-			"tx_bytes": 2000,
+		Metrics: map[string]*int64{
+			"rx_bytes": p64(10000),
+			"tx_bytes": p64(2000),
 		},
 	}
 
@@ -117,9 +119,9 @@ func TestRrdValuesFromResult_PartialMetrics(t *testing.T) {
 	}
 	result := check.Result{
 		Success: false,
-		Metrics: map[string]int64{
-			"rx_bytes": 10000,
-			// tx_bytes missing (target failed)
+		Metrics: map[string]*int64{
+			"rx_bytes": p64(10000),
+			"tx_bytes": nil, // target failed
 		},
 	}
 
@@ -138,7 +140,7 @@ func TestRrdValuesFromResult_PartialMetrics(t *testing.T) {
 func TestRrdValuesFromResult_EmptyMetricDefs(t *testing.T) {
 	result := check.Result{
 		Success: true,
-		Metrics: map[string]int64{"latency_us": 12340},
+		Metrics: map[string]*int64{"latency_us": p64(12340)},
 	}
 
 	vals := rrdValuesFromResult(result, []check.MetricDef{})
