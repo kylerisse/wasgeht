@@ -64,7 +64,7 @@ func TestStaticServing_VendoredJS(t *testing.T) {
 	}
 	handler := newTestHandler(s)
 
-	req := httptest.NewRequest("GET", "/vendor/alpine-csp-3.15.8.min.js", nil)
+	req := httptest.NewRequest("GET", "/vendor/alpine-csp-3.15.12.min.js", nil)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
